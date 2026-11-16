@@ -4,6 +4,9 @@ A full design organization inside Claude Code. Ten specialist agents, 22 skills,
 
 This is not a collection of prompts. It is a structured knowledge system that gives Claude deep, specific expertise in UI/UX design by encoding the frameworks, principles, and case studies that professional designers spend years learning.
 
+> [!NOTE]
+> **Claude Code only:** this plugin's agents and commands are written for Claude Code, and other clients don't load them. Its skills follow the [Agent Skills](https://agentskills.io/) format and also work in GitHub Copilot, Codex, Cursor, Gemini CLI and OpenCode. See [Installing the plugins](https://github.com/uw-ssec/savvy/blob/main/docs/install.md) for what each client loads.
+
 ## Why This Exists
 
 Claude's built-in `frontend-design` capability is a single 42-line skill focused on visual aesthetics. It produces good-looking interfaces but has no depth behind the choices it makes -- no research methodology, no accessibility framework, no design system architecture, no understanding of why Stripe's dashboard works or why Netflix's Skip Intro button generates 136 million daily presses.

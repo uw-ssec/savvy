@@ -2,6 +2,9 @@
 
 Comprehensive agents and skills for modern Scientific Python development following community best practices.
 
+> [!NOTE]
+> **Claude Code only:** this plugin's agents and commands are written for Claude Code, and other clients don't load them. Its skills follow the [Agent Skills](https://agentskills.io/) format and also work in GitHub Copilot, Codex, Cursor, Gemini CLI and OpenCode. See [Installing the plugins](https://github.com/uw-ssec/savvy/blob/main/docs/install.md) for what each client loads.
+
 ## Overview
 
 This plugin provides expert guidance for scientific Python development, emphasizing reproducibility, modern tooling, and community standards from the [Scientific Python Development Guide](https://learn.scientific-python.org/development/).

@@ -37,102 +37,17 @@ This repository provides specialized agents and skills that understand the uniqu
 
 ## Installation
 
-Each plugin follows the [Agent Plugins](https://agent-plugins.org/specification) v1.0.0 format. It has a portable `plugin.json` at the plugin root, plus client-specific files for the clients that need them. Skills work in every client below. Agents, commands and MCP servers are client-specific, and not every client loads them:
-
-| Client | Install from | Skills | Agents | Commands | HoloViz MCP |
-| --- | --- | --- | --- | --- | --- |
-| Claude Code | marketplace | ✅ | ✅ | ✅ | ✅ |
-| GitHub Copilot CLI | marketplace | ✅ | 🚧 [#240](https://github.com/uw-ssec/rse-plugins/issues/240) | 🚧 [#240](https://github.com/uw-ssec/rse-plugins/issues/240) | ✅ |
-| VS Code (Copilot) | marketplace setting | 🟡 | 🚧 [#240](https://github.com/uw-ssec/rse-plugins/issues/240) | 🚧 [#240](https://github.com/uw-ssec/rse-plugins/issues/240) | ❔ |
-| Codex | marketplace | ✅ | ❌ | ❌ | ✅ |
-| Cursor | local folder | 🟡 | ❌ | ❌ | 🟡 |
-| OpenCode | copied skills | ✅ | ❌ | ❌ | 🔧 `opencode.json` |
-
-✅ Verified · 🟡 Expected, untested · ❔ Unknown · 🚧 Planned ([#240](https://github.com/uw-ssec/rse-plugins/issues/240)) · ❌ Unsupported · 🔧 Manual setup
-
-🟡 cells follow the client's documentation but haven't been run against this repository. For MCP, ✅ means the client found the server configuration; the server itself wasn't started.
-
-Replace `scientific-python-development` in the examples below with any plugin from [Available Plugins](#available-plugins).
+Skills work in Claude Code, GitHub Copilot (CLI and VS Code), Codex, Cursor, Gemini CLI and OpenCode. Agents and commands are written for Claude Code and only load there. **[docs/install.md](docs/install.md)** has the support matrix, install steps for each client, and how to copy skills into any client's `.agents/skills/` directory.
 
 > [!IMPORTANT]
 > Skills are instructions, not programs, but your agent acts on them: it may run commands, edit files and use the network, within the permissions your client allows. Before installing, read [Trust and safety](docs/trust-and-safety.md) for what plugins can and can't do, how to review one, and where each client's permission controls are. To report a security problem privately, see [SECURITY.md](SECURITY.md).
 
-### Claude Code
+In Claude Code:
 
 ```bash
-claude plugin marketplace add uw-ssec/rse-plugins
+claude plugin marketplace add uw-ssec/savvy
 claude plugin install scientific-python-development@rse-plugins
 ```
-
-Inside Claude Code, the same commands are `/plugin marketplace add uw-ssec/rse-plugins` and `/plugin install scientific-python-development@rse-plugins`. Claude Code reads `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`.
-
-### GitHub Copilot CLI
-
-```bash
-copilot plugin marketplace add uw-ssec/rse-plugins
-copilot plugin install scientific-python-development@rse-plugins
-```
-
-Copilot reads the root `plugin.json` and the marketplace in `.claude-plugin/marketplace.json`, and loads each plugin's skills and MCP servers. It doesn't load our agents or commands yet: those are written for Claude Code, and Copilot-format versions for Copilot CLI and VS Code are tracked in [#240](https://github.com/uw-ssec/rse-plugins/issues/240). The [Codespace](#github-codespaces) installs every plugin this way.
-
-### Codex
-
-```bash
-codex plugin marketplace add uw-ssec/rse-plugins
-codex plugin add scientific-python-development@rse-plugins
-```
-
-Codex loads skills and MCP servers. It doesn't load agents or commands.
-
-### Cursor
-
-Cursor's public marketplace is curated, so this repository isn't listed there. To use a plugin, copy it into Cursor's local plugin folder. Cursor skips symlinks that point outside that folder, so copy rather than link:
-
-```bash
-git clone https://github.com/uw-ssec/rse-plugins.git
-mkdir -p ~/.cursor/plugins/local
-cp -R rse-plugins/plugins/scientific-python-development ~/.cursor/plugins/local/
-```
-
-Then restart Cursor (or run **Developer: Reload Window**), and check the plugin's skills and MCP servers under **Customize**. Cursor loads each plugin as an Agent Plugin, which means skills and MCP servers only. Our agents and commands use Claude Code's format, so Cursor doesn't load them. Teams and Enterprise plans can also add the repository to a team marketplace (`.cursor-plugin/marketplace.json`) instead of copying. See [Cursor plugins](https://cursor.com/docs/plugins). These steps follow Cursor's documentation; they haven't been tested.
-
-### OpenCode
-
-OpenCode doesn't install plugin packages, but it discovers skills. Copy the skills you want into a skills directory, either globally (`~/.config/opencode/skills/`) or in a project (`.agents/skills/` or `.opencode/skills/`):
-
-```bash
-git clone https://github.com/uw-ssec/rse-plugins.git
-mkdir -p ~/.config/opencode/skills
-cp -R rse-plugins/plugins/scientific-python-development/skills/* ~/.config/opencode/skills/
-```
-
-The same copy works for any client that reads a skills directory, such as `~/.agents/skills/`. Agents and commands aren't available in OpenCode. To use the HoloViz MCP server, add it to your `opencode.json` yourself:
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "holoviz-mcp": {
-      "type": "local",
-      "command": ["docker", "run", "-i", "--rm", "-v", "holoviz-mcp:/root/.holoviz-mcp", "ghcr.io/marcskovmadsen/holoviz-mcp:latest"]
-    }
-  }
-}
-```
-
-### VS Code
-
-To configure plugin marketplaces in VS Code, use the `chat.plugins.marketplaces` setting.
-
-Here's an example that can be added to the `settings.json` file.
-
-```json
-"chat.plugins.marketplaces": [
-    "uw-ssec/rse-plugins"
-]
-```
-
-([Documentation link](https://code.visualstudio.com/docs/agent-customization/agent-plugins#_configure-plugin-marketplaces))
 
 ## Available Plugins
 
@@ -415,6 +330,7 @@ We welcome contributions of new agents, skills, and improvements! Please see [CO
 
 For detailed information about the plugins and their contents:
 
+- [Installation](docs/install.md) - Which clients load which parts of a plugin, and how to install in each
 - [Contributing Guidelines](CONTRIBUTING.md) - How to contribute to this repository
 - [Trust and Safety](docs/trust-and-safety.md) - What plugins can and can't do, how to review one before installing, and where to find each client's permission controls
 - [Security Policy](SECURITY.md) - How to report a vulnerability privately, response times and supported versions

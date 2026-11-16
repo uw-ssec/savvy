@@ -7,6 +7,9 @@ environments. It is designed for research software engineers who need
 reproducible, secure, and optimized container images for scientific computing
 workflows, HPC clusters, and cloud-native deployments.
 
+> [!NOTE]
+> **Claude Code only:** this plugin's agents and commands are written for Claude Code, and other clients don't load them. Its skills follow the [Agent Skills](https://agentskills.io/) format and also work in GitHub Copilot, Codex, Cursor, Gemini CLI and OpenCode. See [Installing the plugins](https://github.com/uw-ssec/savvy/blob/main/docs/install.md) for what each client loads.
+
 ## Agents
 
 | Name | Description |

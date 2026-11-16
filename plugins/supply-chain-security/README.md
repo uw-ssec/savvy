@@ -2,6 +2,9 @@
 
 A flagship plugin for defending research software projects against the 2025–2026 wave of open-source supply-chain attacks — maintainer account takeovers, release-tag hijacking, lifecycle-script execution, CI secret harvesting, and persistence-on-Python-restart `.pth` injection. Derived from the UW SSEC Open Source Supply Chain Security document.
 
+> [!NOTE]
+> **Claude Code only:** this plugin's agents and commands are written for Claude Code, and other clients don't load them. Its skills follow the [Agent Skills](https://agentskills.io/) format and also work in GitHub Copilot, Codex, Cursor, Gemini CLI and OpenCode. See [Installing the plugins](https://github.com/uw-ssec/savvy/blob/main/docs/install.md) for what each client loads.
+
 ## Overview
 
 **Version:** 0.2.0

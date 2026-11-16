@@ -342,9 +342,15 @@ def check_skills(pdir: Path, root: Path, errors: list[str]) -> None:
         for k in ("license", "compatibility", "allowed-tools"):
             if k in fm and not isinstance(fm[k], str):
                 errors.append(f"{srel}/SKILL.md: {k} must be a string")
-        # The spec wants string values; this repo's skills list their references under metadata.
-        if not isinstance(fm.get("metadata", {}), dict):
+        # The spec defines metadata as a map of string keys to string values. YAML reads an
+        # unquoted date such as 2026-10-27 as a date, so quote it. List file paths space-separated.
+        metadata = fm.get("metadata", {})
+        if not isinstance(metadata, dict):
             errors.append(f"{srel}/SKILL.md: metadata must be a mapping")
+        else:
+            for k, v in metadata.items():
+                if not isinstance(k, str) or not isinstance(v, str):
+                    errors.append(f"{srel}/SKILL.md: metadata.{k} must be a string, not {type(v).__name__}")
         for k in sorted(set(fm) - SKILL_FIELDS, key=str):
             errors.append(f"{srel}/SKILL.md: frontmatter field {k!r} is not in the Agent Skills spec")
         for f in sorted(skill.rglob("*")):

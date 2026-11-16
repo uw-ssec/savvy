@@ -3,6 +3,9 @@
 Project lifecycle management — onboarding, documentation quality, handoff
 readiness, and community health for research software projects in any language.
 
+> [!NOTE]
+> **Claude Code only:** this plugin's agents and commands are written for Claude Code, and other clients don't load them. Its skills follow the [Agent Skills](https://agentskills.io/) format and also work in GitHub Copilot, Codex, Cursor, Gemini CLI and OpenCode. See [Installing the plugins](https://github.com/uw-ssec/savvy/blob/main/docs/install.md) for what each client loads.
+
 ## Purpose
 
 This plugin handles the human and organizational concerns of running an

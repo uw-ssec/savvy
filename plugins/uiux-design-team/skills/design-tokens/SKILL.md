@@ -4,13 +4,8 @@ description: Guides design token architecture and Style Dictionary configuration
 metadata:
    style-dictionary-version: "4.x / 5.x"
    last-verified: "2026-10-27"
-   assets:
-   - assets/validate-tokens.mjs
-   - assets/validate-tokens.test.mjs
-   references:
-   - references/naming-conventions.md
-   - references/platform-output.md
-   - references/token-taxonomy.md
+   assets: assets/validate-tokens.mjs assets/validate-tokens.test.mjs
+   references: references/naming-conventions.md references/platform-output.md references/token-taxonomy.md
 ---
 
 # Design Tokens

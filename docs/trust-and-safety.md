@@ -15,7 +15,7 @@ A plugin is a folder of text files. Installing one copies those files to where y
 | Command (`commands/*.md`) | A Markdown prompt that you start with a slash command, such as `/benchmark` |
 | MCP server (`mcp.json`, `.mcp.json`) | Configuration that tells the client how to start a separate program that offers the agent extra tools. Only `holoviz-visualization` has one. |
 
-Not every client loads every part. See the support table in [Installation](../README.md#installation) for which parts each client loads.
+Not every client loads every part. See the [support matrix](install.md#support-matrix) for which parts each client loads.
 
 ## Skills are instructions, not programs
 
@@ -87,7 +87,7 @@ rg -n --hidden "allowed-tools|curl|wget|\| *(ba|z)?sh|sudo|rm -rf|https?://|<!--
 Install only the plugins you need, and install the version you reviewed rather than whatever is on `main` later:
 
 - **Review a release, then pin it.** [Releases](https://github.com/uw-ssec/savvy/releases) are tagged, and the release notes list what changed in each plugin. In Claude Code, add `#<tag>` to pin the marketplace to a release: `claude plugin marketplace add uw-ssec/savvy#<tag>`.
-- **Or copy what you reviewed.** Clone the repository, check out the tag or commit you reviewed, and copy the plugin into your client, as in the Cursor and OpenCode steps in [Installation](../README.md#installation).
+- **Or copy what you reviewed.** Clone the repository, check out the tag or commit you reviewed, and copy the plugin into your client, as in [Copy skills into any client](install.md#copy-skills-into-any-client).
 
 A pinned or copied plugin doesn't receive security fixes on its own. Watch for advisories as described in [SECURITY.md](../SECURITY.md#supported-versions), and update when one affects a plugin you use.
 

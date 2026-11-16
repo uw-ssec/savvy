@@ -45,7 +45,7 @@ Each plugin follows the [Agent Plugins](https://agent-plugins.org/specification)
 | GitHub Copilot CLI | marketplace | ✅ | 🚧 [#240](https://github.com/uw-ssec/rse-plugins/issues/240) | 🚧 [#240](https://github.com/uw-ssec/rse-plugins/issues/240) | ✅ |
 | VS Code (Copilot) | marketplace setting | 🟡 | 🚧 [#240](https://github.com/uw-ssec/rse-plugins/issues/240) | 🚧 [#240](https://github.com/uw-ssec/rse-plugins/issues/240) | ❔ |
 | Codex | marketplace | ✅ | ❌ | ❌ | ✅ |
-| Cursor | local folder | 🟡 | ❌ | ❌ | 🟡 |
+| Cursor | local folder | ✅ | ✅ | ✅ | ✅ |
 | OpenCode | copied skills | ✅ | ❌ | ❌ | 🔧 `opencode.json` |
 
 ✅ Verified · 🟡 Expected, untested · ❔ Unknown · 🚧 Planned ([#240](https://github.com/uw-ssec/rse-plugins/issues/240)) · ❌ Unsupported · 🔧 Manual setup
@@ -94,7 +94,7 @@ mkdir -p ~/.cursor/plugins/local
 cp -R rse-plugins/plugins/scientific-python-development ~/.cursor/plugins/local/
 ```
 
-Then restart Cursor (or run **Developer: Reload Window**), and check the plugin's skills and MCP servers under **Customize**. Cursor loads each plugin as an Agent Plugin, which means skills and MCP servers only. Our agents and commands use Claude Code's format, so Cursor doesn't load them. Teams and Enterprise plans can also add the repository to a team marketplace (`.cursor-plugin/marketplace.json`) instead of copying. See [Cursor plugins](https://cursor.com/docs/plugins). These steps follow Cursor's documentation; they haven't been tested.
+Cursor picks up the new folder on its own. If the plugin doesn't appear under **Customize**, restart Cursor or run **Developer: Reload Window**. Cursor documents a plugin with a root `plugin.json` as skills and MCP servers only, but it also loads our agents as subagents and our commands in the `/` menu. Teams and Enterprise plans can also add the repository to a team marketplace (`.cursor-plugin/marketplace.json`) instead of copying. See [Cursor plugins](https://cursor.com/docs/plugins). Tested with Cursor 3.28.7; the team marketplace hasn't been tested.
 
 ### OpenCode
 

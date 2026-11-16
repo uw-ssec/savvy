@@ -21,10 +21,10 @@ Generated from them (``sync`` writes, ``check`` compares):
   portable manifest, so it gets a copy of the shared fields;
 - the shared fields of each ``.claude-plugin/marketplace.json`` entry;
 - ``.agents/plugins/marketplace.json`` (Codex);
-- ``.cursor-plugin/marketplace.json`` (Cursor). There is deliberately no
-  ``.cursor-plugin/plugin.json``: without one, Cursor loads each package as an
-  Agent Plugin (skills and MCP only) instead of parsing the Claude-format
-  agents and commands as Cursor components.
+- ``.cursor-plugin/marketplace.json`` (Cursor). There is no
+  ``.cursor-plugin/plugin.json``: Cursor loads each package from its root
+  plugin.json. Cursor documents that format as skills and MCP only, but
+  Cursor 3.28.7 also loads the package's ``agents/`` and ``commands/``.
 
 GitHub Copilot (CLI and VS Code) gets no generated files. With a root
 plugin.json, Copilot reads agents and commands only from its own extension

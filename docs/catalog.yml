@@ -1,0 +1,289 @@
+# Metadata for docs/catalog.md that SKILL.md frontmatter doesn't carry.
+#
+# docs/catalog.md is generated from this file plus every SKILL.md, command, and
+# agent. After editing either, run `pixi run catalog-sync` and commit both files.
+# CI (`pixi run catalog-check`) fails if a skill has no example prompt, a plugin
+# has no tier or maintainer, or docs/catalog.md is out of date.
+#
+# For each plugin:
+#   tier:        one of the keys under `tiers`.
+#   maintainer:  GitHub handle or team that owns the plugin's skills
+#                (@uw-ssec/engineering for SSEC plugins, the contributor for
+#                contributed ones). A skill can override it with its own
+#                `maintainer:`.
+#   skills.<name>.example:
+#                a prompt a user would type that should activate the skill.
+#                Before adding one, check that it does: run
+#                `pixi run -e ci python evals/catalog-triggers/trigger_test.py <plugin>/<skill>`
+#                (or try it in Claude Code with the plugin loaded).
+#   skills.<name>.activates:
+#                set to false when no reasonable prompt activated the skill in
+#                testing. The catalog then flags the row. Fix the skill's
+#                description and remove the flag, rather than leaving it.
+#   skills.<name>.issue:
+#                required with `activates: false`: the issue number that tracks
+#                fixing the skill's description. The flagged row links to it.
+
+tiers:
+  Core: >-
+    Maintained by SSEC and useful across research software projects in any field.
+    Held to the full release, CI, and security standards.
+  Community: >-
+    Built for a specific scientific field or tool ecosystem, or contributed from
+    outside SSEC. Reviewed on entry and must pass CI. Domain plugins were folded
+    into this tier (see #136).
+
+plugins:
+  # --- Core ------------------------------------------------------------------
+
+  scientific-python-development:
+    tier: Core
+    maintainer: "@uw-ssec/engineering"
+    skills:
+      code-quality-tools:
+        example: Set up ruff, mypy, and pre-commit hooks for a scientific Python package, with the config in pyproject.toml.
+      pixi-package-manager:
+        example: Set up a pixi.toml for a new scientific Python project that mixes conda-forge and PyPI packages, with a test task and a lockfile for Linux and macOS.
+      python-packaging:
+        example: Create a pyproject.toml with a src layout and Hatchling for a new scientific Python package that I'll publish to PyPI.
+      python-testing:
+        example: I need to organize tests for a scientific Python package. What's a good pytest layout with shared fixtures, parametrization, and property-based testing?
+      scientific-documentation:
+        example: Set up Sphinx docs with NumPy-style docstrings for a scientific Python package and configure it to build on Read the Docs.
+
+  ai-research-workflows:
+    tier: Core
+    maintainer: "@uw-ssec/engineering"
+    skills:
+      creating-handoffs:
+        example: Create a handoff document so the next session can pick up this work where we left off.
+      ensuring-reproducibility:
+        example: 'Make this analysis reproducible: capture provenance and pin the environment for the result.'
+      hardening-research-code:
+        example: 'Harden this research code: check it''s numerically correct and add regression tests against known results.'
+      implementing-plans:
+        example: Implement the plan in docs/rse/specs/plan-regridding.md.
+      iterating-plans:
+        example: Update the implementation plan to add a phase for GPU support based on the experiment results.
+      planning-implementations:
+        example: Create an implementation plan for adding NetCDF export to a Python package.
+      researching:
+        example: 'Survey prior art: what tools or libraries exist for regridding climate model output, and has this been done before?'
+      running-experiments:
+        example: I'm not sure whether Numba or Cython is better for this hot loop. Prototype both approaches head-to-head and compare them before we commit to a design.
+      using-research-workflows:
+        example: 'I''m starting a new feature in a research codebase. Guide me through the research workflow: which skill should I use, and where do I start?'
+      validating-implementations:
+        example: Validate the implementation against its plan before I open a PR.
+
+  project-management:
+    tier: Core
+    maintainer: "@uw-ssec/engineering"
+    skills:
+      community-health-files:
+        example: Create CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, and CITATION.cff files and GitHub issue templates for a new open-source research project.
+      documentation-validation:
+        example: Check my docs for broken links and set up prose linting with Vale in CI.
+
+  containerization:
+    tier: Core
+    maintainer: "@uw-ssec/engineering"
+    skills:
+      compose-orchestration:
+        example: 'Help me with Docker Compose: set up a multi-container local dev stack for a web API, Postgres, and a Jupyter service, with service dependencies and health checks.'
+      container-registries:
+        example: Set up a GitHub Actions workflow that builds a multi-architecture image and pushes it to GHCR with version tags.
+      container-security:
+        example: Scan our Docker image for vulnerabilities, triage the findings, then generate an SBOM and sign the image with cosign.
+      devcontainers:
+        example: 'Configure a dev container for this repository: a devcontainer.json with features and lifecycle hooks so it works in GitHub Codespaces.'
+      dockerfile-patterns:
+        example: What's the best way to optimize a Dockerfile for a Python app? Explain multi-stage builds, layer caching, and base image selection, with an example.
+        activates: false
+        issue: 168
+      gpu-containers:
+        example: 'Configure a Docker container environment for a GPU workload: CUDA passthrough for PyTorch, and validate multi-GPU access.'
+      podman:
+        example: Migrate a Docker workflow to rootless Podman and run the service with a Quadlet systemd unit.
+      singularity-apptainer:
+        example: How do I run containers on an HPC cluster with Apptainer? Convert our Docker image for the cluster and run it under Slurm.
+
+  supply-chain-security:
+    tier: Core
+    maintainer: "@uw-ssec/engineering"
+    skills:
+      supply-chain-dependency-security:
+        example: Evaluate a new dependency for addition to our pyproject.toml. Review it and our lockfile for maintainer-account-takeover style supply-chain attacks.
+      supply-chain-ecosystem-quirks:
+        example: What Rust-specific supply-chain gotchas should I check in Cargo.toml and .cargo/config.toml?
+      supply-chain-hardened-ci-cd:
+        example: 'Write a hardened GitHub Actions release workflow (.github/workflows/release.yml) for a Python package: SHA-pinned actions, a two-job build/publish split, OIDC trusted publishing, and deny-by-default permissions.'
+        activates: false
+        issue: 184
+      supply-chain-incident-response:
+        example: 'The tj-actions/changed-files GitHub Action was compromised and our CI used it last week. Walk me through the incident-response runbook: lockfile check, CI cache check, secret rotation, persistence hunt.'
+        activates: false
+        issue: 185
+      supply-chain-sbom-provenance:
+        example: Our release workflow publishes to PyPI. What SLSA level does it reach, and how do we add SBOM generation and provenance attestations?
+      supply-chain-threat-awareness:
+        example: Which active 2025-2026 supply chain campaigns (Shai-Hulud, TeamPCP, the axios compromise) should a Python and npm research project worry about, and what patterns do CVE scanners miss?
+
+  research-software-design:
+    tier: Core
+    maintainer: "@uw-ssec/engineering"
+    skills:
+      user-persona-discovery:
+        example: Help me create personas for the users of a climate data portal. Who are my users?
+
+  # --- Community ---------------------------------------------------------------
+
+  scientific-domain-applications:
+    tier: Community
+    maintainer: "@uw-ssec/engineering"
+    skills:
+      astropy-fundamentals:
+        example: Explain how to do aperture photometry on a FITS image with AstroPy and photutils, including WCS coordinates and physical units.
+        activates: false
+        issue: 175
+      xarray-for-multidimensional-data:
+        example: 'Explain how to work with xarray datasets: multidimensional labeled arrays from NetCDF files, groupby over time, and Dask for data larger than memory.'
+
+  zarr-data-format:
+    tier: Community
+    maintainer: "@uw-ssec/engineering"
+    skills:
+      cloud-storage-backends:
+        example: How should I read and write Zarr data on S3? Compare fsspec, obstore, and Icechunk for remote Zarr access.
+      compression-codecs:
+        example: 'Configure compression for float32 Zarr arrays: choose between Blosc with Zstd and plain Zstd, and add a Quantize filter.'
+      data-migration:
+        example: 'We''re migrating scientific datasets: convert our HDF5 and NetCDF files to Zarr, or use VirtualiZarr or kerchunk to make virtual stores.'
+      zarr-fundamentals:
+        example: I'm new to Zarr. Explain how chunked, compressed N-dimensional arrays work in zarr-python, with an example of creating an array in a group.
+      zarr-xarray-integration:
+        example: Write an xarray to_zarr pipeline that uses append_dim for daily files and region writes for backfills, with encoding set so the Dask chunks align with the Zarr chunks.
+        activates: false
+        issue: 219
+
+  zarr-chunk-optimization:
+    tier: Community
+    maintainer: "@uw-ssec/engineering"
+    skills:
+      access-pattern-analysis:
+        example: Our users say "I make maps" and "I need time series". Turn that into weighted access patterns before we benchmark Zarr chunking.
+      chunking-strategy:
+        example: What Zarr chunk sizing should I use? Help me choose chunk configurations for a scientific dataset on S3 based on its access patterns.
+      performance-reporting:
+        example: 'Turn these Zarr chunking benchmark results into a stakeholder report with ranked recommendations: (time=1, lat=720, lon=1440): map read 0.4 s, time-series read 38 s; (time=365, lat=90, lon=90): map 6.1 s, series 0.9 s; (time=30, lat=180, lon=360): map 1.2 s, series 4.5 s.'
+        activates: false
+        issue: 212
+      rechunking:
+        example: Write a Python script that rechunks a .zarr dataset on S3 from (1, 720, 1440) chunks to (30, 180, 360), with memory-bounded execution, progress reporting, and validation of the output.
+        activates: false
+        issue: 213
+      synthetic-data:
+        example: Write a Python script that generates a synthetic Zarr dataset with dimensions time=8760, lat=721, lon=1440 in float32 with Blosc compression, as a benchmark input for chunking tests.
+        activates: false
+        issue: 214
+
+  uiux-design-team:
+    tier: Community
+    maintainer: "@cdcore09"
+    skills:
+      ab-testing-strategy:
+        example: Our A/B test had 4,812 conversions from 50,000 users in control and 5,050 from 50,000 in the variant. Is that significant? Give a ship/no-ship recommendation.
+        activates: false
+        issue: 188
+      accessibility-audit:
+        example: 'Audit this signup form for WCAG 2.2 AA: <form><input placeholder="Email"><div onclick="submit()" style="color:#999;background:#fff">Sign up</div></form>'
+        activates: false
+        issue: 189
+      color-systems:
+        example: 'Generate a color system from the brand color #1F6FEB: a 50-950 shade scale, semantic CSS custom property tokens, dark mode variants, and WCAG contrast checks.'
+      component-library:
+        example: Scaffold a Button component for our shared component library with CVA variants and Storybook stories.
+      css-architecture:
+        example: 'We''re starting a new frontend project and choosing a CSS approach: BEM, Tailwind, CSS Modules, or CSS-in-JS? Recommend one and set up cascade layers.'
+      design-case-studies:
+        example: Do a teardown of Linear's onboarding and pull out patterns we can reuse.
+      design-handoff:
+        example: Package a settings page design for developer handoff with component spec sheets and redline annotations.
+      design-philosophies:
+        example: Structure a design critique for our product using Gestalt, Nielsen, and Rams principles, with severity-rated findings.
+      design-system-creation:
+        example: Bootstrap a new design system from scratch with Style Dictionary and Storybook.
+      design-tokens:
+        example: Set up Style Dictionary with a three-tier token architecture that outputs CSS variables, iOS, and Android files.
+      frontend-components:
+        example: Write a reusable Tabs UI component in React with a typed props interface, controlled and uncontrolled state, and keyboard support.
+        activates: false
+        issue: 198
+      grid-layout-systems:
+        example: Give me the CSS for a 12-column page grid with a sidebar and a responsive grid of dashboard cards, and explain when to use Grid versus Flexbox here.
+        activates: false
+        issue: 199
+      information-architecture:
+        example: Users of our site say "I can't find anything." Restructure the navigation and plan a card sort.
+      motion-design:
+        example: Choose easing and durations for modal open and close transitions, write the CSS, and respect prefers-reduced-motion.
+      responsive-design:
+        example: Write the CSS for a product card list that is one column on phones, two on tablets, and four on desktop, with container queries, 44px touch targets, and srcset images.
+        activates: false
+        issue: 202
+      typography-systems:
+        example: Create a fluid type scale from 16px to 20px body text with a 1.25 ratio, using clamp(), and choose a font pairing for headings and body.
+        activates: false
+        issue: 203
+      usability-evaluation:
+        example: 'Here are SUS scores from 8 participants: 72.5, 65, 80, 57.5, 70, 85, 62.5, 77.5. Interpret them and outline a severity-ranked usability findings report.'
+        activates: false
+        issue: 204
+      user-journey-mapping:
+        example: Create a customer journey map for a first-time user renting a bike from a city bike-share app, with touchpoints, emotions, pain points, and opportunities.
+        activates: false
+        issue: 205
+      user-research:
+        example: 'Plan a round of user interviews for a new research data portal: an interview guide, recruiting criteria, and how we''ll synthesize the findings into personas.'
+        activates: false
+        issue: 206
+      ux-writing:
+        example: 'Write UI microcopy for a file upload flow: the button label, an error message for a file that''s too large, an empty state, and a success toast.'
+        activates: false
+        issue: 207
+      visual-design:
+        example: 'Define a distinctive aesthetic direction for a new interface: theme, color palette, typography, and component visual styles.'
+      wireframing:
+        example: Create a lo-fi wireframe for a search results page of a dataset catalog, with filters, a results list, and pagination, and show how it changes at mobile width.
+
+  holoviz-visualization:
+    tier: Community
+    maintainer: "@cdcore09"
+    skills:
+      advanced-rendering:
+        example: Plot 500 million GPS points with Datashader without running out of memory.
+      colormaps-styling:
+        example: Pick a perceptually uniform, colorblind-friendly Colorcet colormap for a temperature heatmap and apply it.
+      data-visualization:
+        example: Use HoloViews to compose overlays and layouts for a multi-dimensional dataset, with interactive streams and linked selection.
+      geospatial-visualization:
+        example: Make an interactive choropleth map of county-level data with GeoViews and a tile basemap.
+      lumen-ai:
+        example: Set up Lumen AI so a team can ask questions of a Postgres database in natural language.
+      lumen-dashboards:
+        example: Create a Lumen YAML dashboard that reads a CSV and adds cross-filtering, with no Python code.
+      panel-dashboards:
+        example: Write a Panel application with a sidebar of widgets, a FileInput for CSV uploads, and a plot that updates when the widgets change, served with the FastListTemplate.
+        activates: false
+        issue: 227
+      parameterization:
+        example: 'Build parameterized classes with the Param library: automatic validation, watchers for side effects, and a UI auto-generated from the parameters.'
+      plotting-fundamentals:
+        example: Make a quick interactive line plot of a pandas DataFrame with hvPlot, with hover tooltips.
+
+  gaia-data-downloader:
+    tier: Community
+    maintainer: "@gaia-hazlab"
+    skills:
+      download-script-dev:
+        example: Develop a download script for CONUS404 precipitation over Washington State for 2020.

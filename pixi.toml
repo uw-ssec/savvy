@@ -23,6 +23,8 @@ plugins-sync = { cmd = "python .github/scripts/agent_plugins.py sync", descripti
 plugins-check = { cmd = "python .github/scripts/agent_plugins.py check", description = "Check plugin manifests, skills and links (CI gate)" }
 plugins-check-claude = { cmd = "python .github/scripts/agent_plugins.py check --claude", description = "Run plugins-check plus `claude plugin validate --strict`" }
 test-scripts = { cmd = "pytest .github/scripts/tests -q", description = "Run the CI script tests" }
+catalog-sync = { cmd = "python .github/scripts/skill_catalog.py sync", description = "Regenerate docs/catalog.md from SKILL.md frontmatter and docs/catalog.yml" }
+catalog-check = { cmd = "python .github/scripts/skill_catalog.py check", description = "Check docs/catalog.md is current and every skill has a catalog entry (CI gate)" }
 
 [environments]
 ci = { features = ["ci"], no-default-feature = true }

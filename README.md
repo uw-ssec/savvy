@@ -135,6 +135,8 @@ Here's an example that can be added to the `settings.json` file.
 
 The repository provides Claude Code plugins organized by domain. Each plugin contains agents (specialized AI personas) and skills (reusable knowledge modules).
 
+**Not sure which skill you need?** The [skill catalog](docs/catalog.md) lists every skill on one page, grouped by tier, with the phrases that trigger it, an example prompt to try, and who maintains it. It also lists each plugin's commands and agents.
+
 ### Scientific Python Development Plugin
 
 Expert agents and comprehensive skills for modern Scientific Python development.
@@ -258,7 +260,7 @@ Comprehensive UI/UX design team simulation with 10 specialized agents covering t
 
 **When to use:** UI/UX design work, design system creation, accessibility audits, usability evaluation, user research and persona creation, design reviews, frontend component design, design-to-development handoff
 
-Browse the [plugins directory](plugins/) and [community-plugins directory](community-plugins/) to explore all available plugins.
+Browse the [plugins directory](plugins/) and [community-plugins directory](community-plugins/) to explore all available plugins, or see the [skill catalog](docs/catalog.md).
 
 ## Repository Structure
 

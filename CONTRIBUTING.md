@@ -117,6 +117,7 @@ Before submitting your PR, ensure:
 - [ ] README.md is updated if adding a new agent
 - [ ] Commit messages are clear and descriptive
 - [ ] `pixi run plugins-check` passes (run `pixi run plugins-sync` first if you changed a manifest or the catalog)
+- [ ] A new skill has a catalog entry with an example prompt you've tried in Claude Code, and `pixi run catalog-check` passes (see [Skill Catalog](#-skill-catalog))
 - [ ] No sensitive information or credentials are included
 
 ## 🧪 Testing Your Agent
@@ -152,6 +153,32 @@ Some rules matter to clients other than Claude Code:
 - **Keep each skill self-contained.** OpenCode and other skills-only clients install a skill directory on its own, so every file and relative link in a skill must stay inside that skill's directory. Link to a sibling skill by naming it (for example "see the `design-tokens` skill"), not with `../design-tokens/SKILL.md`. Put shared material in each skill's `references/`.
 - **MCP servers** need both files. `.mcp.json` is for Claude Code. `mcp.json` is the portable version that Codex, Copilot and Cursor read: it has the Agent Plugins `$schema`, an explicit `type` on each server, and no other top-level fields. Cursor doesn't expand `${PLUGIN_ROOT}` or `${PLUGIN_DATA}`, so avoid them in `mcp.json`.
 - **Agent `skills:`** must be a YAML list (`skills:` then `  - name`), even for one skill. Claude Code accepts a string, but Copilot CLI silently skips an agent whose `skills` is a plain string, so `check` requires a list.
+
+## 📚 Skill Catalog
+
+[`docs/catalog.md`](docs/catalog.md) lists every skill with its trigger phrases, an example prompt, and its maintainer, plus each plugin's commands and agents. It is generated, so don't edit it by hand. **Every new skill needs a catalog entry**, and CI fails without one.
+
+| Edit | Generated from it |
+| --- | --- |
+| The skill's `description` frontmatter | the **What it does** and **Trigger phrases** columns |
+| [`docs/catalog.yml`](docs/catalog.yml): each plugin's `tier` and `maintainer`, and each skill's `example` prompt | the **Tier**, **Maintainer** and **Example prompt** columns |
+
+To add a skill:
+
+1. Add the skill under `plugins/<plugin>/skills/<name>/` (or `community-plugins/`). A new plugin also needs an entry under `plugins:` in `docs/catalog.yml` with its tier (`Core` for SSEC-maintained general-purpose plugins, `Community` for domain-specific or contributed ones) and maintainer (`@uw-ssec/engineering` for SSEC, your GitHub handle for a contribution).
+2. Add an `example:` for the skill under its plugin in `docs/catalog.yml`. Write the kind of request a user would actually type, and make it self-contained (Claude stops to ask for files that don't exist instead of loading a skill). Then confirm it activates the skill:
+
+   ```bash
+   pixi run -e ci python evals/catalog-triggers/trigger_test.py <plugin>/<skill>
+   ```
+
+   This runs the prompt in headless Claude Code with only this repository's plugins loaded, and costs one model call per skill. Results vary between runs, so rerun a failure before acting on it. If the skill still doesn't load, fix its `description` rather than tuning the prompt; set `activates: false` only as a stopgap.
+3. Regenerate and check:
+
+   ```bash
+   pixi run catalog-sync
+   pixi run catalog-check
+   ```
 
 ## 📊 Evaluating Skills
 

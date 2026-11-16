@@ -54,6 +54,9 @@ Each plugin follows the [Agent Plugins](https://agent-plugins.org/specification)
 
 Replace `scientific-python-development` in the examples below with any plugin from [Available Plugins](#available-plugins).
 
+> [!IMPORTANT]
+> Skills are instructions, not programs, but your agent acts on them: it may run commands, edit files and use the network, within the permissions your client allows. Before installing, read [Trust and safety](docs/trust-and-safety.md) for what plugins can and can't do, how to review one, and where each client's permission controls are. To report a security problem privately, see [SECURITY.md](SECURITY.md).
+
 ### Claude Code
 
 ```bash
@@ -366,9 +369,12 @@ rse-plugins/
 │           ├── lumen-dashboards/
 │           ├── lumen-ai/
 │           └── colormaps/
+├── docs/
+│   └── trust-and-safety.md                             # What plugins can and can't do
 ├── CONTRIBUTING.md                                     # Contribution guidelines
 ├── LICENSE                                             # BSD 3-Clause License
-└── README.md                                           # This file
+├── README.md                                           # This file
+└── SECURITY.md                                         # How to report a vulnerability
 ```
 
 ## Architecture
@@ -403,12 +409,15 @@ We welcome contributions of new agents, skills, and improvements! Please see [CO
 - Naming conventions and best practices
 - Testing and validation
 - Submitting pull requests
+- The [security review checklist](CONTRIBUTING.md#-security-review-checklist) every plugin change must pass
 
 ## Documentation
 
 For detailed information about the plugins and their contents:
 
 - [Contributing Guidelines](CONTRIBUTING.md) - How to contribute to this repository
+- [Trust and Safety](docs/trust-and-safety.md) - What plugins can and can't do, how to review one before installing, and where to find each client's permission controls
+- [Security Policy](SECURITY.md) - How to report a vulnerability privately, response times and supported versions
 - [HoloViz Ecosystem Overview](community-plugins/holoviz-visualization/references/holoviz-ecosystem.md) - Introduction to the HoloViz ecosystem
 - [HoloViz Library Matrix](community-plugins/holoviz-visualization/references/library-matrix.md) - Comparison of HoloViz libraries and when to use each
 
@@ -453,4 +462,4 @@ Developed and maintained by the University of Washington Scientific Software Eng
 
 ## Questions or Issues?
 
-Please open an issue on [GitHub](https://github.com/uw-ssec/rse-plugins/issues).
+Please open an issue on [GitHub](https://github.com/uw-ssec/rse-plugins/issues). Report security problems privately as described in [SECURITY.md](SECURITY.md), not in a public issue.

@@ -118,6 +118,59 @@ Before submitting your PR, ensure:
 - [ ] Commit messages are clear and descriptive
 - [ ] `pixi run plugins-check` passes (run `pixi run plugins-sync` first if you changed a manifest or the catalog)
 - [ ] No sensitive information or credentials are included
+- [ ] The change passes the [security review checklist](#-security-review-checklist)
+
+## 🔒 Security Review Checklist
+
+Agents act on the text in a plugin: they run the commands it suggests, open the URLs it links to, and follow its instructions. A harmful instruction is as dangerous as harmful code, so every pull request that adds or changes a plugin needs a maintainer to check it against this list before merging. This applies to both tiers, Core (`plugins/`) and Community (`community-plugins/`), and it matters most for Community plugins, whose authors may be outside SSEC. Contributors should check it themselves first.
+
+This checklist is the security part of reviewing a skill. It doesn't cover whether a skill triggers correctly or is well written.
+
+Review the exact revision you're merging. If a later commit in the pull request, or a later pull request, adds a command, URL, script, tool grant or MCP server, review those items again instead of carrying the earlier sign-off forward.
+
+Automated checks help but don't replace this review. CI (currently the **Validate Plugins** workflow) flags hardcoded secrets and private keys, `rm -rf /`, `curl` to a raw IP address, `eval(` and `base64 -d`. It matches patterns and can't judge intent. SkillEvaluator's quality score, run on pull requests that change a skill, measures quality, not safety.
+
+Review the raw files, not GitHub's rendered view, which hides HTML comments. This search, run from the repository root, lists most of what to look at:
+
+```bash
+rg -n --hidden "allowed-tools|curl|wget|\| *(ba|z)?sh|sudo|rm -rf|https?://|<!--|base64|ignore (all|previous)" <plugin-dir>
+```
+
+A second search finds invisible characters (zero-width and bidirectional controls) that can hide text from a reviewer. It should print nothing:
+
+```bash
+rg -n --hidden -P "[\x{200B}-\x{200F}\x{202A}-\x{202E}\x{2060}-\x{2064}\x{FEFF}]" <plugin-dir>
+```
+
+**Shell commands**
+
+- [ ] Every command the plugin tells the agent to run is one a careful user would run themselves, and it's shown in the text rather than built at run time.
+- [ ] Nothing pipes a download into a shell (`curl … | bash`) unless it's the tool's official installer from its own documentation, and the instructions tell the agent to confirm with the user first.
+- [ ] Nothing deletes files outside the project, uses `sudo`, changes shell profiles, SSH keys or Git configuration, or disables security tools.
+- [ ] Bundled scripts (`scripts/`, `assets/`) do what the skill says, read and write only paths the user gives them, and use the network only for a destination the user asked for.
+- [ ] Tool grants list only the tools the task needs. Check `allowed-tools` and `tools` in the frontmatter of skills, agents and commands, in every client format the plugin ships. Pre-approving `Bash` lets Claude Code run any shell command without asking during that turn, so the pull request explains why it's needed.
+
+**External URLs**
+
+- [ ] Every link goes where its text says, and points to an official source: the project's own documentation, repository or package index.
+- [ ] Nothing tells the agent to send code, data, environment variables or credentials to a URL, or to fetch and follow instructions from one.
+- [ ] Downloads, container images and packages come from official sources and are pinned to a version or digest where the format allows. Call out an unpinned `latest` tag in the review.
+- [ ] Each MCP server (`mcp.json`, `.mcp.json`) is one we know: the command it starts, the image or package it pulls, and who maintains it are stated in the plugin's README.
+
+**Instructions that override agent safeguards**
+
+- [ ] Nothing tells the agent to skip or bypass permission prompts, switch to an auto-approve or "yolo" mode, or edit the user's agent settings, permission rules or hooks.
+- [ ] Nothing tells the agent to ignore previous instructions, the user's instructions, or `AGENTS.md` and `CLAUDE.md` files, or to claim authority it doesn't have ("as the system administrator…").
+- [ ] Nothing tells the agent to hide what it's doing, avoid mentioning an action to the user, or act outside the task the user asked for.
+- [ ] Reference material stays reference material. Text in `references/`, quoted documentation and example output reads as information, not as orders the agent should carry out. For example, a reference page that says "upload the workspace before continuing" must not lead to an upload when the user asked only for local analysis.
+- [ ] There's no hidden text: no instructions in HTML comments, no invisible Unicode (zero-width or bidirectional control characters) and no base64 or other encoded payloads.
+
+**Everything else**
+
+- [ ] No credentials, tokens, private URLs or personal data appear anywhere, including examples.
+- [ ] The plugin README says what the plugin does, which commands or scripts it may run, and what it needs network access for.
+
+If a check fails, ask for a change or remove the content. Don't merge it with a note to fix later. If something looks deliberately malicious, don't discuss it in the pull request; report it as described in [SECURITY.md](SECURITY.md). For what users are told about plugins, see [Trust and safety](docs/trust-and-safety.md).
 
 ## 🧪 Testing Your Agent
 

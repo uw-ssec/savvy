@@ -37,7 +37,7 @@ This repository provides specialized agents and skills that understand the uniqu
 
 ## Installation
 
-Skills work in Claude Code, GitHub Copilot (CLI and VS Code), Codex, Cursor, Gemini CLI and OpenCode. Agents and commands are written for Claude Code and only load there. **[docs/install.md](docs/install.md)** has the support matrix, install steps for each client, and how to copy skills into any client's `.agents/skills/` directory.
+Skills work in Claude Code, GitHub Copilot (CLI and VS Code), Codex, Cursor, Gemini CLI and OpenCode. Agents and commands are written for Claude Code. Cursor loads them too; the other clients don't. **[docs/install.md](docs/install.md)** has the support matrix, install steps for each client, and how to copy skills into any client's `.agents/skills/` directory.
 
 > [!IMPORTANT]
 > Skills are instructions, not programs, but your agent acts on them: it may run commands, edit files and use the network, within the permissions your client allows. Before installing, read [Trust and safety](docs/trust-and-safety.md) for what plugins can and can't do, how to review one, and where each client's permission controls are. To report a security problem privately, see [SECURITY.md](SECURITY.md).
@@ -52,6 +52,8 @@ claude plugin install scientific-python-development@rse-plugins
 ## Available Plugins
 
 The repository provides Claude Code plugins organized by domain. Each plugin contains agents (specialized AI personas) and skills (reusable knowledge modules).
+
+**Not sure which skill you need?** The [skill catalog](docs/catalog.md) lists every skill on one page, grouped by tier, with the phrases that trigger it, an example prompt to try, and who maintains it. It also lists each plugin's commands and agents.
 
 ### Scientific Python Development Plugin
 
@@ -176,7 +178,7 @@ Comprehensive UI/UX design team simulation with 10 specialized agents covering t
 
 **When to use:** UI/UX design work, design system creation, accessibility audits, usability evaluation, user research and persona creation, design reviews, frontend component design, design-to-development handoff
 
-Browse the [plugins directory](plugins/) and [community-plugins directory](community-plugins/) to explore all available plugins.
+Browse the [plugins directory](plugins/) and [community-plugins directory](community-plugins/) to explore all available plugins, or see the [skill catalog](docs/catalog.md).
 
 ## Repository Structure
 

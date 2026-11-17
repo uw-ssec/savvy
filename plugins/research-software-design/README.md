@@ -2,7 +2,7 @@
 a RtD oriented agent and a user persona discovery and elucidation skill.
 
 > [!NOTE]
-> **Claude Code only:** this plugin's agents and commands are written for Claude Code, and other clients don't load them. Its skills follow the [Agent Skills](https://agentskills.io/) format and also work in GitHub Copilot, Codex, Cursor, Gemini CLI and OpenCode. See [Installing the plugins](https://github.com/uw-ssec/savvy/blob/main/docs/install.md) for what each client loads.
+> **Claude Code and Cursor only:** this plugin's agents and commands are written for Claude Code. Cursor loads them too, but GitHub Copilot, Codex, Gemini CLI and OpenCode don't. Its skills follow the [Agent Skills](https://agentskills.io/) format and work in all of these clients. See [Installing the plugins](https://github.com/uw-ssec/savvy/blob/main/docs/install.md) for what each client loads.
 
 ## RtD agent
 This agent applies the research through design (RtD) approach to design 

@@ -12,8 +12,8 @@ Each plugin follows the [Agent Plugins](https://agent-plugins.org/specification)
 | Part | Format | Where it works |
 | --- | --- | --- |
 | Skills (`skills/<name>/SKILL.md`) | [Agent Skills](https://agentskills.io/specification) | Every client on this page |
-| Agents (`agents/*.md`) | Claude Code subagent | **Claude Code only.** Copilot support is tracked in [#240](https://github.com/uw-ssec/savvy/issues/240). |
-| Commands (`commands/*.md`) | Claude Code slash command | **Claude Code only.** Copilot support is tracked in [#240](https://github.com/uw-ssec/savvy/issues/240), and turning commands into portable skills in [#241](https://github.com/uw-ssec/savvy/issues/241). |
+| Agents (`agents/*.md`) | Claude Code subagent | **Claude Code and Cursor.** Copilot support is tracked in [#240](https://github.com/uw-ssec/savvy/issues/240). |
+| Commands (`commands/*.md`) | Claude Code slash command | **Claude Code and Cursor.** Copilot support is tracked in [#240](https://github.com/uw-ssec/savvy/issues/240), and turning commands into portable skills in [#241](https://github.com/uw-ssec/savvy/issues/241). |
 | MCP server (`mcp.json`, `.mcp.json`) | MCP configuration | Clients that install plugins load it; the rest need it added by hand. Only `holoviz-visualization` has one. |
 
 Every plugin README carries a note saying the same thing. If a client doesn't load agents or commands, the plugin's skills still work on their own.
@@ -26,7 +26,7 @@ Every plugin README carries a note saying the same thing. If a client doesn't lo
 | [GitHub Copilot CLI](#github-copilot-cli) | marketplace | ✅ | 🚧 [#240](https://github.com/uw-ssec/savvy/issues/240) | 🚧 [#240](https://github.com/uw-ssec/savvy/issues/240) | ✅ |
 | [VS Code (Copilot)](#vs-code-copilot) | marketplace setting | 🟡 | 🚧 [#240](https://github.com/uw-ssec/savvy/issues/240) | 🚧 [#240](https://github.com/uw-ssec/savvy/issues/240) | ❔ |
 | [Codex](#codex) | marketplace | ✅ | ❌ | ❌ | ✅ |
-| [Cursor](#cursor) | local folder | 🟡 | ❌ | ❌ | 🟡 |
+| [Cursor](#cursor) | local folder | ✅ | ✅ | ✅ | ✅ |
 | [Gemini CLI](#gemini-cli) | copied skills | 🟡 | ❌ | ❌ | 🔧 `settings.json` |
 | [OpenCode](#opencode) | copied skills | ✅ | ❌ | ❌ | 🔧 `opencode.json` |
 
@@ -87,7 +87,7 @@ mkdir -p ~/.cursor/plugins/local
 cp -R savvy/plugins/scientific-python-development ~/.cursor/plugins/local/
 ```
 
-Then restart Cursor (or run **Developer: Reload Window**), and check the plugin's skills and MCP servers under **Customize**. Cursor loads each plugin as an Agent Plugin, which means skills and MCP servers only. Our agents and commands use Claude Code's format, so Cursor doesn't load them. Teams and Enterprise plans can also add the repository to a team marketplace (`.cursor-plugin/marketplace.json`) instead of copying. See [Cursor plugins](https://cursor.com/docs/plugins). To use skills without the plugin, copy them as in [Copy skills into any client](#copy-skills-into-any-client).
+Cursor picks up the new folder on its own. If the plugin doesn't appear under **Customize**, restart Cursor or run **Developer: Reload Window**. Cursor documents a plugin with a root `plugin.json` as skills and MCP servers only, but it also loads our agents as subagents and our commands in the `/` menu. Teams and Enterprise plans can also add the repository to a team marketplace (`.cursor-plugin/marketplace.json`) instead of copying. See [Cursor plugins](https://cursor.com/docs/plugins). Tested with Cursor 3.28.7; the team marketplace hasn't been tested. To use skills without the plugin, copy them as in [Copy skills into any client](#copy-skills-into-any-client).
 
 ### Gemini CLI
 

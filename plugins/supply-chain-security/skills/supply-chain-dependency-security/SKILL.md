@@ -9,21 +9,21 @@ Keeps malicious releases out of dependency updates and CI installs.
 
 **Core principle:** a clean CVE scan says nothing about a version published hours ago: no advisory exists yet.
 
-Observed 2025–2026, verified 2026-11: major incidents were maintainer account takeovers of widely used packages, not typosquats. Campaigns: `supply-chain-threat-awareness`.
+Observed 2025–2026, verified 2026-11: major incidents were maintainer account takeovers, not typosquats. Campaigns: `supply-chain-threat-awareness`.
 
 ## When to Use
 
 - A Dependabot or Renovate PR, any lockfile diff, or a new package
 - CI fails under `--ignore-scripts`
 
-**Not for** workflow hardening (`supply-chain-hardened-ci-cd`). If a dependency you use is reported compromised:
+**Not for** workflow hardening (`supply-chain-hardened-ci-cd`). If a dependency you use is compromised:
 
 **REQUIRED SUB-SKILL:** Use supply-chain-security:supply-chain-incident-response
 
 ## Rules
 
 1. **Lockfile only.** Commit it. CI installs with a command that fails on a stale lockfile (table below). No `*` or `latest` in manifests.
-2. **Install scripts off.** Never drop `--ignore-scripts`, not for one build. Rebuild only the package that needs it:
+2. **Install scripts off.** Never drop `--ignore-scripts`, not for one build. Rebuild only what needs it:
 
    ```bash
    npm ci --ignore-scripts
@@ -31,18 +31,17 @@ Observed 2025–2026, verified 2026-11: major incidents were maintainer account 
    ```
 
    npm 12+: approve it first (`npm install-scripts approve <package>`, commit `package.json`).
-3. **7-day cooldown.** Nothing younger merges; a knob below enforces it (age: `npm view <package> time`).
+3. **7-day cooldown.** Nothing younger merges. The settings below only filter resolution, not locked versions, so check the age of every version a lockfile diff adds: `npm view <package> time`, or the cooldown check in `supply-chain-threat-awareness`.
 4. **Check the publisher.** Compare with earlier releases (`npm view <package>@<version> _npmUser`), run `npm audit signatures`, read `npm diff --diff=<package>@<old> --diff=<package>@<new>`. A first-time publisher on an established package is the takeover pattern: hold the version.
 5. **`.pth` files:** use the PyPI `.pth` check in `supply-chain-ecosystem-quirks`.
-6. **Findings:** class, `<package>@<version>`, advisory or campaign, install-time reach, fix.
 
 ## Quick Reference
 
-| Tool | CI install | 7-day cooldown |
+| Tool | CI install | Resolver cooldown |
 |---|---|---|
 | npm | `npm ci --ignore-scripts` | `.npmrc`: `min-release-age=7` (11.10+) |
 | pnpm | `pnpm install --frozen-lockfile` | `pnpm-workspace.yaml`: `minimumReleaseAge: 10080` (minutes; 10.16+) |
-| Yarn | `yarn install --immutable` (v1: `--frozen-lockfile`) | `.yarnrc.yml`: `npmMinimalAgeGate: 10080` (minutes; 4.10+) |
+| Yarn | `yarn install --immutable` with `enableScripts: false` (default from 4.14); v1: `--frozen-lockfile --ignore-scripts` | `.yarnrc.yml`: `npmMinimalAgeGate: 10080` (minutes; 4.10+) |
 | uv | `uv sync --locked` | `[tool.uv]`: `exclude-newer = "7 days"` (0.9.17+) |
 | Poetry | `poetry install` (refuses a stale lock) | `poetry config --local solver.min-release-age 7` (2.4+) |
 | pip | `pip install --require-hashes -r requirements.txt` | `--uploaded-prior-to P7D` (26.1+) |
@@ -70,4 +69,3 @@ Bots: Dependabot `cooldown:` with `default-days: 7`; Renovate `"minimumReleaseAg
 
 - **`pixi install` in CI:** rewrites `pixi.lock` when the manifest changed; `--frozen` skips the check. Use `--locked`. Same for `uv sync --frozen`.
 - **`ignore-scripts=true` in `.npmrc`:** `npm rebuild <package>` silently runs nothing. Add `--ignore-scripts=false` to that rebuild.
-- **Flagging every `.pth`:** `distutils-precedence.pth`, `_virtualenv.pth` and `__editable__.*.pth` are normal.

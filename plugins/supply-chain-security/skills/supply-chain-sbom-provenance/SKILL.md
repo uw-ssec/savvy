@@ -1,148 +1,78 @@
 ---
 name: supply-chain-sbom-provenance
-description: SBOM generation and provenance verification for research software releases. Use when reviewing or writing release workflows that publish to PyPI, npm, GHCR, or similar registries; when verifying a downstream artifact's signatures or attestations; or when evaluating SLSA level for a release pipeline. Covers CycloneDX/SPDX SBOM generation with syft, Sigstore keyless signing with cosign, npm provenance, and SLSA build levels.
+description: Use when a request involves an SBOM or software bill of materials (CycloneDX, SPDX, syft), Sigstore or cosign keyless signing, signing release artifacts, build provenance or attestations, `gh attestation verify`, npm provenance, a release pipeline's SLSA level, or verifying a downloaded release.
 metadata:
-  references: references/sigstore-cookbook.md references/slsa-levels.md
+  references: references/sigstore-cookbook.md references/slsa-levels.md references/provenance-report-template.md
   assets: assets/sbom-workflow.yml
 ---
 
 # Supply Chain SBOM and Provenance
 
-## Threat Model
+Generate SBOMs, sign and attest release artifacts, and verify a downloaded release against the exact workflow that built it.
 
-SBOM and provenance catch tag-hijack and maintainer account-takeover: the artifact digest stops matching the signed attestation even when CVE scanners report clean. CVE scanners cannot detect these attacks; only cryptographic attestations tied to the build pipeline can.
+## Overview
 
-## Decision Matrix
+An SBOM lists what a release contains; provenance is a signed record of which repository, workflow and ref built each file. A passing check proves the file came from that workflow at that ref, unchanged. It catches uploads from outside the pipeline (a stolen registry token, a swapped release asset). It does **not** prove the build was clean: a hijacked action inside the legitimate release job (the TeamPCP pattern) gets valid provenance. Pair it with SHA-pinned actions from the `supply-chain-hardened-ci-cd` skill.
 
-| Registry | Mechanism | Key management | SLSA level | Complexity |
-|----------|-----------|----------------|-----------|-----------|
-| PyPI | OIDC trusted publishing + Sigstore | Keyless via GitHub OIDC | L2-L3 | Low |
-| npm | npm provenance (`--provenance`) | Keyless via GitHub OIDC | L2 | Low |
-| GHCR | `actions/attest-build-provenance` | Keyless via GitHub OIDC | L2-L3 | Low |
-| Docker Hub | cosign keyless | Sigstore (Fulcio short-lived cert) | L2 | Medium |
-| Self-hosted (no OIDC) | cosign with hardware key | KMS or YubiKey | L3 if hermetic | High |
+## When to Use
 
-Pick the lowest-complexity row for your registry. PyPI/npm/GHCR default to GitHub-OIDC keyless — no secrets to rotate.
+- Adding an SBOM, signatures or attestations to a release.
+- Verifying a downloaded artifact before installing it.
+- Rating a pipeline's SLSA build level or writing a provenance posture report.
 
-## Generation Workflow
+For action pinning and workflow permissions, use `supply-chain-hardened-ci-cd`.
 
-Run these steps in order in the release job. Each is independently runnable for local debugging.
+## Quick Reference
 
-### Step 1 — Build artifact and capture its digest
+| Registry | Produce | Verify |
+|---|---|---|
+| PyPI | Trusted publishing via `pypa/gh-action-pypi-publish` (attests by default) | `pypi-attestations verify pypi --repository https://github.com/<owner>/<repo> pypi:<file>` |
+| npm | Trusted publishing (provenance automatic) or `npm publish --provenance` | `npm audit signatures` |
+| GitHub release assets | `actions/attest-build-provenance`, `cosign sign-blob --bundle` | below |
+| GHCR | `actions/attest-build-provenance` with `push-to-registry: true` | `gh attestation verify oci://<image> --repo <owner>/<repo>` |
+| No OIDC | cosign with a KMS or hardware key | `cosign verify-blob --key <key-ref>` |
 
-```bash
-# Build whatever artifact the project ships (wheel, tarball, container)
-python -m build                            # → dist/*.whl, dist/*.tar.gz
-sha256sum dist/* > dist/SHA256SUMS         # record digests for the attestation
-```
+GitHub attestations alone reach SLSA Build L2 (`references/slsa-levels.md`).
 
-### Step 2 — Generate CycloneDX SBOM with syft
+## Produce
 
-```bash
-# Scan the built directory (works for source trees, dirs, OCI images)
-syft dir:. -o cyclonedx-json=sbom.cdx.json
+`assets/sbom-workflow.yml` is a complete release workflow (build, SBOM, attest, sign, upload) and sets the file names: `sbom.cdx.json`, `SHA256SUMS`, `<file>.sigstore.json`.
 
-# Or scan an already-built artifact
-syft dist/myproject-1.0.0.tar.gz -o cyclonedx-json=dist/sbom.cdx.json
-```
-
-### Step 3 — Sign artifact and SBOM with Sigstore keyless
-
-In CI, prefer the GitHub-native attestation action (writes to the public attestation API):
-
-```yaml
-permissions:
-  id-token: write      # required for OIDC
-  attestations: write  # required for attest-build-provenance
-- uses: actions/attest-build-provenance@<sha>  # v3.0.0
-  with:
-    subject-path: 'dist/*'
-```
-
-Or sign each artifact directly with cosign keyless (works for any registry):
+For Python, scan an installed environment. syft lists no runtime dependencies from a wheel, an sdist or `dist/`:
 
 ```bash
-cosign sign-blob --yes --bundle artifact.sigstore artifact.tar.gz
+python -m venv --without-pip sbom-env
+python -m pip --python sbom-env/bin/python install dist/*.whl
+syft dir:sbom-env --source-name <project> --source-version <version> -o cyclonedx-json=sbom.cdx.json
 ```
 
-See `references/sigstore-cookbook.md` for `permissions:` block and failure modes.
+## Verify a Downloaded Release
 
-### Step 4 — Attach SBOM and signatures to the release
+Pin one repository, workflow file and tag:
 
 ```bash
-gh release upload "${GITHUB_REF_NAME}" \
-  dist/sbom.cdx.json \
-  dist/*.sigstore \
-  dist/SHA256SUMS
+cosign verify-blob --bundle <file>.sigstore.json \
+  --certificate-identity https://github.com/<owner>/<repo>/.github/workflows/<workflow>.yml@refs/tags/<tag> \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  <file>
+
+# When the release has GitHub attestations:
+gh attestation verify <file> --repo <owner>/<repo> \
+  --signer-workflow <owner>/<repo>/.github/workflows/<workflow>.yml \
+  --source-ref refs/tags/<tag>
 ```
 
-Drop-in workflow that wires all four steps together: `assets/sbom-workflow.yml`. For a one-shot SBOM-only scan from any source tree: `syft dir:. -o cyclonedx-json=sbom.cdx.json`.
+Then run `sha256sum -c --ignore-missing SHA256SUMS`, and confirm the Rekor time (`jq '.verificationMaterial.tlogEntries[].integratedTime' <file>.sigstore.json`, Unix seconds) falls in the release window. Any failure means unverified: don't install.
 
-## Verification Checklist
+Failure modes and recipes: `references/sigstore-cookbook.md`. Pipeline reviews: fill in `references/provenance-report-template.md`.
 
-Run each item below downstream or in the project's pre-release smoke test.
+## Common Mistakes
 
-- [ ] Bundle present. Check: `gh attestation list <artifact>` or release page for `*.sigstore`.
-- [ ] Signature verifies:
-  ```bash
-  cosign verify-blob \
-    --bundle artifact.sigstore \
-    --certificate-identity-regexp "https://github.com/<owner>/<repo>/.github/workflows/.+" \
-    --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-    artifact.tar.gz
-  ```
-- [ ] SBOM digest matches. Check: `sha256sum artifact.tar.gz` appears in `sbom.cdx.json` (`metadata.component.hashes`) or `SHA256SUMS`.
-- [ ] `certificate-identity` is the expected repo + workflow path (not a fork, not a different workflow).
-- [ ] Rekor log timestamp falls in the expected release window. Check: `cosign tree <artifact>`.
-
-If any item fails, treat as unverified — do not install.
-
-## Quick Recipes
-
-Complementary recipes for scenarios beyond the standard release pipeline above.
-
-**npm publish with provenance (alternative to syft+cosign for npm packages):**
-```bash
-npm publish --provenance --access public
-```
-Requires `permissions: id-token: write` in the publish job and an OIDC-enabled npm account.
-
-**Verify a GitHub attestation (consumer side, no Sigstore tooling needed):**
-```bash
-gh attestation verify artifact.tar.gz --owner <owner>
-```
-Uses the `gh` CLI to verify build-provenance attestations published via `actions/attest-build-provenance`. Faster than `cosign verify-blob` when the artifact is from a GitHub-hosted repo.
-
-**Generate an SBOM from a built container image (instead of source tree):**
-```bash
-syft <registry>/<image>:<tag> -o spdx-json=sbom.spdx.json
-```
-Use this when shipping container images to GHCR or Docker Hub. Format is SPDX (alternative to CycloneDX); both are accepted by GitHub's attestation infrastructure.
-
-## Output: Provenance Posture Report
-
-When invoked for a release-pipeline review, produce a Markdown report with the structure below. Every PASS/WARN/FAIL must cite a `file:line` from the workflows or "absent" if the control is missing entirely.
-
-```markdown
-## Provenance Posture: <project>
-
-### Generation Posture
-| Criterion | PASS/WARN/FAIL | Evidence |
-|-----------|----------------|----------|
-| SBOM generated for releases | ... | <workflow file:line or "absent"> |
-| SBOM format (CycloneDX/SPDX) | ... | <format detected> |
-| Sigstore signing in release workflow | ... | <workflow file:line> |
-| npm provenance enabled (npm projects) | ... | <evidence or N/A> |
-| SLSA level achieved | ... | <level + reasoning, see references/slsa-levels.md> |
-
-### Verification Posture
-| Criterion | PASS/WARN/FAIL | Evidence |
-|-----------|----------------|----------|
-| Downstream verification documented | ... | <README/docs reference> |
-| Attestation references build pipeline | ... | <evidence> |
-
-### Top 3 Priority Actions
-1. <highest-impact upgrade> — apply `assets/sbom-workflow.yml` or follow `references/sigstore-cookbook.md`
-2. <second priority>
-3. <third priority>
-```
+| Mistake | Fix |
+|---|---|
+| `--certificate-identity-regexp ".../.github/workflows/.+"` (any workflow) | Exact `--certificate-identity`, or `--signer-workflow` |
+| `cosign tree <file>` for the Rekor time | `cosign tree` reads OCI images; use the bundle's `integratedTime` |
+| `gh attestation list` | Doesn't exist; use `gh attestation verify` |
+| Uploading `dist/*.sigstore` after `attest-build-provenance` | It writes nothing to `dist/`; bundle files come from `cosign sign-blob --bundle` |
+| Digest in `metadata.component.hashes` | syft doesn't write it; use `SHA256SUMS` or the attestation subject |
+| "Verified, so the build was clean" | It proves which workflow built the file, nothing more |

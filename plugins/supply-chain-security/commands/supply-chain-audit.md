@@ -76,8 +76,8 @@ Surface areas where dependency installation can execute arbitrary code.
 - Python `.pth` files in site-packages: list contents; benign `.pth` files only add paths. Executable content is a campaign signal.
 - Cross-link: `supply-chain-ecosystem-quirks`.
 - Campaign references:
-  - `plugins/supply-chain-security/skills/supply-chain-threat-awareness/references/campaigns/shai-hulud.md`
-  - `plugins/supply-chain-security/skills/supply-chain-threat-awareness/references/campaigns/litellm-pth.md`
+  - Shai-Hulud, in the `supply-chain-threat-awareness` skill
+  - LiteLLM `.pth`, in the `supply-chain-threat-awareness` skill
 
 ### 5. Provenance
 

@@ -5,24 +5,24 @@ Use this template when producing the output of a supply-chain threat-posture rev
 ```markdown
 ## Supply Chain Threat Posture: <project>
 
-### Active Campaign Applicability
+### Campaign Applicability (campaigns observed 2025–2026)
 
 | Campaign | Applicable | Evidence |
 |----------|------------|----------|
 | Shai-Hulud | YES/NO/UNKNOWN | <package and lockfile line, or reason "no npm deps"> |
-| TeamPCP | YES/NO/UNKNOWN | <action and workflow line, or reason "no GHA"> |
+| TeamPCP | YES/NO/UNKNOWN | <action ref and workflow line, or affected package and lockfile line, or reason "no GHA, no affected packages"> |
 | axios | YES/NO/UNKNOWN | <package and lockfile line> |
-| LiteLLM .pth | YES/NO/UNKNOWN | <Python deps and .pth scan result> |
+| LiteLLM .pth | YES/NO/UNKNOWN | <litellm version and .pth check result> |
 
-### Audit Workflow Results
+### Audit Results
 
 | Step | PASS | WARN | FAIL | Findings |
 |------|------|------|------|----------|
-| 1 — Lockfile hygiene | <n> | <n> | <n> | <file:line>: <description> |
+| 1 — Lockfiles | <n> | <n> | <n> | <file:line>: <description> |
 | 2 — Action pinning | <n> | <n> | <n> | <file:line>: <description> |
-| 3 — Install-time execution | <n> | <n> | <n> | <file:line>: <description> |
-| 4 — Dependency velocity | <n> | <n> | <n> | <file:line>: <description> |
-| 5 — SBOM and provenance | <n> | <n> | <n> | <file:line>: <description> |
+| 3 — Install-time code | <n> | <n> | <n> | <file:line>: <description> |
+| 4 — Cooldown | <n> | <n> | <n> | <package version>: <age when adopted> |
+| 5 — Provenance | <n> | <n> | <n> | <file:line>: <description> |
 
 ### Top 3 Priority Actions
 

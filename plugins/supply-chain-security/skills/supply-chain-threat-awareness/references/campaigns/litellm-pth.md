@@ -1,31 +1,46 @@
-# LiteLLM 1.82.8 — `.pth` Persistence Campaign
+# LiteLLM `.pth` Campaign
 
-**Vector:** Malicious `.pth` file shipped inside a Python package.
-**Persistence mechanism:** Python loads every `.pth` file in `site-packages` on every interpreter start. A `.pth` file with a leading `import ...` line executes that import.
+**Observed:** 24 March 2026, as part of the TeamPCP campaign. Facts below checked against the sources at the end on 2026-11-17.
+**Ecosystem:** PyPI.
+**Vector:** a PyPI API token exposed through the compromised Trivy scanner in LiteLLM's CI was used to upload malicious releases directly to PyPI [GHSA-5mg7, LiteLLM].
 
-## Attack mechanics
+## What happened
 
-1. Compromised PyPI release ships a `.pth` file containing executable Python (`import os; os.system(...)`).
-2. After `pip install`, the file lives in `site-packages/`.
-3. Every subsequent `python ...` invocation triggers the payload — survives package upgrades and uninstalls if the `.pth` file isn't deleted.
+| Version | Payload | Runs when |
+|---|---|---|
+| 1.82.7 | Code injected into `litellm/proxy/proxy_server.py` | `litellm.proxy` is imported [issue] |
+| 1.82.8 | The same, plus `litellm_init.pth` (34,628 bytes) in `site-packages` | Any Python interpreter starts, with no import needed [issue] |
+
+- The payload collected SSH keys, environment variables, cloud and Kubernetes credentials and more, encrypted them, and sent them to `models.litellm.cloud`, a domain registered the day before [issue].
+- It also installed persistence outside the package: `~/.config/sysmon/sysmon.py` and a user systemd unit, `sysmon.service` [Datadog].
+- PyPI quarantined the releases about 2 h 32 min after upload; they were downloaded over 119,000 times [PyPI]. LiteLLM's own estimate of the live window is about 40 minutes [LiteLLM].
+
+## Why `.pth` files matter
+
+The `site` module reads every `.pth` file in `site-packages` at startup and executes lines that start with `import`, whether or not the package is ever used [Python docs]. Python 3.15 deprecates these lines but still runs them [Python docs].
+
+`pip uninstall` removes a `.pth` file that the wheel's `RECORD` lists (checked with pip 25.0.1 on a test wheel), so the `.pth` itself doesn't outlive the package. The `sysmon` files above do.
 
 ## Indicators of exposure
 
-```bash
-find $(python -c "import site; print(site.getsitepackages()[0])") -name "*.pth" -exec sh -c 'echo "=== {} ==="; cat {}' \;
-```
-
-Look for `.pth` files containing `import` statements other than benign path additions. A normal `.pth` file contains only directory paths, one per line.
+- `pip show litellm` reports 1.82.7 or 1.82.8, or `litellm_init.pth` exists in any `site-packages` directory [issue].
+- `~/.config/sysmon/sysmon.py` or a `sysmon.service` user unit exists [Datadog].
+- For other `.pth` files, use the PyPI `.pth` check in `supply-chain-ecosystem-quirks`.
 
 ## Containment checklist
 
-- [ ] Run the find command above; flag any `.pth` file containing executable Python.
-- [ ] Identify which package shipped the `.pth` file (`pip show <pkg>` and inspect `RECORD`).
-- [ ] Pin to a known-good prior version in the lockfile.
-- [ ] Delete the malicious `.pth` file from every venv where it landed.
-- [ ] Rotate any secret that was accessible to a Python process started after install.
+- [ ] Treat the host as compromised: rotate every credential that a Python process on it could read after the install [GHSA-5mg7].
+- [ ] Remove the affected version, `litellm_init.pth`, and the `sysmon` files and unit.
+- [ ] Find which package owns any other suspicious `.pth` file with `pip show -f <package>`.
+- [ ] Pin a known-good version in the lockfile.
 
-## References
+For rotation, use the `supply-chain-incident-response` skill.
 
-- `supply-chain-dependency-security` skill (Python install-time execution)
-- `supply-chain-ecosystem-quirks/references/pypi-quirks.md`
+## Sources (accessed 2026-11-17)
+
+- [GHSA-5mg7] "Two LiteLLM versions published containing credential harvesting malware", GHSA-5mg7-485q-xm76, published 25 March 2026: <https://github.com/advisories/GHSA-5mg7-485q-xm76>
+- [issue] BerriAI/litellm#24518, "litellm PyPI package (v1.82.7 + v1.82.8) compromised — full timeline and status", with LiteLLM team updates: <https://github.com/BerriAI/litellm/issues/24518>
+- [LiteLLM] LiteLLM, "Security Townhall Updates", 27 March 2026: <https://docs.litellm.ai/blog/security-townhall-updates>
+- [PyPI] PyPI blog, "Incident Report: LiteLLM/Telnyx supply-chain attack", 2 April 2026: <https://blog.pypi.org/posts/2026-04-02-incident-report-litellm-telnyx-supply-chain-attack/>
+- [Datadog] Datadog Security Labs, LiteLLM and Telnyx compromised on PyPI: <https://securitylabs.datadoghq.com/articles/litellm-compromised-pypi-teampcp-supply-chain-campaign/>
+- [Python docs] `site` module, "Path extensions (.pth files)": <https://docs.python.org/3/library/site.html>

@@ -1,52 +1,73 @@
 ---
 name: supply-chain-dependency-security
-description: Dependency and lockfile supply-chain security review with 2025–2026 attack campaign patterns. Use when reviewing package.json, pyproject.toml, requirements.txt, pixi.toml, conda-lock.yml, or any lockfile; when evaluating a new dependency for addition; or when responding to a supply-chain compromise incident. Contains patterns for detecting maintainer-account-takeover style attacks that CVE scanners miss.
+description: Use when reviewing a dependency update, a Dependabot or Renovate PR, or a lockfile (package-lock.json, yarn.lock, pnpm-lock.yaml, uv.lock, poetry.lock, pixi.lock, conda-lock.yml, requirements.txt); when adding a new package; when a postinstall script, `--ignore-scripts` or a `.pth` file comes up; or when judging whether a newly published version could come from a maintainer account takeover.
 ---
 
 # Supply Chain Dependency Security
 
-## Threat Model (2025–2026)
+Keeps malicious releases out of dependency updates and CI installs.
 
-The dominant supply-chain threat is **maintainer account takeover of legitimate, widely-trusted packages** — not typosquatting. Your CVE scanner will not catch these.
+**Core principle:** a clean CVE scan says nothing about a version published hours ago: no advisory exists yet.
 
-Active campaigns:
-- **Shai-Hulud**: 500+ npm packages compromised via maintainer account takeover
-- **TeamPCP**: Trivy, Checkmarx, LiteLLM, Bitwarden CLI, SAP CAP — targeted at security tooling
-- **axios**: 100M weekly downloads; compromise via release tag hijack
-- **LiteLLM 1.82.8**: malicious `.pth` file injected for persistent execution on every Python startup
+Observed 2025–2026, verified 2026-11: major incidents were maintainer account takeovers of widely used packages, not typosquats. Campaigns: `supply-chain-threat-awareness`.
 
-## Review Checklist
+## When to Use
 
-### Lockfiles
+- A Dependabot or Renovate PR, any lockfile diff, or a new package
+- CI fails under `--ignore-scripts`
 
-- [ ] Lockfile committed (`package-lock.json`, `yarn.lock`, `poetry.lock`, `uv.lock`, `pixi.lock`, `conda-lock.yml`)
-- [ ] Lockfile is used in CI (`npm ci`, `pip install --require-hashes`, `uv sync --frozen`, `pixi install`)
-- [ ] No floating version specs in production paths (e.g., `*`, `>=x` without upper bound in lockfile-less environments)
+**Not for** workflow hardening (`supply-chain-hardened-ci-cd`). If a dependency you use is reported compromised:
 
-### Install-time script execution
+**REQUIRED SUB-SKILL:** Use supply-chain-security:supply-chain-incident-response
 
-- [ ] `npm ci --ignore-scripts` (or `ignore-scripts=true` in `.npmrc`) in all CI environments
-- [ ] `preinstall`/`postinstall` hooks are the dominant execution vector — verify no hooks run untrusted code
-- [ ] Python: check for unexpected `.pth` files that execute on every interpreter start:
-  ```bash
-  find $(python -c "import site; print(site.getsitepackages()[0])") -name "*.pth"
-  ```
+## Rules
 
-### Dependency freshness and cooldown
+1. **Lockfile only.** Commit it. CI installs with a command that fails on a stale lockfile (table below). No `*` or `latest` in manifests.
+2. **Install scripts off.** Never drop `--ignore-scripts`, not for one build. Rebuild only the package that needs it:
 
-- [ ] New dependencies are held for ≥7 days before merging — most malicious releases are yanked within hours
-- [ ] Version pins in lockfile match expected package metadata (author, homepage, hash)
-- [ ] No unpinned `latest` or `*` in production dependency specs
+   ```bash
+   npm ci --ignore-scripts
+   npm rebuild <package>
+   ```
 
-### Incident response
+   npm 12+: approve it first (`npm install-scripts approve <package>`, commit `package.json`).
+3. **7-day cooldown.** Nothing younger merges; a knob below enforces it (age: `npm view <package> time`).
+4. **Check the publisher.** Compare with earlier releases (`npm view <package>@<version> _npmUser`), run `npm audit signatures`, read `npm diff --diff=<package>@<old> --diff=<package>@<new>`. A first-time publisher on an established package is the takeover pattern: hold the version.
+5. **`.pth` files:** use the PyPI `.pth` check in `supply-chain-ecosystem-quirks`.
+6. **Findings:** class, `<package>@<version>`, advisory or campaign, install-time reach, fix.
 
-When a compromise is reported:
-1. Identify affected version range from the advisory
-2. Check if that version range is in the lockfile
-3. Check if the install was cached (CI cache may still contain the compromised version)
-4. Rotate any secrets or tokens accessible from the CI environment where the package ran
-5. Check for persistence artifacts: `.pth` files, `postinstall` side effects, modified `node_modules/.bin/`
+## Quick Reference
 
-## Findings format
+| Tool | CI install | 7-day cooldown |
+|---|---|---|
+| npm | `npm ci --ignore-scripts` | `.npmrc`: `min-release-age=7` (11.10+) |
+| pnpm | `pnpm install --frozen-lockfile` | `pnpm-workspace.yaml`: `minimumReleaseAge: 10080` (minutes; 10.16+) |
+| Yarn | `yarn install --immutable` (v1: `--frozen-lockfile`) | `.yarnrc.yml`: `npmMinimalAgeGate: 10080` (minutes; 4.10+) |
+| uv | `uv sync --locked` | `[tool.uv]`: `exclude-newer = "7 days"` (0.9.17+) |
+| Poetry | `poetry install` (refuses a stale lock) | `poetry config --local solver.min-release-age 7` (2.4+) |
+| pip | `pip install --require-hashes -r requirements.txt` | `--uploaded-prior-to P7D` (26.1+) |
+| pixi | `pixi install --locked` | `[workspace]`: `exclude-newer = "7d"` (0.67+) |
+| conda-lock | `conda-lock install -n <env> conda-lock.yml` | none |
 
-Name the vulnerability class, cite the package name + version + advisory or campaign name, state blast radius (what can the package access at install time), and propose the fix (version pin, lockfile update, `--ignore-scripts`).
+Bots: Dependabot `cooldown:` with `default-days: 7`; Renovate `"minimumReleaseAge": "7 days"`. Neither delays security updates.
+
+## Rationalizations
+
+| Excuse | Reality |
+|---|---|
+| "Only for the demo build", "temporary" | One build with scripts on is all a malicious `postinstall` needs. |
+| "`--ignore-scripts` breaks the build" | Only packages needing an install step break; rebuild those. |
+| "It's a trusted, popular package" | Takeovers target trusted packages; popularity is the payoff. |
+
+## Red Flags
+
+- Removing or bypassing `--ignore-scripts` for any build
+- A version under 7 days old, or from a first-time publisher
+
+**Either one: keep the control, hold the version.**
+
+## Common Mistakes
+
+- **`pixi install` in CI:** rewrites `pixi.lock` when the manifest changed; `--frozen` skips the check. Use `--locked`. Same for `uv sync --frozen`.
+- **`ignore-scripts=true` in `.npmrc`:** `npm rebuild <package>` silently runs nothing. Add `--ignore-scripts=false` to that rebuild.
+- **Flagging every `.pth`:** `distutils-precedence.pth`, `_virtualenv.pth` and `__editable__.*.pth` are normal.

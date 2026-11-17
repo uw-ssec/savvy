@@ -684,7 +684,7 @@ The MCP server enables:
 - [Stack Overflow](https://stackoverflow.com/questions/tagged/holoviz)
 
 ### Learning Resources
-- [HoloViz Gallery](https://holoviz.org/gallery/index.html)
+- [HoloViz Gallery](https://examples.holoviz.org/)
 - [Panel Examples](https://panel.holoviz.org/gallery/index.html)
 - [Datashader Examples](https://datashader.org/getting_started/index.html)
 - [Tutorial Notebooks](https://holoviz.org/tutorial/index.html)

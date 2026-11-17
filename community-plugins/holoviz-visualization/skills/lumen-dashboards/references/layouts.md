@@ -411,5 +411,5 @@ views:
 
 ## References
 
-- [Lumen Layouts Documentation](https://lumen.holoviz.org/user_guide/Layouts.html)
-- [Panel Layout Guide](https://panel.holoviz.org/user_guide/Components.html)
+- [Lumen Layouts Documentation](https://lumen.holoviz.org/en/docs/latest/configuration/spec/)
+- [Panel Layout Guide](https://panel.holoviz.org/how_to/layout/index.html)

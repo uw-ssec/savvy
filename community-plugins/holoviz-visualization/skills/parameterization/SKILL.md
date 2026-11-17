@@ -433,5 +433,5 @@ class Statistics(param.Parameterized):
 
 - [Param Documentation](https://param.holoviz.org)
 - [Param User Guide](https://param.holoviz.org/user_guide/index.html)
-- [Panel Parameter Support](https://panel.holoviz.org/how_to/parameters/index.html)
-- [Param API Reference](https://param.holoviz.org/API/param.Parameterized.html)
+- [Panel Parameter Support](https://panel.holoviz.org/how_to/param/index.html)
+- [Param API Reference](https://param.holoviz.org/reference/param/parameterized.html)

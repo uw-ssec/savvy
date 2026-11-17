@@ -533,7 +533,7 @@ good_plot = data.hvplot.scatter(
 
 ### Research
 
-- [How Colormaps Can Lie](https://doi.org/10.1109/MCG.2018.2877473)
+- [Optimizing Colormaps with Consideration for Color Vision Deficiency](https://doi.org/10.1371/journal.pone.0199239)
 - [Color Oracle Paper](http://www.colororacle.org/)
 
 ## Summary

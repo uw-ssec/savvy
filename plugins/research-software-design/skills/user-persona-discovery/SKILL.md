@@ -140,4 +140,4 @@ Assign or revise confidence labels (High / Medium / Exploratory).
 ## Limitations
 - Personas are not real people; they are hypotheses about user behavior.
 - Personas are not a substitute for direct user research; they are a tool to focus and interpret research findings.
-- Personas are not a substitute for real interviews or focus group studies. 
+- Personas are not a substitute for real interviews or focus group studies.

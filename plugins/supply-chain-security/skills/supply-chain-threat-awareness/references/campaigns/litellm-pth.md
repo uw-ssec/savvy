@@ -23,7 +23,7 @@ The `site` module reads every `.pth` file in `site-packages` at startup and exec
 
 ## Indicators of exposure
 
-- `pip show litellm` reports 1.82.7 or 1.82.8, or `litellm_init.pth` exists in any `site-packages` directory [issue].
+- A `litellm-1.82.7.dist-info` or `litellm-1.82.8.dist-info` directory, or a `litellm_init.pth` file, exists in any `site-packages` directory [issue]. Check by reading files only, for each environment and the user site directory: `find <env-prefix> -path '*-packages/*' \( -name 'litellm-1.82.[78].dist-info' -o -name 'litellm_init.pth' \)`. Don't run `pip show` or any other Python from a suspect environment: starting its Python runs `litellm_init.pth`.
 - `~/.config/sysmon/sysmon.py` or a `sysmon.service` user unit exists [Datadog].
 - For other `.pth` files, use the PyPI `.pth` check in `supply-chain-ecosystem-quirks`.
 
@@ -31,7 +31,7 @@ The `site` module reads every `.pth` file in `site-packages` at startup and exec
 
 - [ ] Treat the host as compromised: rotate every credential that a Python process on it could read after the install [GHSA-5mg7].
 - [ ] Remove the affected version, `litellm_init.pth`, and the `sysmon` files and unit.
-- [ ] Find which package owns any other suspicious `.pth` file with `pip show -f <package>`.
+- [ ] Find which package owns any other suspicious `.pth` file, again without starting Python: `grep -l '^<file>\.pth,' <site-packages>/*.dist-info/RECORD` for pip-installed packages, or `grep -l 'site-packages/<file>\.pth"' <env-prefix>/conda-meta/*.json` for conda and pixi environments.
 - [ ] Pin a known-good version in the lockfile.
 
 For rotation, use the `supply-chain-incident-response` skill.

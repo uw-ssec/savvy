@@ -69,12 +69,15 @@ jq '.scripts // {} | with_entries(select(.key | test("^(pre|post)?install$|^prep
 # Dependencies with install scripts (package-lock.json v2 and v3 record hasInstallScript)
 jq -r '.packages | to_entries[] | select(.key != "" and .value.hasInstallScript) | .key' package-lock.json
 
-# npm installs in CI that still run scripts, and the repo-wide setting
-grep -rnE --include='*.yml' --include='*.yaml' '(^|[^[:alnum:]])npm (ci|install|i)([[:space:]]|$)' .github/ | grep -v -- '--ignore-scripts'
-grep -nE '^ignore-scripts[[:space:]]*=[[:space:]]*true' .npmrc
+# Every npm install in CI
+grep -rnE --include='*.yml' --include='*.yaml' '(^|[^[:alnum:]])npm (ci|install|i)([[:space:]]|$)' .github/
+# Anything in CI that turns scripts back on (--ignore-scripts=false, npm_config_ignore_scripts)
+grep -rniE --include='*.yml' --include='*.yaml' "ignore[-_]scripts([[:space:]]*[=:][[:space:]]*|[[:space:]]+)[\"']?false" .github/
+# The repo-wide setting
+grep -nE '^ignore-scripts[[:space:]]*=' .npmrc
 ```
 
-PASS when every CI npm install passes `--ignore-scripts` or `.npmrc` sets `ignore-scripts=true`, and someone has reviewed each listed script.
+PASS when scripts are off for every listed install after overrides, and someone has reviewed each listed script. Scripts are off when the command passes a bare `--ignore-scripts`, or when `.npmrc` sets `ignore-scripts=true` and nothing from the second grep applies to that install. `--ignore-scripts=false`, `--ignore-scripts false` and `npm_config_ignore_scripts=false` (any case) all override `.npmrc`; a bare `--ignore-scripts` flag beats the environment variable (checked with npm 11.20.0).
 
 For `.pth` files, use the PyPI `.pth` check in `supply-chain-ecosystem-quirks`.
 
@@ -91,16 +94,20 @@ pub=$(npm view <package> time --json | jq --arg v '<version>' '.[$v] | sub("\\.[
 #    PyPI (earliest uploaded file):
 pub=$(curl -s https://pypi.org/pypi/<package>/<version>/json | jq '[.urls[].upload_time_iso_8601 | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601] | min')
 
-# 2. Time of the commit that first added it. Search for <name>-<version> in
-#    package-lock.json, yarn.lock, uv.lock and pixi.lock (scoped npm packages drop
-#    the scope: @scope/name -> name-<version>), or <package>@<version> in pnpm-lock.yaml.
-adopted=$(git log --reverse --format=%ct -S '<name>-<version>' -- <lockfile> | head -1)
+# 2. Time of the commit that first added it. <token> is the text the lockfile
+#    uses for this version in its file names and URLs. npm and conda keep hyphens
+#    (scoped npm packages drop the scope: @scope/name -> name-<version>). Python
+#    wheel and sdist names use underscores: pydantic-core 2.50.4 is
+#    pydantic_core-2.50.4 in uv.lock and pixi.lock. pnpm-lock.yaml uses
+#    <package>@<version>. Check that `grep -c '<token>' <lockfile>` isn't 0.
+adopted=$(git log --reverse --format=%ct -S '<token>' -- <lockfile> | head -1)
 
-# 3. Age at adoption
-echo "$(( (adopted - pub) / 3600 )) hours"
+# 3. Age at adoption. A missing time means UNKNOWN, never FAIL.
+if [ -z "$pub" ] || [ "$pub" = null ] || [ -z "$adopted" ]; then echo UNKNOWN
+else echo "$(( (adopted - pub) / 3600 )) hours"; fi
 ```
 
-FAIL when the age is below the project's cooldown, or below 7 days if it has none. A commit is never later than its merge, so this check errs toward FAIL. Tested against npm (`axios` 1.14.1 adopted 90 minutes after publish gives 1 hour) and PyPI (`pydantic` 2.14.3 gives 298 hours).
+FAIL when the age is below the project's cooldown, or below 7 days if it has none. Report UNKNOWN when the publish time or the adopting commit can't be found, and check that version by hand. A commit is never later than its merge, so this check errs toward FAIL. Tested against npm (`axios` 1.14.1 adopted 90 minutes after publish gives 1 hour) and PyPI (`pydantic` 2.14.3 gives 298 hours).
 
 Fix with the update bot's cooldown setting:
 

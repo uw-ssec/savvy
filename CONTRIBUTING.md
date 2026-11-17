@@ -264,6 +264,12 @@ Two manually triggered workflows measure skills (**Actions → workflow → Run 
 
 Run the unit tests for these workflows' scripts with `pixi run test-scripts`.
 
+## 🤖 Working With AI Agents
+
+AI-assisted contributions are welcome under the [AI policy](AI_POLICY.md): disclose the harness and model in the PR template and with an `Assisted-by:` commit trailer, and review every line you submit.
+
+If you use a coding agent on this repository, it reads [`AGENTS.md`](AGENTS.md) (Claude Code reads it through `CLAUDE.md`). That file is a short entry point to on-demand rules in `.agents/rules/` and to repo-maintenance skills in `.agents/skills/` (`commit`, `create-pr`, `release`, `okf-memory` and others; `.claude/skills` links there). These guide work on this repository and are not part of any plugin. `knowledge/` is the project's [OKF](https://github.com/uw-ssec/project-template#project-memory) memory bundle, which agents read and write with `pixi run okf`. The setup is adapted from [uw-ssec/project-template](https://github.com/uw-ssec/project-template).
+
 ## 📋 Code of Conduct
 
 This project adheres to professional standards of conduct. Please be respectful and constructive in all interactions.

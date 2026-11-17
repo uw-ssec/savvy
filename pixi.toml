@@ -34,7 +34,14 @@ links-check = { cmd = "lychee --config lychee.toml --no-progress .", description
 test-scripts = { cmd = "pytest .github/scripts/tests -q", description = "Run the CI script tests" }
 catalog-sync = { cmd = "python .github/scripts/skill_catalog.py sync", description = "Regenerate docs/catalog.md from SKILL.md frontmatter and docs/catalog.yml" }
 catalog-check = { cmd = "python .github/scripts/skill_catalog.py check", description = "Check docs/catalog.md is current and every skill has a catalog entry (CI gate)" }
+check-all = { depends-on = ["plugins-check", "catalog-check", "test-scripts"], description = "Run the offline CI gates: plugins-check, catalog-check and test-scripts" }
 skill-quality-check = { cmd = "skillevaluator quality-check --min-score 70", description = "Run SkillEvaluator's quality-check on a skill, e.g. `pixi run -e ci skill-quality-check plugins/<plugin>/skills/<skill>`" }
 
+# OKF agent memory: provides the `okf` CLI that reads and writes the knowledge/
+# bundle (see the okf-memory skill in .agents/skills/).
+[feature.okf.dependencies]
+okf-agent-memory = ">=0.6.1,<0.7"
+
 [environments]
+default = { features = ["okf"], solve-group = "default" }
 ci = { features = ["ci"], no-default-feature = true }

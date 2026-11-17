@@ -5,11 +5,11 @@
 | Section | Lines | Description |
 |---------|-------|-------------|
 | Choosing Dimensions and Shapes | 18–47 | Match production data characteristics for representative benchmarks |
-| Data Type Selection | 48–78 | Impact of float32 vs float64 and other dtypes on chunk size and performance |
-| Compression Codec Impact | 79–122 | Benchmarking with blosc, zstd, lz4, gzip, and without compression |
-| Scaling Test Data | 123–154 | Representative samples vs full-scale generation strategies |
-| Reproducibility | 155–204 | Random seeds, metadata recording, and deterministic generation |
-| Storage Backend Considerations | 205–249 | Local vs cloud latency, object store semantics, and regional placement |
+| Data Type Selection | 48–82 | Impact of dtype on chunk size, and how the script fills each dtype |
+| Compression Codec Impact | 83–130 | Codecs the script writes, measured ratios per pattern, why synthetic data misstates compression |
+| Scaling Test Data | 131–184 | Sizing, `--sample-from` behavior and limits, opening the output with xarray |
+| Reproducibility | 185–236 | Random seeds, metadata recording, and deterministic generation |
+| Storage Backend Considerations | 237–282 | Local vs cloud latency, object store semantics, regional placement, script URL support |
 
 ---
 
@@ -21,10 +21,10 @@ The number of dimensions and their relative sizes determine how chunking strateg
 
 ### Match Production Aspect Ratios
 
-If your production data has shape `(50000, 4096, 4096)`, the first dimension is roughly 12x smaller than the others. Preserve this ratio in synthetic data even when reducing total volume:
+If your production data has shape `(50000, 4096, 4096)`, keep the dimensions that chunks will span at their production size and shrink only the leading dimension (usually time), as `--sample-from` does:
 
-- Good: `(1000, 4096, 4096)` — preserves spatial dimensions, reduces time
-- Bad: `(100, 100, 100)` — destroys the aspect ratio that drives chunking decisions
+- Good: `(1000, 4096, 4096)` — full spatial extent, fewer time steps
+- Bad: `(100, 100, 100)` — spatial reads touch one or two chunks, so the trade-offs that drive chunking disappear
 
 ### Dimension Count
 
@@ -66,11 +66,15 @@ The dtype determines the number of bytes per array element, which directly contr
 
 For a chunk shape of `(50, 256, 256)`:
 
-- `float32`: 50 x 256 x 256 x 4 bytes = **12.5 MB** per chunk
-- `float64`: 50 x 256 x 256 x 8 bytes = **25.0 MB** per chunk
-- `int16`: 50 x 256 x 256 x 2 bytes = **6.25 MB** per chunk
+- `float32`: 50 x 256 x 256 x 4 bytes = **12.5 MiB** per chunk
+- `float64`: 50 x 256 x 256 x 8 bytes = **25.0 MiB** per chunk
+- `int16`: 50 x 256 x 256 x 2 bytes = **6.25 MiB** per chunk
 
-Cloud object stores perform best with individual object sizes between 5 MB and 50 MB. Choosing the wrong dtype can push chunks outside this optimal range.
+The `chunking-strategy` skill targets 1–100 MB per object after compression on cloud stores. Choosing the wrong dtype can push chunks outside that range.
+
+### How the Script Fills Each dtype
+
+`synthetic_data.py` always generates float32 values and casts them to `--dtype`. Integer dtypes therefore hold only a handful of small integers (truncated N(0, 1) values), which compress far better than real integer data. Complex dtypes get a zero imaginary part. If production data is integer or complex, benchmark a sample of it instead.
 
 ### Recommendation
 
@@ -84,23 +88,27 @@ Compression affects benchmarks in two ways: it reduces the amount of data transf
 
 The `synthetic_data.py` script supports:
 
-| Codec | Flag Value | Characteristics |
-|-------|-----------|-----------------|
-| Zstandard | `zstd` | Best ratio-to-speed balance; default choice |
-| Blosc/LZ4 | `blosc` | Fastest decompression; lower ratios |
-| Gzip | `gzip` | Wide compatibility; slower than blosc/zstd |
-| None | `none` | No compression; measures raw I/O |
+| Flag Value | Codec written to the store | Characteristics |
+|-----------|----------------------------|-----------------|
+| `zstd` (default) | `BloscCodec(cname="zstd", shuffle="bitshuffle")` | Best ratio-to-speed balance |
+| `blosc` | `BloscCodec(cname="lz4", shuffle="bitshuffle")` | Fastest decompression; lower ratios |
+| `gzip` | `GzipCodec` | Wide compatibility; slower than Blosc |
+| `none` | `BytesCodec` only | No compression; measures raw I/O |
+
+`--compression-level` (default 3) sets `clevel` for Blosc and `level` for gzip.
 
 ### Compression Ratios by Data Pattern
 
-Different data patterns compress differently. This directly affects chunk sizes on disk:
+Every pattern is dominated by Gaussian noise, so none of them compresses like real data. Ratios measured with zarr 3.1.5 on a `(100, 256, 256)` float32 array with `(10, 64, 64)` chunks at level 3 (the full-size climate example in SKILL.md gives 1.27x for `temperature`):
 
-| Pattern | zstd (level 3) | blosc/lz4 | gzip |
-|---------|----------------|-----------|------|
-| `constant` | 100–1000x | 50–500x | 80–800x |
-| `temperature` | 2–5x | 1.5–3x | 2–4x |
-| `radio` | 1.2–2x | 1.1–1.5x | 1.2–1.8x |
-| `random` | 1.0–1.1x | 1.0–1.05x | 1.0–1.1x |
+| Pattern | `zstd` | `blosc` | `gzip` |
+|---------|--------|---------|--------|
+| `constant` | 2.0x | 2.0x | 1.8x |
+| `temperature` | 1.26x | 1.25x | 1.12x |
+| `radio` | 1.13x | 1.15x | 1.12x |
+| `random` | 1.12x | 1.11x | 1.08x |
+
+Real scientific data often compresses 2–10x (see `chunking-strategy`'s `references/cloud-storage-patterns.md`). Synthetic chunks are therefore 2–10x larger on disk than the same chunks of real data, which overstates bytes read and I/O time, especially on cloud storage.
 
 ### Benchmarking With and Without Compression
 
@@ -108,17 +116,17 @@ To isolate the effect of compression on benchmark results, generate identical da
 
 ```bash
 # With compression
-python synthetic_data.py -o /tmp/compressed.zarr \
+python scripts/synthetic_data.py -o /tmp/compressed.zarr \
     --shape 1000,1024,1024 --chunks 50,256,256 \
     --compression zstd --seed 42
 
 # Without compression
-python synthetic_data.py -o /tmp/uncompressed.zarr \
+python scripts/synthetic_data.py -o /tmp/uncompressed.zarr \
     --shape 1000,1024,1024 --chunks 50,256,256 \
     --compression none --seed 42
 ```
 
-Compare the results to determine whether compression is a net win for your storage backend and access pattern. On fast local SSDs, compression overhead may outweigh the I/O savings. On high-latency cloud storage, compression almost always helps.
+On synthetic data this pair measures codec CPU overhead only: the compressed store is barely smaller, so the I/O saving that makes compression worthwhile on real data never shows up. To decide whether compression is a net win for your storage backend, run the same comparison on a sample of the real dataset.
 
 ## Scaling Test Data
 
@@ -135,36 +143,58 @@ Benchmark datasets must be large enough to produce meaningful results but small 
 
 ### Reducing Along One Dimension
 
-The `synthetic_data.py` script and its `calculate_sample_shape` function reduce the first dimension (typically time) while preserving full resolution in other dimensions. This strategy maintains representative chunk access patterns:
+`--sample-from` (through `calculate_sample_shape`) reduces the first dimension (typically time) while preserving full resolution in other dimensions. This strategy maintains representative chunk access patterns:
 
-- Full production shape: `(50000, 4096, 4096)` — ~3 TB at float32
-- Benchmark sample: `(500, 4096, 4096)` — ~30 GB at float32
-- Quick test: `(50, 4096, 4096)` — ~3 GB at float32
+- Full production shape: `(50000, 4096, 4096)` — 3.4 TB (3.1 TiB) at float32
+- Benchmark sample: `(500, 4096, 4096)` — 33.6 GB (31.3 GiB) at float32
+- Quick test: `(50, 4096, 4096)` — 3.4 GB (3.1 GiB) at float32
 
 ### Using --sample-from
 
-If you have an existing large Zarr dataset, use the sampling feature rather than regenerating:
+If you have an existing large Zarr dataset, sample it rather than generating noise. Real values keep the real compression ratio, which synthetic patterns cannot reproduce:
 
 ```bash
-python synthetic_data.py --sample-from /data/full.zarr \
+python scripts/synthetic_data.py --sample-from /data/full.zarr/temperature \
     --output /tmp/sample.zarr --target-size 8
 ```
 
-This preserves the source dataset's chunk shape, compression, and metadata while extracting a manageable subset.
+What the script does and does not handle (checked against zarr 3.1.5):
+
+- `--target-size` is in GiB (2^30 bytes). The sample is the first N indices along dimension 0 at full extent elsewhere, so a time-leading sample covers only the start of the record and can miss seasonal or regime changes.
+- The source must be a Zarr v3 **array**. An xarray store is a group and fails with `'Group' object has no attribute 'shape'`; pass the variable's path (`store.zarr/<var>`). Zarr v2 arrays fail with `Expected dict, got <class 'numcodecs...'>`.
+- The sample keeps the source's chunk shape, codecs and attributes, but not its `dimension_names`, and it is written as a bare array (see "Opening the Output with xarray" below).
+- The whole sample is read into memory in one step, so `--target-size 8` needs more than 8 GiB of free RAM.
+- `--overwrite` is ignored here: an existing output is replaced silently.
+
+For an xarray dataset, `ds.isel(time=slice(0, n)).to_zarr(...)` (as in `chunking-strategy`'s `references/benchmarking-methodology.md`) keeps all variables, coordinates and dimension names.
+
+### Opening the Output with xarray
+
+The script writes a single array at the store root and keeps `--dims` only in `attrs["dimensions"]`, not in Zarr v3 `dimension_names`. `xr.open_zarr` accepts only groups, so it raises `ContainsArrayError`, and `chunking-strategy`'s `benchmark_runner.py` (which calls `xr.open_zarr`) cannot read the store. Open PR #246 changes both scripts to handle this. Until it lands, rewrite the array as a Dataset (needs dask; the copy uses xarray's default codecs, not the source's):
+
+```python
+import dask.array as da
+import xarray as xr
+import zarr
+
+z = zarr.open("/tmp/climate.zarr", mode="r")
+data = da.from_array(z, chunks=z.chunks)
+xr.DataArray(data, dims=z.attrs["dimensions"], name="data").to_dataset().to_zarr("/tmp/climate_ds.zarr")
+```
 
 ## Reproducibility
 
-Benchmarking requires exact reproducibility. Two runs with the same parameters must produce bitwise-identical datasets.
+Benchmarking requires exact reproducibility. Two runs with the same shape, dtype, pattern and seed produce bitwise-identical datasets.
 
 ### Random Seeds
 
-The `--seed` flag controls all random number generation. Default is `42`. The script passes `seed + batch_offset` to `numpy.random.seed` for each batch to ensure consistent results regardless of batch size.
+The `--seed` flag controls all random number generation. Default is `42`. The script writes in batches of about 1 GiB along the first dimension and calls `numpy.random.seed(seed + batch_start)` for each batch. Batch length is derived from the shape and dtype, so changing either one changes the values: two datasets that differ in shape are not the same data cut differently. The `temperature` sine cycle also restarts at each batch boundary.
 
 Key rules:
 
 - Always specify `--seed` explicitly in benchmark scripts
 - Use the same seed across all datasets in a comparison
-- Document the seed in your benchmark report
+- Document the seed in your benchmark report; the script does not store it in the array's attributes
 - Different seeds produce statistically equivalent but numerically different data
 
 ### Metadata Recording
@@ -196,8 +226,10 @@ z2 = zarr.open("/tmp/run2.zarr", mode="r")
 # Check shapes match
 assert z1.shape == z2.shape, f"Shape mismatch: {z1.shape} vs {z2.shape}"
 
-# Check data is bitwise identical
-assert np.array_equal(z1[:], z2[:]), "Data differs between runs"
+# Check data is bitwise identical, one block along dim 0 at a time to bound memory
+step = z1.chunks[0]
+for i in range(0, z1.shape[0], step):
+    assert np.array_equal(z1[i:i + step], z2[i:i + step]), f"Data differs at index {i}"
 
 print("Datasets are identical")
 ```
@@ -238,6 +270,7 @@ Place synthetic data in the same region as your compute. Cross-region access add
 - **Throughput:** Similar to S3 with parallel requests
 - **Best for:** GCP-native workflows
 - **Caveat:** Requires `gcsfs` library; authentication via service account or application default credentials
+- **Script support:** `synthetic_data.py` rejects `gcs://` URLs with `NotImplementedError` even when `gcsfs` is installed. A `gs://` URL goes straight to zarr's fsspec store, which should work with `gcsfs` installed but is untested. For any remote URL the script replaces existing data without `--overwrite`.
 
 ### Choosing a Backend for Benchmarks
 

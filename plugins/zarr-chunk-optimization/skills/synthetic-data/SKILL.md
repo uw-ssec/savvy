@@ -1,6 +1,6 @@
 ---
 name: synthetic-data
-description: Generates synthetic Zarr datasets with configurable dimensions, shapes, data types, and compression for controlled chunking benchmarks. Supports local and cloud storage backends (S3, GCS). Use when the user needs to create test Zarr datasets for benchmarking, generate synthetic array data for performance testing, or create reproducible benchmark inputs without access to production data.
+description: Use when a Zarr chunking benchmark needs input data and the production dataset is unavailable, restricted, or too large to copy; when the user asks for a synthetic, random, or test Zarr dataset or array with a given shape, chunks, dtype, or compression; or when a smaller benchmark sample must be cut from an existing Zarr store, on local disk or S3.
 metadata:
   references: references/dataset-design.md
   scripts: scripts/synthetic_data.py
@@ -9,97 +9,73 @@ metadata:
 
 # Synthetic Data Generation for Chunking Benchmarks
 
-Generate controlled Zarr datasets for benchmarking chunking strategies when production data is unavailable or unsuitable.
+Generates reproducible synthetic Zarr arrays, or cuts a leading-dimension sample from an existing Zarr array, as input for chunking benchmarks.
 
-## Resources
+**Core principle:** synthetic data fixes shape, chunks and dtype, not content. Every pattern is noise-dominated and compresses about 1.1–2x; real scientific data often compresses 2–10x. Compare chunk shapes and access patterns with it, not codecs or absolute read times.
 
-| Resource | Purpose |
-|----------|---------|
-| [references/dataset-design.md](references/dataset-design.md) | Dimensions, dtypes, compression codecs, storage backends, scaling, reproducibility — all design decisions in depth |
-| [scripts/synthetic_data.py](scripts/synthetic_data.py) | CLI tool: configurable shape, chunks, dtype, compression, data patterns, cloud output, sampling from existing stores |
-| [assets/synthetic-config-example.json](assets/synthetic-config-example.json) | Example JSON config with all parameters |
+## When to Use
 
-## Generate and Validate (Workflow)
+- No access to production data, or it is too large or restricted to copy.
+- Validating a benchmark pipeline before running it on real data.
+- Comparing chunk shapes for a known array shape and dtype.
 
-**Step 1 — Generate:**
+**When NOT to use:**
+- Choosing a codec or predicting real I/O cost: benchmark a sample of the real data (`--sample-from`, or `ds.isel(...)` as in `chunking-strategy`).
+- Defining which reads to benchmark: `access-pattern-analysis`.
+- Running the benchmark: `chunking-strategy`. Rewriting real data: `rechunking`. Writing up results: `performance-reporting`.
+
+## Quick Reference
+
+Run from this skill's directory; `python scripts/synthetic_data.py --help` lists every flag.
 
 ```bash
-# General benchmark dataset
-python scripts/synthetic_data.py --output /tmp/test.zarr \
-    --shape 1000,2048,2048 --chunks 50,256,256 --seed 42
-
-# Climate-like (spatial gradients + temporal variation)
+# Climate-like, 0.88 GiB float32 (chunks 22.6 MiB)
 python scripts/synthetic_data.py --output /tmp/climate.zarr \
     --shape 3650,180,360 --chunks 365,90,180 \
-    --dims time,lat,lon --pattern temperature --dtype float32 --seed 42
+    --dims time,lat,lon --pattern temperature --seed 42
 
-# Radio astronomy (complex Gaussian noise)
+# Radio-like, 15.6 GiB float32 (chunks 12.5 MiB); --compression none isolates raw I/O
 python scripts/synthetic_data.py --output /tmp/radio.zarr \
     --shape 1000,2048,2048 --chunks 50,256,256 \
-    --dims time,frequency,baseline --pattern radio --seed 42
+    --dims time,frequency,baseline --pattern radio --compression none --seed 42
 
-# To S3 (requires AWS credentials)
+# To S3 (s3fs + AWS credentials), 1.95 GiB
 python scripts/synthetic_data.py --output s3://bucket/synthetic.zarr \
-    --shape 500,1024,1024 --chunks 50,256,256 --compression zstd --seed 42
+    --shape 500,1024,1024 --chunks 50,256,256 --seed 42
 
-# Sample from an existing Zarr store
-python scripts/synthetic_data.py --sample-from /data/full.zarr \
+# First ~8 GiB along dim 0 of an existing Zarr v3 array (loads the whole sample into RAM)
+python scripts/synthetic_data.py --sample-from /data/full.zarr/temperature \
     --output /tmp/sample.zarr --target-size 8
-
-# No compression (isolate raw I/O)
-python scripts/synthetic_data.py --output /tmp/raw.zarr \
-    --shape 500,512,512 --chunks 50,128,128 --compression none --seed 42
 ```
 
-**Step 2 — Validate before benchmarking:**
+| `--pattern` | Content | zstd ratio |
+|-------------|---------|-----------|
+| `random` (default) | N(0, 1) noise | ~1.1x |
+| `temperature` | lat+lon gradient × sine over dim 0, plus noise | ~1.25x |
+| `radio` | real amplitudes \|N + iN\|, not complex values | ~1.1x |
+| `constant` | 100 + 0.01·N(0, 1) | ~2x |
+
+Ratios measured on a 100×256×256 float32 array. [references/dataset-design.md](references/dataset-design.md) covers what `--help` omits: codec mapping, dtype casting, sampling, cloud URLs, seeding. [assets/synthetic-config-example.json](assets/synthetic-config-example.json) records a run; the script has no `--config` flag.
+
+## Validate Before Benchmarking
 
 ```python
-import zarr
-import numpy as np
+import numpy as np, zarr
 
-z = zarr.open("/tmp/test.zarr", mode="r")
-assert z.shape == (1000, 2048, 2048), f"Shape mismatch: {z.shape}"
-assert z.chunks == (50, 256, 256), f"Chunks mismatch: {z.chunks}"
-assert z.dtype == np.float32, f"Dtype mismatch: {z.dtype}"
-print(f"Shape: {z.shape} | Chunks: {z.chunks} | Dtype: {z.dtype}")
-print(f"Pattern: {z.attrs.get('pattern_type')} | Seed: {z.attrs.get('random_seed')}")
-
-# Spot-check values are finite and non-constant
+z = zarr.open("/tmp/climate.zarr", mode="r")
+assert (z.shape, z.chunks, z.dtype) == ((3650, 180, 360), (365, 90, 180), np.float32)
+print(dict(z.attrs))  # dimensions, pattern_type, created_by (the seed is not stored)
 sample = z[0:5]
-assert np.all(np.isfinite(sample)), "Non-finite values found"
-assert np.std(sample) > 0, "Data appears constant (check --pattern)"
+assert np.isfinite(sample).all() and sample.std() > 0
 ```
 
-**If validation fails:**
-- Shape/chunks mismatch → check that `--shape` and `--chunks` have the same number of dimensions.
-- Non-finite values → use `--pattern temperature` or `--pattern radio` instead of `--pattern random` for domain-realistic ranges.
-- `std == 0` → `--pattern constant` was used unintentionally; switch to `--pattern random` or `--pattern temperature`.
+## Common Mistakes
 
-## CLI Reference
-
-| Argument | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `--output`, `-o` | Yes | — | Output path (local or `s3://`) |
-| `--shape` | Yes* | — | Comma-separated array shape |
-| `--chunks` | Yes* | — | Comma-separated chunk shape |
-| `--dims` | No | `dim_0,...` | Comma-separated dimension names |
-| `--dtype` | No | `float32` | Array data type |
-| `--compression` | No | `zstd` | Codec: `zstd`, `blosc`, `gzip`, `none` |
-| `--compression-level` | No | `3` | Compression level |
-| `--pattern` | No | `random` | `random`, `temperature`, `radio`, `constant` |
-| `--seed` | No | `42` | Random seed for reproducibility |
-| `--overwrite` | No | false | Overwrite existing output |
-| `--sample-from` | No | — | Sample from existing Zarr store |
-| `--target-size` | No | `8.0` | Target sample size in GB |
-| `--verbose`, `-v` | No | false | Debug logging |
-
-*Required when not using `--sample-from`.
-
-## Key Design Rules
-
-- Match `--dtype` to your production data (`float32` is the most common scientific dtype — using `float64` doubles chunk size and skews results).
-- Always set `--seed` explicitly and record it; default is `42`.
-- Generate datasets with and without compression to isolate codec overhead.
-- Keep chunk dimensions as even divisors of the array shape to avoid partial edge chunks.
-
-See [dataset-design.md](references/dataset-design.md) for dimension selection, scaling strategies, storage backend configuration, and compression codec guidance.
+| Mistake | Fix |
+|---------|-----|
+| Feeding the output to `chunking-strategy`'s `benchmark_runner.py` | `xr.open_zarr` raises `ContainsArrayError`: the store is a bare array with `--dims` only in `attrs`. Wrap it as a Dataset first (see the reference) until PR #246 lands. |
+| Picking a codec from synthetic results | Noise barely compresses: you measure codec CPU cost without the I/O saving. |
+| `--dtype int16` or `complex64` | Values are generated as float32 and cast: int16 holds a handful of small integers, complex has a zero imaginary part. |
+| `--sample-from store.zarr` on an xarray store | It is a group (`'Group' object has no attribute 'shape'`); point at the variable, `store.zarr/<var>`. |
+| Different shape or dtype, same seed | Data is identical only for identical shape, dtype, pattern and seed. Record the full command. |
+| Chunks that do not divide the shape | Use even divisors of the shape to avoid partial edge chunks. |

@@ -61,7 +61,7 @@ print(root.tree())                     # needs the optional `rich` package
 |---|---|---|
 | Metadata | `.zarray`, `.zgroup`, `.zattrs` | One `zarr.json` per node |
 | Default chunk keys | `0.0` | `c/0/0` |
-| Default compressor | Zstd (zarr-python 2 used Blosc) | Zstd |
+| Default compressor (zarr-python 3.1.5) | `zarr.create_array`: Zstd; `Group.create_array` / xarray: Blosc lz4 | Zstd |
 | `shards=`, `dimension_names=` | `ValueError` | Supported |
 | Consolidated metadata | `.zmetadata` | Inside root `zarr.json` (zarr-python extension, warns) |
 

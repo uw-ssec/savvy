@@ -18,7 +18,7 @@
 
 **Symptoms:** `KeyError`/`FileNotFoundError` opening stores; metadata files not found; compression codec errors; old tutorial code failing.
 
-**Cause:** zarr-python 3 defaults to v3 format, but most existing data is v2. The two use different metadata files (`.zarray` vs `zarr.json`) and different chunk key formats. zarr-python 3 compresses with Zstd by default in both formats; Blosc was zarr-python 2's default, so code that expects Blosc on new arrays is relying on the old library. Some zarr-python 2 APIs fail under zarr-python 3 whatever the format: `FSStore`, synchronizers, `len(z)`, and `compressor=` in `create_array` (use `compressors=`).
+**Cause:** zarr-python 3 defaults to v3 format, but most existing data is v2. The two use different metadata files (`.zarray` vs `zarr.json`) and different chunk key formats. In zarr-python 3.1.5 the default compressor depends on the call: v3 arrays get Zstd; v2 arrays get Zstd from `zarr.create_array` but Blosc (lz4) from `Group.create_array`, which is the path xarray uses. Set `compressors=` explicitly rather than relying on either default. Some zarr-python 2 APIs fail under zarr-python 3 whatever the format: `FSStore`, synchronizers, `len(z)`, and `compressor=` in `create_array` (use `compressors=`).
 
 **Solution:**
 

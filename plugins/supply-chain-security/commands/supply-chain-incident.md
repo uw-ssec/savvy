@@ -96,15 +96,11 @@ Hunt for installer-implanted artifacts. Ecosystem-specific:
 4. Enumerate secrets in scope and categorize by access type.
 5. Run the ecosystem-specific persistence artifact hunt.
 6. Fill the incident report template — see Output.
-7. Recommend rotation order per `plugins/supply-chain-security/skills/supply-chain-incident-response/references/secret-rotation.md`.
+7. Recommend rotation order per the secret-rotation runbook in the `supply-chain-incident-response` skill (`references/secret-rotation.md`).
 
 ## Output
 
-Load the template from:
-
-```
-plugins/supply-chain-security/skills/supply-chain-incident-response/assets/incident-report-template.md
-```
+Load the incident report template from the `supply-chain-incident-response` skill (`assets/incident-report-template.md`).
 
 Produce a filled copy. Save to `incident-<id>-<YYYYMMDD>.md` in the current working directory unless the user supplies an alternate path.
 

@@ -9,26 +9,23 @@ An attacker with write access to an action's repo (via compromised maintainer cr
 For each `uses:` reference in workflows, resolve the tag's current SHA and compare against the SHA observed in a recent known-good run.
 
 ```bash
-# Enumerate all uses: refs (action@ref form)
-grep -hoE 'uses: [a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+@[^[:space:]]+' .github/workflows/*.yml | sort -u
-
-# For each ref, resolve current SHA via gh api
-for ref in $(grep -hoE 'uses: [a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+@[^[:space:]]+' .github/workflows/*.yml | sort -u); do
-  spec="${ref#uses: }"
-  action="${spec%@*}"
-  tag="${spec#*@}"
-  # 40-char hex = already SHA-pinned, immune to tag mutation
-  if [[ "$tag" =~ ^[a-f0-9]{40}$ ]]; then
-    echo "PINNED $spec"
-  else
-    sha=$(gh api "repos/$action/git/refs/tags/$tag" --jq '.object.sha' 2>/dev/null \
-       || gh api "repos/$action/commits/$tag" --jq '.sha' 2>/dev/null)
-    echo "FLOATING $spec -> $sha"
-  fi
-done
+# Every remote uses: ref (actions, subpath actions, reusable workflows) in .yml and .yaml files
+grep -rhoE 'uses:[[:space:]]*[^[:space:]#.][^[:space:]#]*@[^[:space:]#]+' .github/workflows/ \
+  | sed -E 's/^uses:[[:space:]]*//' | grep -v '^docker://' | sort -u \
+  | while read -r spec; do
+      repo=$(echo "${spec%@*}" | cut -d/ -f1-2)   # owner/repo, without any subpath
+      ref="${spec##*@}"
+      if [[ "$ref" =~ ^[0-9a-f]{40}$ ]]; then
+        echo "PINNED     $spec"                     # immune to tag mutation
+      elif sha=$(gh api "repos/$repo/commits/$ref" --jq .sha 2>/dev/null); then
+        echo "FLOATING   $spec -> $sha"             # commit the tag points to now
+      else
+        echo "UNRESOLVED $spec"                     # deleted tag, or private or removed repo
+      fi
+    done
 ```
 
-Compare each `FLOATING` SHA against the SHA recorded in the last successful workflow run (see Workflow Run Forensics below). Mismatch = potential hijack, treat as EXPOSED until proven otherwise. See `/supply-chain-pin-actions` for the SHA-pinning fix.
+Compare each `FLOATING` SHA against the SHA recorded in the last successful workflow run (see Workflow Run Forensics below). Mismatch or `UNRESOLVED` = potential hijack, treat as EXPOSED until proven otherwise. See `/supply-chain-pin-actions` for the SHA-pinning fix.
 
 ## Workflow Run Forensics
 
@@ -39,7 +36,7 @@ For each workflow that used the suspect action, enumerate runs during the exposu
 gh run list --workflow=<file>.yml --created ">=<exposure-start>" \
   --json databaseId,createdAt,headSha,conclusion,url
 
-# For a specific run, list the secrets referenced in its job env/steps
+# For a specific run, confirm the suspect action ran: its step is named "Run <action>@<ref>"
 gh api "repos/<owner>/<repo>/actions/runs/<run-id>/jobs" \
   --jq '.jobs[] | {name, steps: [.steps[] | .name]}'
 

@@ -1,5 +1,15 @@
 # Secret Rotation Runbook
 
+## Contents
+
+- [Safe Rotation Order](#safe-rotation-order)
+- [PyPI Tokens](#pypi-tokens)
+- [npm Tokens](#npm-tokens)
+- [GitHub Actions Secrets](#github-actions-secrets)
+- [Signing Keys (cosign, GPG)](#signing-keys-cosign-gpg)
+- [Cloud Credentials](#cloud-credentials)
+- [Durable Fix: OIDC Trusted Publishing](#durable-fix-oidc-trusted-publishing)
+
 ## Safe Rotation Order
 
 For every credential type below: **issue the new credential first, deploy it to all consumers, verify, then revoke the old one.** Never revoke first unless you have a confirmed list of consumers — surprise revocations break production and provide cover for further attacker action. The only exception: if you have direct evidence the old credential is actively in use by the attacker (e.g., outbound traffic from your CI to an unknown host), revoke immediately and accept the downtime.
@@ -17,8 +27,9 @@ For every credential type below: **issue the new credential first, deploy it to 
 ```bash
 # List all tokens for the account
 npm token list
-# Create a replacement (publish + automation read scope)
-npm token create --read-only=false --cidr=0.0.0.0/0
+# Create a replacement granular token, limited to the package, with an expiry
+npm token create --name <ci-publish-YYYYMMDD> --packages <pkg> \
+  --packages-and-scopes-permission read-write --expires <days> --bypass-2fa
 # Update CI
 gh secret set NPM_TOKEN --body "<new>"
 # Verify a publish dry-run

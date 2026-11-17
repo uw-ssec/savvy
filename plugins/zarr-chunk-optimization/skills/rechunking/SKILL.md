@@ -1,6 +1,6 @@
 ---
 name: rechunking
-description: Safely applies chunking configurations to Zarr datasets with validation, progress reporting, memory-bounded execution, and rollback safety. Supports local, S3, and GCS storage backends. Use when the user needs to rechunk a .zarr dataset, change chunk sizes, optimize Zarr storage layout, or apply a chunk configuration identified by benchmarking.
+description: Use when an existing Zarr (.zarr) array or dataset must be rechunked to a new layout, such as changing chunk sizes or shard shape, optimizing Zarr storage layout, or applying a chunk configuration identified by benchmarking, on local disk, S3, or GCS. Also use when rechunker, dask rechunk, or xarray to_zarr runs out of memory or raises chunk alignment errors during a rechunk.
 metadata:
   references: references/rechunking-strategies.md references/validation-safety.md
   scripts: scripts/rechunk.py
@@ -9,105 +9,68 @@ metadata:
 
 # Rechunking Zarr Datasets
 
-Rechunking rewrites every byte of a dataset. Depending on target chunk size and dataset volume, it can take 6 minutes to 46+ hours (Nguyen et al., 2023). **Always benchmark before rechunking** — use the `chunking-strategy` skill to identify the optimal configuration first.
+Rewrites an existing Zarr array or dataset into a new chunk or shard layout without putting the source at risk.
 
-## Resources
+**Core principle:** rechunking rewrites every byte, which took from 6 minutes to 46 hours in Nguyen et al. (2023). Choose the target layout first, write to a new path, and prove the values match before anything replaces the source.
 
-| Resource | Purpose |
-|----------|---------|
-| [references/rechunking-strategies.md](references/rechunking-strategies.md) | In-place vs copy, parallel rechunking with Dask, cost estimation, progress monitoring |
-| [references/validation-safety.md](references/validation-safety.md) | Pre/post validation, sample-first strategy, rollback patterns, failure modes |
-| [scripts/rechunk.py](scripts/rechunk.py) | CLI tool: validation, progress reporting, memory-bounded execution, JSON summary |
-| [assets/rechunk-config-example.json](assets/rechunk-config-example.json) | Example config with all supported parameters |
+## When to Use
 
-## CLI Reference
+Use it when a chosen chunk or shard shape must be applied to a real store, or when a rechunk runs out of memory or fails with chunk alignment errors.
+
+**When NOT to use:**
+
+- Target chunks not chosen yet: use `chunking-strategy`, after `access-pattern-analysis`.
+- Comparing benchmark results: use `performance-reporting`. Need test data: use `synthetic-data`.
+- One computation needs different blocks: `ds.chunk(...)` regroups dask blocks in memory and rewrites nothing.
+
+## Quick Reference: Pick the Tool
+
+| Situation | Tool |
+|-----------|------|
+| Single Zarr array | `python scripts/rechunk.py` or `zarr.from_array(new_path, data=src, chunks=...)` |
+| Sharded Zarr v3 target | `zarr.from_array(..., chunks=inner, shards=outer)` or xarray encoding `{"chunks", "shards"}`. The script cannot set shards. |
+| Zarr group or xarray Dataset | `ds.chunk(...).to_zarr(new_path)` with stale encoding removed. The script rejects groups. |
+| Larger-than-memory transpose, e.g. `(1, Y, X)` to `(T, 1, 1)` | dask on a `distributed` cluster (`method="p2p"`), or `rechunker` under zarr-python 2 |
+
+Code for each route, sharding rules and memory planning: [rechunking-strategies.md](references/rechunking-strategies.md).
+
+## Bundled Script
 
 ```bash
-# Local rechunk
-python scripts/rechunk.py --input /data/source.zarr --output /data/rechunked.zarr --chunks "50,512,512"
-
-# Cloud rechunk with memory limit
-python scripts/rechunk.py --input s3://bucket/source.zarr --output s3://bucket/rechunked.zarr \
-  --chunks "100,256,256" --max-mem "4GB"
-
-# With JSON summary saved to a specific path
 python scripts/rechunk.py --input /data/source.zarr --output /data/rechunked.zarr \
-  --chunks "50,512,512" --summary results/rechunk_report.json
+  --chunks "50,512,512" --max-mem 1GB --summary results/rechunk_report.json
 ```
 
-| Flag | Required | Default | Description |
-|------|----------|---------|-------------|
-| `--input`, `-i` | Yes | — | Source Zarr store (local or `s3://`/`gs://`) |
-| `--output`, `-o` | Yes | — | Output Zarr store (must differ from input) |
-| `--chunks`, `-c` | Yes | — | Target chunk shape, comma-separated |
-| `--max-mem` | No | `2GB` | Memory budget for rechunker library |
-| `--overwrite` | No | false | Overwrite output if it exists |
-| `--summary` | No | auto | Path for JSON summary file |
-| `--verbose`, `-v` | No | false | Debug-level logging |
+| Flag | Default | Meaning |
+|------|---------|---------|
+| `--input`, `-i` / `--output`, `-o` | required | Source and new store (local, `s3://`, `gs://`). Paths must differ. |
+| `--chunks`, `-c` | required | Target chunk shape, comma-separated |
+| `--max-mem` | `2GB` | Per-task memory, used only by `rechunker` |
+| `--overwrite` | off | Allow an existing local output |
+| `--summary` | `rechunk_summary_<timestamp>.json` | JSON summary path |
+| `--verbose`, `-v` | off | Debug logging and tracebacks |
+
+The script uses `rechunker` when it imports, but `rechunker` 0.5.4 requires `zarr<3`. Under zarr-python 3 it copies one target chunk at a time and ignores `--max-mem`. Afterwards it checks shape, chunk shape and element count, not values. Example values for each flag: [assets/rechunk-config-example.json](assets/rechunk-config-example.json).
 
 ## Safety Protocol
 
-Every rechunking operation follows four steps. Do not skip steps.
+1. **Sample first:** rechunk a block spanning two target chunks per axis with the real `--chunks`.
+2. **Validate the sample** with an exact value comparison.
+3. **Rechunk the full dataset to a new path.** Never in place.
+4. **Verify, then switch readers.** Keep the original until the new store has worked in production.
 
-**Step 1 — Sample first.** Rechunk a small subset to catch configuration errors cheaply:
+Code for every step: [validation-safety.md](references/validation-safety.md).
 
-```bash
-python -c "
-import zarr
-src = zarr.open('/data/full.zarr', 'r')
-s = zarr.open('/tmp/sample.zarr', 'w', shape=(10,)+src.shape[1:], chunks=src.chunks, dtype=src.dtype)
-s[:] = src[:10]
-"
-python scripts/rechunk.py --input /tmp/sample.zarr --output /tmp/sample_rechunked.zarr --chunks "5,512,512"
-```
+## Common Mistakes
 
-**Step 2 — Validate the sample:**
-
-```python
-import zarr, numpy as np
-src = zarr.open('/tmp/sample.zarr', 'r')
-dst = zarr.open('/tmp/sample_rechunked.zarr', 'r')
-assert src.shape == dst.shape and src.dtype == dst.dtype
-assert np.array_equal(src[:], dst[:])
-print("Sample OK")
-```
-
-**Step 3 — Rechunk the full dataset to a new path** (never in place):
-
-```bash
-python scripts/rechunk.py --input /data/full.zarr --output /data/full_rechunked.zarr \
-  --chunks "50,512,512" --max-mem "4GB"
-```
-
-**Step 4 — Verify and swap:**
-
-```bash
-# Spot-check values
-python -c "
-import zarr, numpy as np
-src = zarr.open('/data/full.zarr', 'r')
-dst = zarr.open('/data/full_rechunked.zarr', 'r')
-for i in [0, len(src)//2, len(src)-1]:
-    assert np.array_equal(src[i], dst[i]), f'Mismatch at {i}'
-print('Spot-check passed')
-"
-# Swap
-mv /data/full.zarr /data/full_backup.zarr
-mv /data/full_rechunked.zarr /data/full.zarr
-# Delete backup only after confirming rechunked version works in production
-```
-
-For cloud storage: use versioned buckets or copy to a backup prefix before swapping. See [rechunking-strategies.md](references/rechunking-strategies.md) for intermediate storage patterns and Dask parallelism.
-
-## Memory Budget
-
-Set `--max-mem` to ≈25% of available system RAM to leave headroom for OS and I/O buffers. The `rechunker` library uses this budget to plan a memory-safe execution graph; the fallback chunk-by-chunk copy processes one target chunk at a time.
-
-## What the Script Validates Automatically
-
-1. Source store exists and is readable
-2. Target chunk dimensions match array dimensions
-3. Output path does not already exist (unless `--overwrite`)
-4. Post-rechunk: shape, chunk shape, and total element count match source
-
-See [validation-safety.md](references/validation-safety.md) for additional value-sampling and checksum checks to run manually.
+| Mistake | Fix |
+|---------|-----|
+| Same path for `--input` and `--output` | Unchecked. With `--overwrite` or a cloud path, the fallback opens the output with `mode='w'` and erases the source. |
+| Trusting the existence check on S3/GCS | It runs for local paths only. Check the prefix yourself. |
+| `--max-mem` at 25% of RAM | It is per task, and dask runs one task per thread. Keep `max_mem × threads` well under RAM. |
+| `pip install rechunker` under zarr-python 3 | It pins `zarr<3`. Use `zarr.from_array`, xarray or dask. |
+| Reusing the source `encoding` in `to_zarr` | Drop `chunks`, `shards` and `preferred_chunks`, or xarray keeps the old layout or raises. |
+| Parallel writers sharing a shard | A partial shard write rewrites the whole shard, and concurrent ones lose data. Align blocks to shards. |
+| Trusting `zarr.from_array` defaults | In zarr-python 3.1 it drops the fill value and attributes. Pass `fill_value=` and `attributes=`. |
+| `np.array_equal` on float data with NaN | Pass `equal_nan=True`. |
+| Kerchunk or VirtualiZarr to change layout | They reference existing chunks only. A new layout needs a rewrite. |

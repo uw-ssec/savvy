@@ -4,12 +4,13 @@
 
 | Section | Lines | Description |
 |---------|-------|-------------|
-| In-Place vs Copy Rechunking | 16–61 | Trade-offs between overwriting source and writing to a new location |
-| Chunk-at-a-Time Processing | 62–96 | Memory-bounded approach for datasets that exceed RAM |
-| Intermediate Storage Patterns | 97–147 | Temporary stores required by the rechunker library for cloud workflows |
-| Parallel Rechunking | 148–193 | Using Dask to parallelize rechunking across workers |
-| Cost Estimation Formula | 194–239 | Time estimation based on Nguyen et al. (2023) findings |
-| Monitoring Progress | 240–310 | Progress bars, ETA calculation, and memory tracking during rechunking |
+| In-Place vs Copy Rechunking | 17–61 | Trade-offs between overwriting source and writing to a new location |
+| Chunk-at-a-Time Processing | 62–98 | The script's fallback copy, its memory profile and limits |
+| Intermediate Storage Patterns | 99–149 | Temporary stores used by the rechunker library |
+| Parallel Rechunking with rechunker | 150–198 | Running rechunker on a Dask cluster (zarr-python 2 only) |
+| Rechunking Under zarr-python 3 | 199–256 | `zarr.from_array`, xarray `to_zarr`, dask `tasks` vs `p2p`, sharding, Kerchunk limits |
+| Cost Estimation Formula | 257–303 | Time estimation based on Nguyen et al. (2023) findings |
+| Monitoring Progress | 304–372 | Progress logs, ETA calculation, and memory tracking during rechunking |
 
 ---
 
@@ -23,7 +24,7 @@ Copy rechunking writes the rechunked data to a **new location**, leaving the ori
 
 - **Rollback safety.** If rechunking fails (OOM, network error, disk full), the original data is unaffected.
 - **Validation before swap.** You can compare the rechunked output against the original before replacing it.
-- **Atomic swap.** Renaming directories or S3 prefixes is nearly instantaneous.
+- **Cheap switch-over.** On one local filesystem a directory rename is instant. S3 and GCS have no rename: "moving" a prefix copies and deletes every object, so point readers at the new prefix instead.
 
 **Disadvantages:**
 
@@ -34,10 +35,9 @@ Copy rechunking writes the rechunked data to a **new location**, leaving the ori
 
 ```bash
 # 1. Rechunk to new location
-python rechunk.py --input /data/original.zarr --output /data/rechunked.zarr --chunks "50,512,512"
+python scripts/rechunk.py --input /data/original.zarr --output /data/rechunked.zarr --chunks "50,512,512"
 
-# 2. Validate
-python -c "import zarr; o=zarr.open('/data/original.zarr','r'); r=zarr.open('/data/rechunked.zarr','r'); assert o.shape==r.shape"
+# 2. Validate values, not just shape (see validation-safety.md, Post-Rechunk Validation)
 
 # 3. Swap
 mv /data/original.zarr /data/original_backup.zarr
@@ -61,28 +61,30 @@ In-place rechunking overwrites the source data directly. This approach is almost
 
 ## Chunk-at-a-Time Processing
 
-When the `rechunker` library is not available, the `rechunk.py` script falls back to a chunk-at-a-time copy strategy. This approach reads one target chunk's worth of data from the source and writes it to the output, keeping peak memory usage proportional to a single chunk.
+When `rechunker` cannot be imported, `scripts/rechunk.py` falls back to a chunk-at-a-time copy. `rechunker` 0.5.4 (the latest release) requires `zarr<3`, so in a zarr-python 3 environment this fallback is the only path the script takes. It reads one target chunk's worth of data from the source and writes it to the output.
 
 ### How It Works
 
-1. **Create output array.** Open a new Zarr store with the target chunk shape, copying dtype, compressor, fill value, and array order from the source.
+1. **Create output array.** Open a new Zarr store with the target chunk shape, copying dtype, compression and fill value from the source.
 2. **Copy metadata.** Transfer all user-defined attributes from source to output.
 3. **Iterate over target chunks.** Generate all chunk start indices from the target chunk grid. For each chunk, compute the slice boundaries and copy the data.
 4. **Report progress.** Log completion percentage every 10% of chunks processed.
 
 ### Memory Profile
 
-Peak memory usage during chunk-at-a-time processing is approximately:
+Peak memory during chunk-at-a-time processing is roughly:
 
 ```
-peak_memory ≈ chunk_elements × bytes_per_element × 2
+peak_memory ≈ 2 × target_chunk_bytes + concurrency × decoded_source_chunk_bytes
 ```
 
-The factor of 2 accounts for holding both the source slice (read buffer) and the output slice (write buffer) simultaneously. For a target chunk of shape `(50, 512, 512)` with `float32` dtype:
+The first term holds the assembled source slice and the encoded output chunk. The second term is the source chunks zarr decodes to fill that slice; zarr-python 3 fetches up to `async.concurrency` (default 10) of them at once. For a `(50, 512, 512)` `float32` target chunk:
 
 ```
-peak_memory ≈ 50 × 512 × 512 × 4 × 2 = 104,857,600 bytes ≈ 100 MB
+2 × 50 × 512 × 512 × 4 bytes = 104,857,600 bytes ≈ 100 MiB
 ```
+
+If the source chunks are `(1, 2048, 2048)` `float32` (16 MiB each), add up to 10 × 16 MiB = 160 MiB. The second term dominates when the source chunks are large along axes where the target chunks are small. `--max-mem` does not limit this path.
 
 ### When Chunk-at-a-Time Is Slower
 
@@ -92,30 +94,30 @@ Chunk-at-a-time processing can be significantly slower than the `rechunker` libr
 - **No execution planning.** The rechunker library optimizes the read/write order to minimize redundant reads when source and target chunk grids are misaligned.
 - **No intermediate buffering.** When chunk grids are misaligned, chunk-at-a-time may read the same source chunks multiple times for different target chunks.
 
-**Recommendation:** Install the `rechunker` library (`pip install rechunker`) for production rechunking. The chunk-at-a-time fallback is adequate for small datasets and testing.
+**Recommendation:** The fallback is adequate for small datasets and testing. For production-sized rechunks under zarr-python 3, use the routes in [Rechunking Under zarr-python 3](#rechunking-under-zarr-python-3). Installing `rechunker` there fails to resolve or downgrades zarr to 2.x, because it pins `zarr<3` (upstream issue pangeo-data/rechunker#159).
 
 ## Intermediate Storage Patterns
 
-The `rechunker` library uses a two-phase approach: it first writes data to an intermediate store in a layout that aligns with the target chunk grid, then copies from the intermediate store to the final output. This design avoids reading the same source data multiple times.
+The `rechunker` library (zarr-python 2 only) plans the copy so that no task exceeds `max_mem`. When a single pass cannot do that, it writes an intermediate store in a layout between the source and target grids, then copies from there to the output. This avoids reading the same source data many times.
 
 ### Local Intermediate Storage
 
-For local-to-local rechunking, the `rechunk.py` script creates a temporary directory using Python's `tempfile.mkdtemp()`:
+`scripts/rechunk.py` always puts the intermediate store in a local temporary directory created with `tempfile.mkdtemp()`, whatever the input and output locations:
 
 ```python
 import tempfile
 temp_store = tempfile.mkdtemp(prefix='rechunker_')
 ```
 
-This directory is cleaned up automatically after rechunking completes. Ensure the filesystem hosting `/tmp` (or the configured temp directory) has sufficient space — the intermediate store can be as large as the dataset itself.
+The script deletes this directory only after a successful run. If the run fails, delete `rechunker_*` from the temp directory yourself. Ensure the filesystem hosting `/tmp` (or `TMPDIR`) has room: the intermediate store can be as large as the dataset.
 
 ### Cloud Intermediate Storage
 
 For cloud-to-cloud rechunking, there are two options:
 
-**Option 1: Local intermediate (default).** The intermediate store is written to local disk. This is simpler but requires local storage equal to the dataset size and incurs egress charges for reading from cloud.
+**Option 1: Local intermediate (what the script does).** The intermediate store is written to local disk. This is simpler but requires local storage equal to the dataset size and incurs egress charges for reading from cloud.
 
-**Option 2: Cloud intermediate.** Specify a cloud path for the intermediate store:
+**Option 2: Cloud intermediate.** Call the `rechunker` API directly (zarr-python 2 environment) with a cloud path for the intermediate store:
 
 ```python
 import rechunker
@@ -145,9 +147,9 @@ aws s3 rm --recursive s3://bucket/tmp/rechunk_intermediate
 | Cloud → Cloud (local temp) | Local temp dir | 1x dataset size on local disk |
 | Cloud → Cloud (cloud temp) | Cloud bucket | 1x dataset size in cloud storage |
 
-## Parallel Rechunking
+## Parallel Rechunking with rechunker
 
-The `rechunker` library integrates with Dask to parallelize rechunking across multiple workers. This can reduce wall-clock time significantly for large datasets.
+The `rechunker` library (zarr-python 2 only) executes its plan with Dask by default, so a `distributed` client parallelizes it across workers.
 
 ### Setting Up Dask for Rechunking
 
@@ -162,13 +164,13 @@ client = Client(n_workers=4, threads_per_worker=2, memory_limit="4GB")
 # Open source data
 source = zarr.open("s3://bucket/source.zarr", mode="r")
 
-# Plan rechunking (Dask-aware)
+# Plan rechunking. max_mem is per task: 4 GB worker / 2 threads = 2 GB, halved for headroom.
 plan = rechunker.rechunk(
     source,
     target_chunks=(50, 512, 512),
-    max_mem="4GB",
+    max_mem="1GB",
     target_store="s3://bucket/output.zarr",
-    temp_store="/tmp/rechunk_temp"
+    temp_store="s3://bucket/tmp/rechunk_temp"  # must be reachable by every worker
 )
 
 # Execute with Dask
@@ -177,31 +179,93 @@ plan.execute()
 
 ### Worker Configuration Guidelines
 
-| Dataset Size | Workers | Memory per Worker | Expected Speedup |
-|-------------|---------|-------------------|------------------|
-| < 10 GB | 1–2 | 2 GB | Minimal |
-| 10–100 GB | 4–8 | 4 GB | 2–4x |
-| 100 GB–1 TB | 8–16 | 8 GB | 4–8x |
-| > 1 TB | 16–32 | 8–16 GB | 6–12x |
+Starting points only. Measure on a sample, because storage throughput usually caps the speedup.
+
+| Dataset Size | Workers | Memory per Worker |
+|-------------|---------|-------------------|
+| < 10 GB | 1–2 | 2 GB |
+| 10–100 GB | 4–8 | 4 GB |
+| 100 GB–1 TB | 8–16 | 8 GB |
+| > 1 TB | 16–32 | 8–16 GB |
 
 ### Caveats
 
 - **Diminishing returns.** Beyond a certain worker count, the storage backend (disk IOPS or network bandwidth) becomes the bottleneck, not CPU.
-- **Memory coordination.** Each worker's memory limit must be set independently. The `max_mem` parameter in rechunker controls the per-plan memory, not per-worker.
+- **Memory coordination.** `max_mem` is the memory one task may use, not a total for the plan. A worker runs one task per thread, so keep `max_mem × threads_per_worker` well under the worker's `memory_limit`.
+- **Shared temp storage.** On a multi-machine cluster, a local `temp_store` path exists only on the machine that created it. Use object storage or a shared filesystem.
 - **Cloud rate limits.** Many parallel workers writing small chunks can exceed S3 PUT rate limits (3,500 PUT/s per prefix). Monitor for throttling errors.
 - **Task graph overhead.** Very small chunks produce very large task graphs, which can overwhelm the Dask scheduler. For datasets with millions of chunks, consider increasing the chunk size or using fewer workers.
 
+## Rechunking Under zarr-python 3
+
+`rechunker` cannot be installed alongside zarr-python 3. These routes can, and they read and write both Zarr v2 and v3.
+
+### Single Array: `zarr.from_array`
+
+```python
+import zarr
+
+src = zarr.open_array("/data/source.zarr", mode="r")
+with zarr.config.set({"async.concurrency": 4}):  # caps regions copied at once
+    dst = zarr.from_array(
+        "/data/rechunked.zarr",
+        data=src,
+        chunks=(50, 512, 512),
+        shards=None,  # or an outer shape such as (100, 1024, 1024) for a sharded v3 target
+        fill_value=src.fill_value,  # not carried over by default (zarr-python 3.1)
+        attributes=dict(src.attrs),  # not carried over by default (zarr-python 3.1)
+    )
+```
+
+By default `from_array` keeps the source's Zarr format and codecs. In zarr-python 3.1 it drops the fill value and attributes despite its docstring, so pass both as above. It copies one output shard (or chunk, when unsharded) per task, so no two tasks write the same shard. Peak memory is about `async.concurrency × (output shard bytes + decoded source chunks that overlap it)`. Pass `shards` explicitly: the default `"keep"` reuses the source's shard shape, which may not fit the new chunks.
+
+### Zarr Group or xarray Dataset: `.chunk()` + `to_zarr`
+
+```python
+import xarray as xr
+
+ds = xr.open_zarr("/data/source.zarr")
+ds = ds.chunk({"time": 100, "lat": 180, "lon": 360})
+for var in ds.variables.values():
+    for key in ("chunks", "shards", "preferred_chunks"):
+        var.encoding.pop(key, None)  # stale source layout
+ds.to_zarr("/data/rechunked.zarr", mode="w-")
+```
+
+Without the `encoding` cleanup, xarray reuses the source chunk shape or raises an error that the encoded chunks would overlap several dask chunks. To write a sharded v3 store, pass `encoding={"var": {"chunks": inner, "shards": outer}}` and make the dask chunks whole multiples of `outer`. xarray rejects dask chunks that straddle shards, because concurrent partial-shard writes corrupt data.
+
+### Dask Rechunk Methods: `tasks` vs `p2p`
+
+`ds.chunk(...)` and `dask.array.rechunk` build the new blocks with one of two methods:
+
+- **`tasks`:** splits and concatenates blocks in the task graph, in memory. This is the only method without a `distributed` client. It is fine when source and target grids are close, but a full transpose such as `(1, Y, X)` to `(T, 1, 1)` makes a huge graph and high memory use.
+- **`p2p`:** an all-to-all shuffle that spills to worker disk. It needs `distributed`. With a client running and `array.rechunk.method` unset, dask picks `p2p` automatically when the graph would be large.
+
+Force a method with `dask.config.set({"array.rechunk.method": "p2p"})` or `x.rechunk(chunks, method="p2p")`.
+
+### Zarr v3 Sharding Semantics
+
+- The **inner chunk** (`chunks=`) is the unit a reader fetches and decodes. Size it for the access pattern.
+- The **shard** (`shards=`) is the stored object. It holds many inner chunks and an index, and it cuts the object count.
+- A write that covers part of a shard reads, modifies and rewrites the whole shard. Concurrent partial writes to the same shard race, and the last writer wins. Give every writer whole shards.
+- `arr.chunks` reports the inner chunk shape. Use `arr.shards` to see the shard shape.
+
+### What Cannot Rechunk
+
+Kerchunk and VirtualiZarr build references to byte ranges of chunks that already exist. They can combine whole chunks from many files into one virtual array, but cannot split, merge or reorder the bytes inside a chunk, so the physical layout stays the same. A different chunk shape needs one of the rewrites above.
+
 ## Cost Estimation Formula
 
-Nguyen et al. (2023) measured rechunking times for the OVRO-LWA dataset across a range of chunk configurations. Their findings provide a rough cost model.
+Nguyen et al. (2023) measured rechunking times for the OVRO-LWA dataset. They report the two ends of the range, not a curve between them.
 
 ### Observed Time Range
 
-| Target Chunk Size | Measured Rechunking Time |
-|-------------------|------------------------|
-| Large (e.g., 100 MB/chunk) | ~6 minutes |
-| Medium (e.g., 10 MB/chunk) | ~1–4 hours |
-| Small (e.g., 1 MB/chunk) | ~10–46 hours |
+| Target Chunk Shape | Measured Rechunking Time |
+|--------------------|------------------------|
+| Large, e.g. `330 × 150 × 300` | ~6 minutes |
+| Small, e.g. `10 × 10 × 10` | ~46 hours |
+
+Measure your own sample for anything in between (see validation-safety.md, Sample-First Strategy).
 
 ### Factors in the Cost Model
 
@@ -241,7 +305,7 @@ Where `time_per_chunk` ranges from 0.01 seconds (local SSD, large chunks, no com
 
 ### Built-in Progress Reporting
 
-The `rechunk.py` script logs progress at 10% intervals during chunk-at-a-time processing:
+`scripts/rechunk.py` logs progress at 10% intervals during chunk-at-a-time processing. The `rechunker` path logs no progress; attach a dask progress bar or dashboard instead.
 
 ```
 2024-03-08 14:23:01 - INFO - Progress: 100/1000 chunks (10%)
@@ -300,11 +364,9 @@ print(f"RSS: {memory_mb:.1f} MB")
 
 ### Verbose Mode
 
-Use the `--verbose` flag with `rechunk.py` for debug-level logging that includes per-chunk timing and memory snapshots:
+`--verbose` sets the log level to DEBUG and prints a full traceback on error. It does not add per-chunk timing or memory figures. For peak memory of a whole run, wrap it with `/usr/bin/time -v` (Linux) or `/usr/bin/time -l` (macOS):
 
 ```bash
-python rechunk.py --input /data/source.zarr \
-                  --output /data/output.zarr \
-                  --chunks "50,512,512" \
-                  --verbose
+/usr/bin/time -v python scripts/rechunk.py --input /data/source.zarr \
+    --output /data/output.zarr --chunks "50,512,512" --verbose
 ```

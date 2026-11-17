@@ -37,7 +37,7 @@ These are **opposing strategies**. A chunking scheme optimized for one pattern w
 
 Zarr's chunking model requires loading and decompressing an **entire chunk** to access any single value within it. Key implications:
 
-- Peak memory usage scales with the **largest chunk** accessed during an operation, not the amount of data actually needed
+- Peak memory scales with **chunk size × chunks decompressed at once**, not the amount of data actually needed
 - Chunk size directly determines the minimum memory footprint for any read operation
 - Systems with limited RAM cannot use chunking strategies with very large individual chunks, regardless of I/O performance benefits
 
@@ -45,7 +45,7 @@ This makes **peak memory** a first-class metric alongside wall-clock time.
 
 ### 3. Middle-Range Chunking Recommendation
 
-The paper's empirical testing identified **~3-5 MB chunk sizes** (example: 120×50×100 for time×longitude×latitude) as a reasonable compromise:
+The paper's empirical testing identified **~3-5 MB chunk sizes** (example: 120×50×100 for time×longitude×latitude, 600,000 values: 2.4 MB as float32, 4.8 MB as float64) as a reasonable compromise:
 
 - Balanced performance across both time-series and spatial access patterns
 - Acceptable memory usage for typical analysis environments
@@ -84,4 +84,4 @@ This plugin implements the methodology demonstrated by Nguyen et al.:
 4. **Recommend chunking** based on the user's stated priorities (balanced, memory-optimized, or pattern-specific)
 5. **Rechunk only after benchmarking** to avoid costly rechunking to suboptimal configurations
 
-The reference implementation uses OVRO-LWA radio telescope data (time × frequency × baseline), but the methodology generalizes to any multi-dimensional Zarr dataset.
+This plugin's examples use OVRO-LWA radio telescope data (time × frequency × baseline), but the methodology generalizes to any multi-dimensional Zarr dataset. In `benchmark_runner.py`, spatial access is a `slice` along time and time-series or spectral access is a `traverse` along time or frequency.

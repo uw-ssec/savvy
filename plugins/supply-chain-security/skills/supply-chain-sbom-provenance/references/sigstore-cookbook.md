@@ -157,7 +157,7 @@ If a maintainer's identity was compromised, the malicious signature still shows 
 
 - **Missing `id-token: write` permission** — `cosign sign-blob` can't get an OIDC token. Add it to the job's `permissions:` block.
 - **Clock skew on the runner** — Fulcio rejects certs whose `notBefore` is in the future. Self-hosted runners with bad NTP fail intermittently. Fix: run `timedatectl status` or `chronyc tracking` on the runner.
-- **Identity mismatch** — `cosign verify-blob` fails with `expected SAN value "<expected>", got "<actual>"`. Compare the two. To read the SAN without verifying: `jq -r '.verificationMaterial.certificate.rawBytes' <file>.sigstore.json | base64 -d | openssl x509 -inform DER -noout -text | grep -A1 'Subject Alternative Name'`.
+- **Identity mismatch** — `cosign verify-blob` fails with `expected SAN value "<expected>", got "<actual>"`. The `<actual>` value is the workflow that really signed the file: compare it with the one you expected.
 - **Unanchored identity regexp** — passes for identities you didn't intend. Anchor with `^…$` and escape dots.
 - **Expired short-lived cert** — Fulcio certs expire ~10 minutes after issue. The bundle's Rekor entry proves the signature was made while the cert was valid, so verification still works years later. For air-gapped verification, also pass a saved trusted root with `--trusted-root`.
 - **No bundle on the release** — `actions/attest-build-provenance` puts no `.sigstore.json` file in `dist/`; consumers use `gh attestation verify` instead. Upload a bundle only when a `cosign sign-blob --bundle` step made one.

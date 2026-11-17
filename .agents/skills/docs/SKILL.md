@@ -1,18 +1,22 @@
 ---
 name: docs
 description:
-  Use when work completed in this session needs writing up — new architecture,
-  schema changes, decisions made, or gotchas discovered that belong in the docs
-  site.
+  Use when work completed in this session needs writing up — a new or changed
+  plugin, install or client-support changes, contributor conventions, a design
+  or plan, or decisions and gotchas that should outlive the session.
 ---
 
 # Docs
 
-Write comprehensive documentation for recent work in this session.
+Write documentation for recent work in this session.
+
+This repository has no docs site. Docs are Markdown files rendered by GitHub:
+the root files, `docs/`, and each plugin's `README.md`. Decisions and gotchas go
+to project memory in `knowledge/`, not to a docs page.
 
 ## Arguments
 
-Optional: a topic, a section, or "all" to regenerate broadly.
+Optional: a topic, a file, or "all" to cover everything from the session.
 
 ## Instructions
 
@@ -21,107 +25,92 @@ Optional: a topic, a section, or "all" to regenerate broadly.
    - `git log --oneline -20` (recent commits)
    - `git diff main...HEAD --stat` (if on a feature branch)
    - `git log --oneline --since="8 hours ago"` (today's work)
-   - Review any open plans in `docs/plans/`
-   - Read `docs/index.md` and `mkdocs.yml` for existing structure
+   - Review any open designs or plans in `docs/specs/`
 
 2. **Determine scope** — Based on the argument and recent changes, decide which
-   docs need writing or updating:
+   docs need writing or updating. Always read the existing file first — update
+   rather than duplicate.
 
-   - If the argument is a specific topic (e.g., "queues", "auth",
-     "notifications"), focus there
-   - If the argument is a section (e.g., "architecture", "database", "guides"),
-     update that section
-   - If the argument is "all" or empty, document everything from the current
-     session
-   - Always check existing docs first — update rather than duplicate
+3. **Place documentation correctly:**
 
-3. **Write documentation** covering these categories as relevant:
+   | What changed                                     | Where it goes                                                                                         |
+   | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+   | What a plugin does, its commands, scripts, MCP   | That plugin's `README.md`                                                                             |
+   | A plugin added or removed                        | The plugin's `README.md` and the "Available Plugins" section of the root `README.md`                  |
+   | A skill's purpose or triggers                    | The skill's `description` frontmatter, then `pixi run catalog-sync`                                   |
+   | A skill's example prompt, tier, or maintainer    | `docs/catalog.yml`, then `pixi run catalog-sync`                                                      |
+   | Install steps or which clients load what         | `docs/install.md` (keep its support matrix current)                                                   |
+   | What plugins can do to a user's machine          | `docs/trust-and-safety.md`                                                                            |
+   | Contributor conventions, CI, evals, review steps | `CONTRIBUTING.md`                                                                                     |
+   | How agents should work on this repository        | `.agents/rules/` — behavior-shaping; see the bar in `contribution-discipline.md` before changing them |
+   | A design or implementation plan                  | `docs/specs/YYYY-MM-DD-topic-design.md` or `-plan.md`                                                 |
+   | Decisions, constraints, non-obvious gotchas      | `knowledge/`, through the `okf-memory` skill                                                          |
+
+   Never edit `docs/catalog.md` by hand; it is generated.
+
+4. **Write documentation** covering these categories as relevant:
 
    ### Technical Details
 
    - What was built, changed, or fixed
-   - API contracts, database schema changes, new RPC functions
-   - Configuration changes, environment variables, dependencies added
-   - Code patterns introduced or modified
+   - New or changed pixi tasks, CI workflows, or scripts
+   - Manifest or frontmatter conventions introduced or changed
+   - Dependencies added, and why
 
-   ### Technical Architecture
+   ### Design
 
-   - System design and component relationships
-   - Data flow diagrams (use Mermaid syntax)
-   - Integration points between services (workers, platform, database)
-   - Infrastructure decisions (Cloudflare, Neon, WorkOS, Stripe, etc.)
+   - How the pieces relate (Mermaid diagrams render on GitHub)
+   - Which files are sources and which are generated from them
+   - Trade-offs considered and which path was chosen
 
    ### Session Learnings
 
-   - Decisions made and their rationale (ADR-style: Decision / Why / Result)
+   Record these with the `okf-memory` skill rather than in a docs page:
+
+   - Decisions made and their rationale
    - Technical issues encountered and how they were resolved
-   - Trade-offs considered and which path was chosen
    - Gotchas, edge cases, or surprising behavior discovered
    - Things that didn't work and why
 
-4. **Place documentation correctly:**
+5. **Regenerate** — if you touched a skill `description` or
+   `docs/catalog.yml`, run `pixi run catalog-sync`.
 
-   - New architecture docs → `docs/architecture/`
-   - Database changes → `docs/database/`
-   - Frontend changes → `docs/frontend/`
-   - How-to content → `docs/guides/`
-   - Implementation plans → `docs/plans/` (named `YYYY-MM-DD-topic.md`)
-   - Session learnings → `docs/guides/architecture-decisions.md` (append new
-     entries at top of relevant section)
-   - Script documentation → `docs/scripts/`
+6. **Verify** — Run `pixi run check-all`. Its `plugins-check` step checks the
+   relative links in root Markdown files, `docs/` (except `docs/specs/`), and
+   plugin files outside `skills/`. If you added external URLs, also run
+   `pixi run links-check`.
 
-5. **Update mkdocs.yml nav** — If you created a new file, add it to the `nav:`
-   section in `mkdocs.yml` under the correct heading. Match existing indentation
-   and naming style.
-
-6. **Update docs/index.md** — If the new doc is significant, add a link in the
-   Documentation section of `docs/index.md` with a one-line description.
-
-7. **Verify** — Run `pixi run docs-build` to confirm MkDocs builds without
-   errors.
-
-8. **Report** — Show the user:
+7. **Report** — Show the user:
    - Files created or updated (with paths)
-   - New nav entries added
-   - Build status (pass/fail)
+   - Concepts recorded in `knowledge/`, if any
+   - Check results (pass/fail)
 
 ## Documentation Style
 
-- Use MkDocs Material features: admonitions (`!!! note`, `!!! warning`,
-  `!!! tip`), tabs, Mermaid diagrams, code blocks with language tags
+- GitHub-flavored Markdown. For callouts use GitHub alerts (`> [!NOTE]`,
+  `> [!WARNING]`, `> [!TIP]`, `> [!IMPORTANT]`)
 - Start every doc with a level-1 heading and a 1-2 sentence summary
-- Use tables for structured data (configs, env vars, field mappings)
+- Use tables for structured data (tasks, fields, client support)
 - Keep headings hierarchical (h1 → h2 → h3, never skip levels)
-- Use imperative voice for guides ("Run the migration", not "You should run the
-  migration")
-- Architecture decisions follow the pattern:
-
-```markdown
-### YYYY-MM-DD: Decision Title (Status)
-
-- **Decision:** What was decided
-- **Why:** The reasoning and constraints
-- **Result:** What was implemented and any notable outcomes
-```
+- Use imperative voice for guides ("Run the sync", not "You should run the
+  sync")
+- Code blocks carry a language tag
 
 ## Mermaid Diagram Conventions
 
 - Use `graph TD` for top-down architecture diagrams
 - Use `sequenceDiagram` for request/response flows
-- Use `erDiagram` for database relationships
 - Keep diagrams focused — split complex systems into multiple diagrams
-- Label edges with the protocol or mechanism (e.g., `-->|JWT|`, `-->|REST|`,
-  `-->|Queue|`)
+- Label edges with the mechanism (e.g., `-->|plugins-sync|`, `-->|CI|`)
 
 ## Rules
 
 - Never delete existing documentation — update or extend it
 - Always read existing docs before writing to avoid duplication
-- Every new doc must appear in `mkdocs.yml` nav
-- Date-stamp architecture decisions and plans
-- Use relative links between docs (e.g., `../guides/getting-started.md`)
-- Build must pass before considering the task done
-- If `pixi run docs-build` fails, fix the issue (usually a nav mismatch or
-  broken link)
+- Use relative links between docs (e.g., `../CONTRIBUTING.md` from `docs/`)
+- Inside a skill, never link outside its directory; skills must stay
+  self-contained
+- Date-stamp designs and plans in their filenames
+- `pixi run check-all` must pass before considering the task done
 - NEVER include sensitive information in documentation (credentials, internal
   processes, etc.)

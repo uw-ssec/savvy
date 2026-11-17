@@ -13,22 +13,20 @@
 
 <!-- What does this PR change? Why is it needed? -->
 
+* **Plugin changed (if any):** 
+* **Tier of changed plugin:** 
+
 ## 🔗 Related Issues
 
 Resolves #\<issue-number>
 
 <!-- Also note dependencies, e.g. "Blocked by #N", if any. -->
 
-## 💡 Type of change
+## 🖇️ Community plugin information
+<!-- REQUIRED for community plugins -->
 
-| Type             | Checked? |
-| ---------------- | -------- |
-| 🐞 Bug fix       | [ ]      |
-| ✨ New feature   | [ ]      |
-| 📝 Documentation | [ ]      |
-| ♻️ Refactor      | [ ]      |
-| 🛠️ Build/CI      | [ ]      |
-| Other (explain)  | [ ]      |
+**Maintainer:** 
+**License:** 
 
 ## 🤖 AI assistance disclosure
 
@@ -86,6 +84,16 @@ Resolves #\<issue-number>
       exist in the pinned versions
 - [ ] Branched from and targeting the correct branch; no direct pushes to
       protected branches
+
+## ✅ Checklist for reviewers
+
+- [ ] Valid SKILL.md frontmatter
+- [ ] Trigger fixture added or updated
+- [ ] Catalog entry added
+- [ ] CHANGELOG.md updated
+- [ ] Version bumped per versioning policy
+- [ ] No unreviewed shell commands or external URLs
+
 
 ## 📝 Notes to reviewers
 

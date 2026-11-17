@@ -64,7 +64,7 @@ Cite `file:line` (or `absent`) for every result and a concrete command, config k
 | Ecosystem | Quirk / control | PASS/WARN/FAIL | Evidence (file:line) | Fix |
 
 ### Conflicts with General Guidance
-The ecosystem quirk wins. Example: the general fix for one package that needs its install step is `npm rebuild <package>`, but with `ignore-scripts=true` in `.npmrc` it reports success and runs nothing; use `npm rebuild <package> --ignore-scripts=false`.
+The ecosystem quirk wins. Example: with `ignore-scripts=true` in `.npmrc`, `npm rebuild <package>` succeeds but runs nothing; use `npm rebuild <package> --ignore-scripts=false`.
 
 ### Top Priority Actions
 1. <highest-impact runnable fix>

@@ -47,14 +47,79 @@ for f in Makefile *.sh; do
   [ -f "$f" ] && build_files+=("$f")
 done
 
-# grep -nH over files, dropping YAML/shell comment lines. Usage: scan ERE file...
+# Print each logical command as "file:line:command", line being where it starts.
+# Joins shell "\" continuations, YAML folded (>) block scalars and multi-line
+# plain scalars; keeps each line of a literal (|) block separate; drops comments.
+logical() {
+  [ $# -gt 0 ] || return 0
+  awk '
+    function lead(s) { match(s, /^[ \t]*/); return RLENGTH }
+    function strip(s) {
+      if (s ~ /^[ \t]*#/) return ""
+      sub(/[ \t]+#.*$/, "", s); sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s)
+      return s
+    }
+    function out() { if (buf != "") print fname ":" start ":" buf; buf = "" }
+    function add(s, n,   c) { # append a piece; returns 1 when it ends with a backslash
+      c = (s ~ /\\$/)
+      if (c) { sub(/\\$/, "", s); sub(/[ \t]+$/, "", s) }
+      if (s != "") { if (buf == "") { buf = s; start = n; fname = FILENAME } else buf = buf " " s }
+      return c
+    }
+    FNR == 1 { out(); mode = ""; cont = 0; yaml = (FILENAME ~ /[.]ya?ml$/) }
+    {
+      line = $0; sub(/\r$/, "", line); ind = lead(line); blank = (line ~ /^[ \t]*$/)
+      if (cont) { cont = add(strip(line), FNR); if (!cont && mode != "fold" && mode != "plain") out(); next }
+      if (mode != "") {
+        if (blank) { if (mode != "lit") out(); next }
+        if (ind > keyind) {
+          if (mode == "lit") { cont = add(strip(line), FNR); if (!cont) out() }
+          else add(strip(line), FNR)
+          next
+        }
+        out(); mode = ""
+      }
+      if (blank) next
+      if (yaml && line ~ /^[ \t]*-[ \t]+[|>][-+0-9]*[ \t]*(#.*)?$/) {
+        keyind = ind; mode = (line ~ /^[ \t]*-[ \t]+[|]/) ? "lit" : "fold"; next
+      }
+      if (yaml && match(line, /^[ \t]*(-[ \t]+)?[^ \t#"\047][^:#]*:([ \t]|$)/)) {
+        rest = substr(line, RLENGTH + 1); keyind = ind
+        if (line ~ /^[ \t]*-[ \t]/) keyind = ind + 1 + lead(substr(line, ind + 2))
+        if (rest ~ /^[ \t]*[|>][-+0-9]*[ \t]*(#.*)?$/) { mode = (rest ~ /^[ \t]*[|]/) ? "lit" : "fold"; next }
+        cont = add(strip(line), FNR)
+        if (!cont) { if (rest ~ /^[ \t]*(#.*)?$/) out(); else mode = "plain" }
+        next
+      }
+      cont = add(strip(line), FNR)
+      if (!cont) out()
+    }
+    END { out() }' "$@" 2>/dev/null
+}
+# Logical commands whose text (not file name, not a YAML step name) matches the ERE.
+# Usage: scan ERE file...
 scan() {
   local re=$1
   shift
-  [ $# -gt 0 ] || return 0
-  grep -nHE -- "$re" "$@" 2>/dev/null | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#'
+  logical "$@" | RE=$re awk '{ c = $0; sub(/^[^:]*:[0-9]+:/, "", c)
+    if (c !~ /^(-[ \t]+)?name:/ && c ~ ENVIRON["RE"]) print }'
 }
-loc() { printf '%s' "${1%%:*}:$(printf '%s' "$1" | cut -d: -f2)"; } # file:line from grep -nH
+loc() { printf '%s' "${1%%:*}:$(printf '%s' "$1" | cut -d: -f2)"; } # file:line from scan
+text() { local t=${1#*:}; printf '%s' "${t#*:}"; }                   # command text from scan
+# Boolean setting NAME written as NAME=v, NAME: v or NAME v (any case); prints true, false or nothing.
+#   bool_setting last NAME TEXT   the last value in TEXT
+#   bool_setting any NAME         from stdin: false if any value is false, else true if any is true
+bool_setting() {
+  local vals
+  if [ "$1" = any ]; then vals=$(cat); else vals=$3; fi
+  vals=$(printf '%s\n' "$vals" | grep -oiE -- "$2([[:space:]]*[=:][[:space:]]*|[[:space:]]+)[\"']?(true|false)" |
+    sed 's/.*[^[:alpha:]]//' | tr '[:upper:]' '[:lower:]')
+  [ -n "$vals" ] || return 0
+  if [ "$1" = last ]; then printf '%s\n' "$vals" | tail -1
+  elif printf '%s\n' "$vals" | grep -qx false; then echo false
+  else echo true
+  fi
+}
 present() { # print the trigger files that exist
   local f out=""
   for f in "$@"; do [ -f "$f" ] && out="$out${out:+, }$f"; done
@@ -91,19 +156,32 @@ npm_checks() {
     return 0
   fi
 
-  # Lifecycle scripts: either .npmrc ignore-scripts=true or --ignore-scripts on every CI install passes.
-  if ! grep -qE '^[[:space:]]*ignore-scripts[[:space:]]*=[[:space:]]*true' .npmrc 2>/dev/null; then
-    local found=no
-    while IFS= read -r line; do
-      found=yes
-      case $line in
-        *--ignore-scripts*) ;;
-        *) say npm FAIL "dependency lifecycle scripts run at $(loc "$line"): add --ignore-scripts there or ignore-scripts=true to .npmrc" ;;
+  # Lifecycle scripts: judge each CI install by its effective ignore-scripts value.
+  # npm precedence: command line, then npm_config_ignore_scripts, then .npmrc.
+  local npmrc env cli f found=no
+  npmrc=$(awk -F= 'tolower($1) ~ /^[ \t]*ignore-scripts[ \t]*$/ { v = tolower($2); gsub(/[ \t"\047]/, "", v); last = v }
+    END { print last }' .npmrc 2>/dev/null)
+  while IFS= read -r line; do
+    found=yes
+    f=${line%%:*}
+    cli=$(bool_setting last '--ignore-scripts' "$(text "$line")")
+    if [ -z "$cli" ]; then
+      case " $(text "$line") " in
+        *" --no-ignore-scripts "*) cli=false ;;
+        *" --ignore-scripts "*) cli=true ;;
       esac
-    done < <(scan "$installs_re" "${ci_files[@]}")
-    if [ $found = no ]; then
-      say npm FAIL "no ignore-scripts=true in .npmrc and no CI install step with --ignore-scripts"
     fi
+    env=$(logical "$f" | bool_setting any 'npm_config_ignore_scripts')
+    if [ "$cli" = false ]; then
+      say npm FAIL "lifecycle scripts re-enabled on the command line at $(loc "$line")"
+    elif [ -z "$cli" ] && [ "$env" = false ]; then
+      say npm FAIL "npm_config_ignore_scripts=false in $f re-enables lifecycle scripts at $(loc "$line")"
+    elif [ -z "$cli" ] && [ -z "$env" ] && [ "$npmrc" != true ]; then
+      say npm FAIL "dependency lifecycle scripts run at $(loc "$line"): add --ignore-scripts there or ignore-scripts=true to .npmrc"
+    fi
+  done < <(scan "$installs_re" "${ci_files[@]}")
+  if [ $found = no ] && [ "$npmrc" != true ]; then
+    say npm FAIL "no ignore-scripts=true in .npmrc and no CI install step with --ignore-scripts"
   fi
 
   # CI must install from the lockfile.
@@ -118,14 +196,32 @@ npm_checks() {
 # ------------------------------------------------------------------- PyPI
 pypi_checks() {
   [ $has_python = yes ] && say pypi INFO "detected ($py_trigger) -> references/pypi-quirks.md"
-  local line files=("${build_files[@]}")
-  [ -f pyproject.toml ] && files+=(pyproject.toml)
+  local line f key val
+  # Command-line escape hatch in CI and build scripts.
   while IFS= read -r line; do
     say pypi FAIL "build isolation disabled at $(loc "$line"); build backends then run in the install environment"
-  done < <(scan 'no-build-isolation' "${files[@]}")
+  done < <(scan '(^|[[:space:]])--no-build-isolation([[:space:]=]|-package|$)' "${build_files[@]}")
+  # uv/pixi TOML settings, judged by value: true or a non-empty package list disables
+  # isolation; false and [] keep it.
+  for f in pyproject.toml uv.toml pixi.toml; do
+    [ -f "$f" ] || continue
+    while IFS='|' read -r line key val; do
+      case $val in
+        true) say pypi FAIL "$key = true at $line; build isolation disabled for every package" ;;
+        *\"*|*\'*) say pypi FAIL "$key = $val at $line; build isolation disabled for these packages" ;;
+      esac
+    done < <(awk '
+      function clean(s) { sub(/[ \t]*#.*$/, "", s); sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+      /^[ \t]*no-build-isolation(-package)?[ \t]*=/ {
+        key = $0; sub(/[ \t]*=.*$/, "", key); sub(/^[ \t]+/, "", key)
+        val = $0; sub(/^[^=]*=/, "", val); val = clean(val); n = FNR
+        if (val ~ /^\[/) while (val !~ /\]/ && (getline more) > 0) val = val " " clean(more)
+        print FILENAME ":" n "|" key "|" val
+      }' "$f")
+  done
   while IFS= read -r line; do
     say pypi WARN "custom build backend at $(loc "$line"); audit the backend code it points to"
-  done < <(scan '^[[:space:]]*backend-path[[:space:]]*=' pyproject.toml)
+  done < <(grep -nHE '^[[:space:]]*backend-path[[:space:]]*=' pyproject.toml 2>/dev/null)
 }
 
 # ------------------------------------------------------ Python .pth / .start
@@ -187,9 +283,6 @@ KNOWN = [  # (file-name regex, regex every code line must fully match, origin)
     (r"_editable_skbc_(\w+)\.start", r"_editable_skbc_\w+:entrypoint", "scikit-build-core editable install"),
     (r".+-editable\.pth", r"import (_\w+_editable_loader); \1\.init\(\)", "meson-python editable install"),
     (r".+-editable\.start", r"_\w+_editable_loader:init", "meson-python editable install"),
-    (r".+-nspkg\.pth",
-     r"import sys, types, os;(has_mfs = sys\.version_info > \(3, 5\);)?p = os\.path\.join\(.*\(p not in mp\) and mp\.append\(p\)",
-     "setuptools namespace package, e.g. matplotlib <= 3.7"),
     (r"a1_coverage\.pth",
      r"import sys; exec\('(\\n)*import os\\n\\nif os\.getenv\(\"COVERAGE_PROCESS_START\"\) or "
      r"os\.getenv\(\"COVERAGE_PROCESS_CONFIG\"\):\\n try:\\n  import coverage\\n except:\\n  pass\\n else:\\n  "
@@ -201,7 +294,41 @@ KNOWN = [  # (file-name regex, regex every code line must fully match, origin)
                "    dict((k, v) for k, v in os.environ.items() if k.startswith(\\'COV_CORE\\')),\\n    exc\\n   )\\n"
                "  )\\n')"), "pytest-cov < 7 subprocess support"),
 ]
-NSPKG_BAD = re.compile(r"exec|eval|compile|system|popen|subprocess|socket|urllib|base64|marshal|pickle")
+# setuptools' *-nspkg.pth line templates (namespaces.py _nspkg_tmpl): 31.x, 36-69, 75+.
+NSPKG_HEAD = "import sys, types, os;"
+NSPKG_TMPLS = [
+    "has_mfs = sys.version_info > (3, 5);p = os.path.join(%(root)s, *%(pth)r);"
+    "importlib = has_mfs and __import__('importlib.util');has_mfs and __import__('importlib.machinery');"
+    "m = has_mfs and sys.modules.setdefault(%(pkg)r, importlib.util.module_from_spec("
+    "importlib.machinery.PathFinder.find_spec(%(pkg)r, [os.path.dirname(p)])));"
+    "m = m or %(not_mfs)ssys.modules.setdefault(%(pkg)r, types.ModuleType(%(pkg)r));",
+    "p = os.path.join(%(root)s, *%(pth)r);importlib = __import__('importlib.util');"
+    "__import__('importlib.machinery');m = sys.modules.setdefault(%(pkg)r, importlib.util.module_from_spec("
+    "importlib.machinery.PathFinder.find_spec(%(pkg)r, [os.path.dirname(p)])));"
+    "m = m or sys.modules.setdefault(%(pkg)r, types.ModuleType(%(pkg)r));",
+]
+NSPKG_TAIL = "mp = (m or []) and m.__dict__.setdefault('__path__',[]);(p not in mp) and mp.append(p)"
+NSPKG_MULTI = ";m and setattr(sys.modules[%(parent)r], %(child)r, m)"
+NSPKG_PKG = re.compile(r"sys\.modules\.setdefault\('([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)'")
+
+
+def nspkg_line(line):
+    """True only if the line is exactly what setuptools writes for the namespace package it names."""
+    m = NSPKG_PKG.search(line)
+    if not m:
+        return False
+    pkg = m.group(1)
+    parent, _, child = pkg.rpartition(".")
+    values = dict(root="sys._getframe(1).f_locals['sitedir']", pth=tuple(pkg.split(".")),
+                  pkg=pkg, parent=parent, child=child)
+    for tmpl in NSPKG_TMPLS:
+        for not_mfs in ("", "not has_mfs and "):
+            text = NSPKG_HEAD + tmpl % dict(values, not_mfs=not_mfs) + NSPKG_TAIL
+            if parent:
+                text += NSPKG_MULTI % values
+            if line == text:
+                return True
+    return False
 
 
 def code_lines(path):
@@ -223,10 +350,10 @@ def code_lines(path):
 
 
 def known(name, lines):
+    if name.endswith("-nspkg.pth") and all(nspkg_line(ln) for ln in lines):
+        return "setuptools namespace package, e.g. matplotlib <= 3.7"
     for name_re, line_re, origin in KNOWN:
         if re.fullmatch(name_re, name) and all(re.fullmatch(line_re, ln) for ln in lines):
-            if name.endswith("-nspkg.pth") and any(NSPKG_BAD.search(ln) for ln in lines):
-                return None
             return origin
     return None
 

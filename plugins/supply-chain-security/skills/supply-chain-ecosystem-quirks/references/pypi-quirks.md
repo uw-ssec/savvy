@@ -50,7 +50,7 @@ It scans the site directories of `python3` and `python` on `PATH` (`site.getsite
 | `_editable_impl_<dist>.pth` | `editables` (hatchling `dev-mode-exact`) | `import _editable_impl_<dist>` |
 | `_editable_skbc_<dist>.pth` / `.start` | scikit-build-core editable install | `import _editable_skbc_<dist>` / `_editable_skbc_<dist>:entrypoint` |
 | `<dist>-editable.pth` / `.start` | meson-python editable install | `import _<dist>_editable_loader; ...init()` / `..._loader:init` |
-| `<dist>-<ver>-py3.X-nspkg.pth` | setuptools namespace packages (matplotlib <= 3.7) | `import sys, types, os;...mp.append(p)` |
+| `<dist>-<ver>-py3.X-nspkg.pth` | setuptools namespace packages (matplotlib <= 3.7) | setuptools' generated line (31.x, 36–69 or 75+ template) for the package it names, character for character |
 | `a1_coverage.pth` | coverage >= 7.13 | `import sys; exec(...)` that starts coverage only if `COVERAGE_PROCESS_START`/`_CONFIG` is set |
 | `pytest-cov.pth` | pytest-cov < 7 | `import os, sys;exec(...)` gated on `COV_CORE_SOURCE` |
 
@@ -90,9 +90,9 @@ build-backend = "setuptools.build_meta"
 backend-path = ["./_custom_build"]   # backend is project-supplied code
 ```
 
-A `backend-path` pointing to project code means installing the package executes that project-supplied backend in an isolated env. `pip install --no-build-isolation` (also `uv pip install --no-build-isolation`, `uv sync --no-build-isolation`, or `no-build-isolation` / `no-build-isolation-package` under `[tool.uv]`) removes the isolation, so build backends run in the install environment.
+A `backend-path` pointing to project code means installing the package executes that project-supplied backend in an isolated env. `pip install --no-build-isolation` (also `uv pip install --no-build-isolation`, `uv sync --no-build-isolation`, `no-build-isolation` / `no-build-isolation-package` under `[tool.uv]` or in `uv.toml`, or `no-build-isolation` under pixi's `[pypi-options]`) removes the isolation, so build backends run in the install environment.
 
-`scripts/quick-check.sh` FAILs every `no-build-isolation` in CI files, `Makefile`, `*.sh` and `pyproject.toml`, and WARNs on `backend-path`. Also review any non-standard `build-backend`:
+`scripts/quick-check.sh` FAILs `--no-build-isolation` (and `--no-build-isolation-package`) in CI files, `Makefile` and `*.sh`, reading shell `\` continuations and folded YAML as one command. In `pyproject.toml`, `uv.toml` and `pixi.toml` it judges the value: `true` or a non-empty package list FAILs, `false` and `[]` pass. It WARNs on `backend-path`. Also review any non-standard `build-backend`:
 
 ```bash
 grep -nE '^(build-backend|backend-path)' pyproject.toml

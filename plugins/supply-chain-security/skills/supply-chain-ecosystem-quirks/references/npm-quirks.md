@@ -21,7 +21,7 @@ Or per-command in CI:
 npm ci --ignore-scripts
 ```
 
-Either one passes; `scripts/quick-check.sh` accepts both. On npm 12, `ignore-scripts=true` in `.npmrc` overrides `allowScripts`: `npm rebuild <package>` reports success but runs nothing. To build one reviewed package, run `npm rebuild <package> --ignore-scripts=false`.
+Either one passes. `scripts/quick-check.sh` judges each CI install by its effective value, in npm's order: command line, then `npm_config_ignore_scripts` in that CI file, then `.npmrc`. `--ignore-scripts=false`, `--ignore-scripts false`, `--no-ignore-scripts` or `npm_config_ignore_scripts=false` (any case) re-enable scripts despite `.npmrc` (verified on npm 11.20.0); a bare `--ignore-scripts` still wins over the variable. Comments don't count. On npm 12, `ignore-scripts=true` in `.npmrc` overrides `allowScripts`: `npm rebuild <package>` reports success but runs nothing. To build one reviewed package, run `npm rebuild <package> --ignore-scripts=false`.
 
 ## .npmrc Knobs That Affect Security
 

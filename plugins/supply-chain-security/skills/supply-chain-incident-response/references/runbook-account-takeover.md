@@ -67,10 +67,12 @@ npm query ':attr(scripts, [preinstall]), :attr(scripts, [install]), :attr(script
   | jq -r '.[] | "\(.location): \(.scripts | tojson)"'
 ```
 
-**Python:** for `.pth` files, use the PyPI `.pth` check in `supply-chain-ecosystem-quirks`. Then look for start-up hooks in every site directory, including the user site, where `usercustomize.py` lives:
+**Python:** for `.pth` files, use the PyPI `.pth` check in `supply-chain-ecosystem-quirks`. Then look for start-up hooks in each environment and in the user site directory, where `usercustomize.py` lives. Read files only: starting the suspect environment's Python runs these hooks and any `.pth` code.
 ```bash
-find $(python -c 'import site; print(*site.getsitepackages(), site.getusersitepackages())') \
-  \( -name sitecustomize.py -o -name usercustomize.py \) 2>/dev/null
+# <env-prefix>: the environment's root (.venv, .pixi/envs/<name>, a conda env)
+for d in "<env-prefix>" "$HOME/.local/lib" "$HOME/Library/Python"; do
+  [ -d "$d" ] && find "$d" \( -name sitecustomize.py -o -name usercustomize.py \)
+done
 ```
 
 **cargo:**

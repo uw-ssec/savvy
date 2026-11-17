@@ -10,8 +10,9 @@ For each `uses:` reference in workflows, resolve the tag's current SHA and compa
 
 ```bash
 # Every remote uses: ref (actions, subpath actions, reusable workflows) in .yml and .yaml files
-grep -rhoE 'uses:[[:space:]]*[^[:space:]#.][^[:space:]#]*@[^[:space:]#]+' .github/workflows/ \
-  | sed -E 's/^uses:[[:space:]]*//' | grep -v '^docker://' | sort -u \
+# Quoted values ("..." or '...') lose their quotes before the ref is split
+grep -rhoE "uses:[[:space:]]*[\"']?[^[:space:]#\"'.][^[:space:]#\"']*@[^[:space:]#\"']+" .github/workflows/ \
+  | sed -E "s/^uses:[[:space:]]*[\"']?//" | grep -v '^docker://' | sort -u \
   | while read -r spec; do
       repo=$(echo "${spec%@*}" | cut -d/ -f1-2)   # owner/repo, without any subpath
       ref="${spec##*@}"

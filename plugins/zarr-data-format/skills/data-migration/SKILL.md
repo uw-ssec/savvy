@@ -1,166 +1,88 @@
 ---
 name: data-migration
-description: Migrates data between formats with a focus on converting HDF5 and NetCDF datasets to Zarr. Covers xarray-based conversion, direct zarr.copy operations, VirtualiZarr for reference-based virtual Zarr stores, kerchunk for legacy workflows, validation strategies, and batch migration pipelines. Use when the user asks about converting HDF5 or NetCDF files to Zarr, migrating scientific datasets, or working with VirtualiZarr or kerchunk for virtual stores.
+description: Use when converting HDF5 (.h5) or NetCDF (.nc) files to Zarr, migrating scientific datasets or a Zarr v2 store to Zarr v3, or building a virtual Zarr store over existing files with VirtualiZarr or kerchunk. Also use when a converted store lost scale_factor, _FillValue or time units, kept the old chunk layout, shows phony_dim names, or fails validation against its source.
 metadata:
   references: references/patterns.md references/examples.md references/common-issues.md
 ---
 
 # Data Migration to Zarr
 
-Migrate HDF5, NetCDF, and other formats to Zarr using xarray, h5py, VirtualiZarr, or kerchunk.
+Copies HDF5 and NetCDF data into Zarr, upgrades Zarr v2 stores to v3, or builds virtual Zarr references over files that stay where they are.
 
-## Resources
+**Core principle:** a migration is done when the target's decoded values, attributes and time coordinate match the source, not when `to_zarr` returns. Most silent damage comes from `encoding=`, which replaces the source variable's dtype, packing and fill value instead of adding to them.
 
-| Resource | Purpose |
-|----------|---------|
-| [references/patterns.md](references/patterns.md) | Full patterns: single-file, multi-file, virtual refs, incremental batch, post-migration validation |
-| [references/examples.md](references/examples.md) | Real-world migration examples |
-| [references/common-issues.md](references/common-issues.md) | HDF5 features unsupported in Zarr, metadata loss, memory errors, fill-value mismatches |
-| [assets/hdf5-to-zarr-migration.py](assets/hdf5-to-zarr-migration.py) | Runnable migration script |
+## When to Use
 
-## Strategy Selection
+- Converting `.h5` or `.nc` files into a Zarr store, or a Zarr v2 store into v3
+- Serving an archive as Zarr without copying it (VirtualiZarr, kerchunk, Icechunk)
+- A migrated store has `phony_dim_*` names, lost packing or fill values, wrong dates, the source's tiny chunks, or failed comparisons
 
-| Strategy | Data Copy | Best For |
-|----------|-----------|----------|
-| xarray conversion | Full copy | Simple files, rechunking needed, CF metadata |
-| h5py + zarr.copy | Full copy | Complex HDF5 group hierarchies |
-| VirtualiZarr | No copy | Large archives, cloud-hosted sources |
-| kerchunk | No copy | Legacy workflows, existing JSON refs |
+**When NOT to use:**
 
-```
-Migrating to Zarr?
-├── Single file, simple structure → xr.open_dataset() → ds.to_zarr()
-├── Many files, same structure   → xr.open_mfdataset() → ds.to_zarr()
-├── No data copy wanted          → VirtualiZarr (modern) or kerchunk (legacy)
-├── Complex HDF5 group hierarchy → h5py + zarr group copy
-└── Need rechunking              → xarray with chunks= and encoding=
-```
+- Rechunking a store that is already Zarr: use `zarr-chunk-optimization:rechunking`.
+- Everyday xarray reads, appends and region writes: `zarr-xarray-integration`.
+- Codecs: `compression-codecs`. Cloud stores and credentials: `cloud-storage-backends`.
 
-## HDF5 to Zarr
+## Quick Reference
 
-**Step 1 — Open and inspect:**
+| Source | Route | Code |
+|--------|-------|------|
+| One file with named dimensions | `xr.open_dataset(path, chunks=...)`, `to_zarr` | Below |
+| Many NetCDF files | `xr.open_mfdataset`, `.chunk(...)` the result, `to_zarr` | [patterns.md](references/patterns.md) Pattern 2 |
+| HDF5 groups xarray can't model | h5py walk, `zarr.from_array` per dataset | Pattern 4 |
+| Zarr v2 store | Replace the v2 codec encoding, `to_zarr(zarr_format=3)` | Pattern 7 |
+| Too large to copy | VirtualiZarr to kerchunk JSON or Icechunk | Pattern 3 |
+| Thousands of files, restartable | Append per file with a checkpoint | Pattern 5 |
+
+## Core Pattern
+
 ```python
 import xarray as xr
-ds = xr.open_dataset("simulation_output.h5", engine="h5netcdf")
-print(ds)
-```
 
-**Step 2 — Convert with encoding:**
-```python
-encoding = {var: {"chunks": {"time": 30, "x": 100, "y": 100}} for var in ds.data_vars}
-ds.to_zarr("simulation_output.zarr", encoding=encoding, consolidated=True)
-```
-
-**Step 3 — Validate:**
-```python
-ds_zarr = xr.open_zarr("simulation_output.zarr")
-xr.testing.assert_allclose(ds, ds_zarr)
-print("Validation passed")
-```
-
-For complex HDF5 group hierarchies, use h5py recursion — see [patterns.md Pattern 4](references/patterns.md).
-
-## NetCDF to Zarr
-
-**Single file:**
-```python
-ds = xr.open_dataset("climate_model_output.nc", chunks={"time": 30})
+target = {"time": 30, "lat": 90, "lon": 180}
+ds = xr.open_dataset("climate_model_output.nc", chunks=target)  # name every dimension
+KEEP = ("dtype", "scale_factor", "add_offset", "_FillValue")  # survive the override
 encoding = {
-    "temperature":   {"chunks": {"time": 30, "lat": 90, "lon": 180}, "dtype": "float32"},
-    "precipitation": {"chunks": {"time": 30, "lat": 90, "lon": 180}, "dtype": "float32"},
+    name: {k: v for k, v in var.encoding.items() if k in KEEP}
+    | {"chunks": tuple(target[d] for d in var.dims)}
+    for name, var in ds.data_vars.items() if set(var.dims) <= set(target)
 }
-ds.to_zarr("climate_output.zarr", encoding=encoding, consolidated=True)
-# Validate
-ds_zarr = xr.open_zarr("climate_output.zarr")
-assert dict(ds.dims) == dict(ds_zarr.dims), "Dimension mismatch"
-xr.testing.assert_allclose(ds, ds_zarr)
+ds.to_zarr("climate_output.zarr", mode="w-", encoding=encoding)
 ```
 
-**Multiple NetCDFs → single store:**
-```python
-from pathlib import Path
-ds = xr.open_mfdataset(sorted(Path("netcdf_archive/").glob("*.nc")),
-                       combine="nested", concat_dim="time", chunks={"time": 30})
-ds.to_zarr("combined_archive.zarr", encoding=encoding, consolidated=True)
-```
+A dimension left out of `chunks=` keeps the file's HDF5 chunks, and `to_zarr` can then raise `would overlap multiple Dask chunks`. `encoding` chunks are a tuple in dimension order. Coordinates stay out of `encoding=`, so `time` keeps its units and calendar.
 
-See [patterns.md Pattern 5](references/patterns.md) for incremental migration with checkpointing for large archives.
-
-## VirtualiZarr (No Data Copy)
+## Validate Before Deleting the Source
 
 ```python
-from virtualizarr import open_virtual_dataset
-import xarray as xr
-from pathlib import Path
-
-# Single file
-vds = open_virtual_dataset("large_data.nc")
-
-# Multiple files
-vds_list = [open_virtual_dataset(str(p)) for p in sorted(Path("archive/").glob("*.nc"))]
-combined = xr.concat(vds_list, dim="time")
-
-# Write virtual store (only references, no data copy)
-combined.virtualize.to_zarr("virtual_archive.zarr")
-
-# Read back normally
-ds = xr.open_zarr("virtual_archive.zarr")
+src = xr.open_dataset("climate_model_output.nc", chunks=target)
+dst = xr.open_zarr("climate_output.zarr")
+xr.testing.assert_allclose(src, dst)  # names, sizes, coords, values; NaN == NaN; chunk by chunk
+for name in src.variables:
+    lost = set(src[name].attrs) - set(dst[name].attrs)
+    assert not lost, f"{name} lost attributes {lost}"
 ```
 
-Note: reads resolve to the original source files — keep source files accessible.
+Use `xr.testing.assert_equal` when no dtype was narrowed. Per-file checks: [examples.md](references/examples.md) Example 4.
 
-## Kerchunk (Legacy)
+## Bundled Script
 
-```python
-import json
-from kerchunk.hdf import SingleHdf5ToZarr
-from kerchunk.combine import MultiZarrToZarr
-import fsspec
+`python assets/hdf5-to-zarr-migration.py` builds a 47 MB HDF5 file with dimension scales in a temp directory, converts it, checks it, and exits 1 on any failed check.
 
-# Scan each file
-url = "s3://bucket/file_001.nc"
-with fsspec.open(url, mode="rb", anon=True) as f:
-    refs = SingleHdf5ToZarr(f, url).translate()
-with open("refs_001.json", "w") as f:
-    json.dump(refs, f)
+## Common Mistakes
 
-# Combine reference files
-refs_list = [json.load(open(rf)) for rf in ["refs_001.json", "refs_002.json"]]
-combined_refs = MultiZarrToZarr(refs_list, concat_dims=["time"]).translate()
-with open("combined_refs.json", "w") as f:
-    json.dump(combined_refs, f)
-
-# Open virtual dataset
-mapper = fsspec.get_mapper("reference://", fo="combined_refs.json")
-ds = xr.open_zarr(mapper)
-```
-
-## Validation
-
-Run after every migration before deleting the source:
-
-```python
-import xarray as xr
-import numpy as np
-
-def validate_migration(source_path, zarr_path, engine="netcdf4"):
-    ds_src = xr.open_dataset(source_path, engine=engine)
-    ds_dst = xr.open_zarr(zarr_path)
-    errors = []
-    if dict(ds_src.dims) != dict(ds_dst.dims):
-        errors.append(f"Dims: {dict(ds_src.dims)} vs {dict(ds_dst.dims)}")
-    missing = set(ds_src.data_vars) - set(ds_dst.data_vars)
-    if missing:
-        errors.append(f"Missing variables: {missing}")
-    for var in set(ds_src.data_vars) & set(ds_dst.data_vars):
-        src, dst = ds_src[var].values, ds_dst[var].values
-        if not np.allclose(src.astype(dst.dtype), dst, equal_nan=True, rtol=1e-5):
-            errors.append(f"{var}: max diff = {np.nanmax(np.abs(src.astype(dst.dtype) - dst))}")
-    if errors:
-        for e in errors: print(f"  ✗ {e}")
-        return False
-    print("Validation passed")
-    return True
-```
-
-If validation fails: check encoding dtype mismatches → see [common-issues.md](references/common-issues.md).
+| Mistake | Fix |
+|---------|-----|
+| `encoding` chunks as a dict | `TypeError: ... must be an int or a tuple of ints`. Use a tuple. |
+| `encoding={"v": {"chunks": ...}}` alone | Replaces the source encoding: packed int16 became float64. Merge the `KEEP` keys. All of `var.encoding` raises `unexpected encoding parameters`. |
+| HDF5 without dimension scales | Dimensions are `phony_dim_N` and `chunks={"time": 30}` is ignored. Rename them or attach scales. |
+| HDF5 `fillvalue` without `_FillValue` | Not masked, so sentinels stay numbers. Apply `.where(...)` first. |
+| `open_mfdataset(..., chunks={"time": 30})` | Chunks are per file, so `to_zarr` raises `would overlap multiple Dask chunks`. `.chunk(...)` the combined dataset. |
+| `.chunk(...)` on data read from Zarr | The source `encoding["chunks"]` wins silently. Pop `chunks`, `shards` and `preferred_chunks`. |
+| `rechunker` | 0.5.4 pins `zarr<3,>=2.11`. See `zarr-chunk-optimization:rechunking`. |
+| `zarr.from_array` defaults | zarr 3.1.5 drops `fill_value` and attributes. Pass both. |
+| Appending finer time steps than the store's units | Dates come out wrong with only a `UserWarning`. Set `time` units on the first write. |
+| Kerchunk or VirtualiZarr to change chunks | They reference the existing chunks, and files must share one chunk shape (contiguous monthly files fail). Copy instead. |
+| Kerchunk `MultiZarrToZarr` without `coo_map={"time": "cf:time"}` | Files with per-file time units merge silently: three 12-day files became 12 steps, the first file's dates over the last file's data. Pass `coo_map`. |
+| VirtualiZarr 1.x code | 2.x needs `registry=` and `parser=`, and writes with `.vz.to_kerchunk` or `.vz.to_icechunk`. There is no `to_zarr`. |
+| `.values` plus `np.allclose` | Loads whole arrays (3.2 GB RSS for 400 MB) and fails on datetimes. Use `xr.testing`. |

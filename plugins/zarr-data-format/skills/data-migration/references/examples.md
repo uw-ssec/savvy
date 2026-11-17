@@ -4,16 +4,16 @@
 
 | Section | Lines | Description |
 |---------|-------|-------------|
-| Example 1: Migrating a Climate Model Archive | 14–110 | Convert a directory of monthly NetCDF files to a single Zarr store |
-| Example 2: Virtual Zarr References for NASA Earthdata HDF5 | 111–200 | Create virtual references for cloud-hosted HDF5 files |
-| Example 3: HDF5 Instrument Data to Cloud Zarr with Rechunking | 201–300 | Migrate and rechunk instrument data for cloud-optimized access |
-| Example 4: Validating a Large Migration | 301–390 | Comprehensive source-vs-target validation pipeline |
+| Example 1: Migrating a Climate Model Archive | 14–87 | Convert a directory of monthly NetCDF files to a single Zarr store |
+| Example 2: Virtual Zarr References for Granules on S3 | 88–142 | Create virtual references for cloud-hosted HDF5/NetCDF4 files |
+| Example 3: HDF5 Instrument Data to Cloud Zarr with Rechunking | 143–232 | Migrate and rechunk instrument data for cloud-optimized access |
+| Example 4: Validating a Large Migration | 233–316 | Per-file source-vs-target validation |
 
 ---
 
 ## Example 1: Migrating a Climate Model Archive
 
-**Dataset description:** A 10-year climate model simulation stored as 120 monthly NetCDF files, each containing daily temperature, precipitation, and wind speed on a 180×360 grid.
+**Dataset description:** A 10-year climate model simulation stored as 120 monthly NetCDF files, each containing daily temperature and precipitation on a 180×360 grid (about 1.9 GB in total).
 
 **Problem:** The many-small-files format is slow to open and expensive on cloud storage. You need to combine everything into a single consolidated Zarr store with cloud-optimized chunks.
 
@@ -29,7 +29,6 @@ archive_dir = Path("climate_archive")
 archive_dir.mkdir(exist_ok=True)
 
 rng = np.random.default_rng(42)
-months_per_year = 12
 years = range(2010, 2020)
 days_in_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
@@ -44,7 +43,8 @@ for year in years:
                     rng.exponential(2.0, (n_days, 180, 360)).astype("float32")),
             },
             coords={
-                "time": xr.cftime_range(f"{year}-{month:02d}-01", periods=n_days, freq="D"),
+                "time": xr.date_range(f"{year}-{month:02d}-01", periods=n_days, freq="D",
+                                      calendar="noleap", use_cftime=True),
                 "lat": np.linspace(-89.5, 89.5, 180),
                 "lon": np.linspace(0.5, 359.5, 360),
             },
@@ -55,20 +55,18 @@ print(f"Created {len(list(archive_dir.glob('*.nc')))} NetCDF files")
 
 # ── Combine and migrate to Zarr ──
 files = sorted(archive_dir.glob("*.nc"))
-ds_combined = xr.open_mfdataset(
-    files,
-    combine="nested",
-    concat_dim="time",
-    chunks={"time": 31, "lat": 90, "lon": 180},
-    parallel=True,
-)
-print(f"Combined: {dict(ds_combined.dims)}")
+ds_combined = xr.open_mfdataset(files, combine="nested", concat_dim="time", parallel=True)
+
+# One dask chunk per file (31, 28, 31, ... days) would overlap the 30-day
+# Zarr chunks, and to_zarr would raise. Rechunk the combined dataset first.
+ds_combined = ds_combined.chunk({"time": 30, "lat": 90, "lon": 180})
+print(f"Combined: {dict(ds_combined.sizes)}")
 print(f"Total size: {ds_combined.nbytes / 1e9:.1f} GB")
 
-# ── Write with optimized encoding ──
+# ── Write with optimized encoding (chunks are a tuple in dimension order) ──
 encoding = {
-    "temperature": {"chunks": {"time": 30, "lat": 90, "lon": 180}, "dtype": "float32"},
-    "precipitation": {"chunks": {"time": 30, "lat": 90, "lon": 180}, "dtype": "float32"},
+    "temperature": {"chunks": (30, 90, 180), "dtype": "float32"},
+    "precipitation": {"chunks": (30, 90, 180), "dtype": "float32"},
 }
 ds_combined.to_zarr(
     "climate_10yr.zarr",
@@ -79,59 +77,64 @@ ds_combined.to_zarr(
 
 # ── Verify ──
 ds_zarr = xr.open_zarr("climate_10yr.zarr", consolidated=True)
-print(f"Zarr store: {len(ds_zarr.time)} time steps")
+print(f"Zarr store: {ds_zarr.sizes['time']} time steps")
 print(f"Time range: {ds_zarr.time.values[0]} to {ds_zarr.time.values[-1]}")
+print(f"Calendar: {ds_zarr.time.encoding['calendar']}")  # noleap, carried from the files
 print(f"Variables: {list(ds_zarr.data_vars)}")
 ```
 
 ---
 
-## Example 2: Virtual Zarr References for NASA Earthdata HDF5
+## Example 2: Virtual Zarr References for Granules on S3
 
-**Dataset description:** A collection of HDF5 files from NASA's Earthdata archive (e.g., MODIS Level 2 products) stored on S3. Each granule is ~100 MB and there are thousands of granules.
+**Dataset description:** Thousands of HDF5/NetCDF4 swath granules (~100 MB each) in an S3 bucket, all with the same variables, cross-track size and chunk shape. Every granule must hold a whole number of chunks along `scanline`, or the concatenation raises `ValueError: Cannot concatenate arrays with partial chunks`.
 
-**Problem:** Copying all granules to Zarr would require terabytes of storage and days of transfer time. Instead, create virtual Zarr references that point to the original HDF5 files, enabling Zarr-compatible reads without any data copying.
+**Problem:** Copying all granules to Zarr would require terabytes of storage and days of transfer time. Instead, create virtual Zarr references that point to the original files, enabling Zarr-compatible reads without any data copying. The references keep each granule's own chunks.
 
 **Code:**
 
 ```python
-from virtualizarr import open_virtual_dataset
 import xarray as xr
-import fsspec
+from obspec_utils.registry import ObjectStoreRegistry
+from obstore.store import S3Store
+from virtualizarr import open_virtual_mfdataset
+from virtualizarr.parsers import HDFParser
 
-# ── List source files (example: MODIS granules on S3) ──
-# In practice, use earthaccess or CMR API to discover files
-source_files = [
-    "s3://podaac-data/MODIS/L2/2024/001/granule_001.h5",
-    "s3://podaac-data/MODIS/L2/2024/001/granule_002.h5",
-    "s3://podaac-data/MODIS/L2/2024/001/granule_003.h5",
-]
+# ── List source files ──
+# In practice, find granules with a catalog search (CMR, STAC, earthaccess).
+bucket = "example-public-bucket"
+source_files = [f"s3://{bucket}/L2/2024/001/granule_{i:03d}.h5" for i in range(1, 4)]
 
-# ── Create virtual references for each granule ──
-vds_list = []
-for i, url in enumerate(source_files):
-    vds = open_virtual_dataset(
-        url,
-        reader_options={"storage_options": {"anon": False}},
-    )
-    vds_list.append(vds)
-    print(f"[{i+1}/{len(source_files)}] Scanned: {url.split('/')[-1]}")
+# ── Tell VirtualiZarr how to read the bucket ──
+# Public bucket: unsigned requests. For NASA Earthdata protected buckets, use
+# S3Store(..., credential_provider=obstore.auth.earthdata.NasaEarthdataCredentialProvider(url))
+# from inside AWS us-west-2.
+registry = ObjectStoreRegistry(
+    {f"s3://{bucket}": S3Store(bucket, region="us-west-2", skip_signature=True)}
+)
 
-# ── Combine into a single virtual dataset ──
-# For swath data, combine along the "along_track" or "scanline" dimension
-combined = xr.concat(vds_list, dim="scanline")
-print(f"Virtual dataset: {dict(combined.dims)}")
+# ── Scan granules and combine along the along-track dimension ──
+combined = open_virtual_mfdataset(
+    source_files,
+    registry=registry,
+    parser=HDFParser(),
+    concat_dim="scanline",
+    combine="nested",
+    coords="minimal",
+    compat="override",
+)
+print(f"Virtual dataset: {dict(combined.sizes)}")
 
-# ── Write virtual Zarr store ──
-combined.virtualize.to_zarr("modis_virtual.zarr")
-print("Virtual store created (no data copied)")
+# ── Write the references (no data copied) ──
+combined.vz.to_kerchunk("granules_virtual.json", format="json")
 
-# ── Use it like a normal Zarr store ──
-ds = xr.open_zarr("modis_virtual.zarr")
-print(f"Available variables: {list(ds.data_vars)}")
-
-# Reads go directly to the original HDF5 files on S3
-subset = ds["radiance"].sel(scanline=slice(0, 100)).compute()
+# ── Use it like a normal Zarr store; reads go to the original files on S3 ──
+ds = xr.open_dataset(
+    "granules_virtual.json",
+    engine="kerchunk",
+    storage_options={"remote_protocol": "s3", "remote_options": {"anon": True}},
+)
+subset = ds["radiance"].isel(scanline=slice(0, 100)).compute()
 print(f"Loaded subset: {subset.shape}")
 ```
 
@@ -139,16 +142,30 @@ print(f"Loaded subset: {subset.shape}")
 
 ## Example 3: HDF5 Instrument Data to Cloud Zarr with Rechunking
 
-**Dataset description:** A 50 GB HDF5 file from a high-energy physics detector with deeply nested groups, multiple resolution levels, and time-series data chunked for sequential write during data acquisition.
+**Dataset description:** A 50 GB HDF5 file from a high-energy physics detector with nested groups and time-series data chunked for sequential write during data acquisition.
 
 **Problem:** The original HDF5 chunking (optimized for writing during acquisition) is terrible for analytical reads. You need to rechunk for time-slice access and upload to S3 for shared analysis.
 
 **Code:**
 
 ```python
+import math
+
 import h5py
-import zarr
 import numpy as np
+import zarr
+
+
+def to_json(value):
+    """h5py returns NumPy scalars, arrays and bytes; Zarr attributes must be JSON."""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", "replace")
+    if isinstance(value, np.ndarray):
+        return [to_json(v) for v in value.tolist()]
+    if isinstance(value, np.generic):
+        return value.item()
+    return value
+
 
 # ── Inspect the source HDF5 structure ──
 with h5py.File("detector_run_2024.h5", "r") as f:
@@ -164,56 +181,52 @@ with h5py.File("detector_run_2024.h5", "r") as f:
     print_tree(f)
 
 # ── Migrate with rechunking ──
-# Original chunks: (100000, 1) — optimized for appending one channel at a time
-# Target chunks: (1000, 256) — optimized for reading time slices across channels
+# Original chunks: (100000, 1), optimized for appending one channel at a time
+# Target chunks: ~5 MB of whole rows, e.g. (5120, 256) for 256 float32 channels
 with h5py.File("detector_run_2024.h5", "r") as h5f:
-    store = zarr.storage.FsspecStore.from_url("s3://physics-data/detector_2024.zarr")
-    root = zarr.open_group(store=store, mode="w")
+    store = zarr.storage.FsspecStore.from_url("s3://physics-data/detector_2024.zarr")  # needs s3fs
+    root = zarr.open_group(store=store, mode="w-")
+    root.attrs.update({k: to_json(v) for k, v in h5f.attrs.items()})
 
-    # Copy metadata
-    root.attrs.update(dict(h5f.attrs))
-
-    # Migrate the main data arrays with new chunk layout
     for group_name in ["detectors", "triggers", "calibration"]:
         if group_name not in h5f:
             continue
 
         zg = root.create_group(group_name)
-        zg.attrs.update(dict(h5f[group_name].attrs))
+        zg.attrs.update({k: to_json(v) for k, v in h5f[group_name].attrs.items()})
 
-        for ds_name in h5f[group_name]:
-            h5_ds = h5f[group_name][ds_name]
-            if not isinstance(h5_ds, h5py.Dataset):
+        for ds_name, h5_ds in h5f[group_name].items():
+            if not isinstance(h5_ds, h5py.Dataset) or h5_ds.ndim == 0:
                 continue
 
-            # Calculate cloud-optimized chunks (~5 MB per chunk)
-            item_size = h5_ds.dtype.itemsize
-            target_bytes = 5 * 1024 * 1024  # 5 MB
-            if h5_ds.ndim == 2:
-                rows_per_chunk = max(1, target_bytes // (h5_ds.shape[1] * item_size))
-                new_chunks = (min(rows_per_chunk, h5_ds.shape[0]), h5_ds.shape[1])
-            else:
-                new_chunks = (min(target_bytes // item_size, h5_ds.shape[0]),)
+            # Cloud-optimized chunks (~5 MB): whole rows, as many as fit
+            row_bytes = h5_ds.dtype.itemsize * math.prod(h5_ds.shape[1:])
+            rows = max(1, min(h5_ds.shape[0], 5 * 1024 * 1024 // row_bytes))
+            new_chunks = (rows, *h5_ds.shape[1:])
 
-            # Create the Zarr array
             arr = zg.create_array(
                 ds_name,
                 shape=h5_ds.shape,
                 chunks=new_chunks,
                 dtype=h5_ds.dtype,
+                fill_value=h5_ds.fillvalue,
+                attributes={k: to_json(v) for k, v in h5_ds.attrs.items()},
             )
-            arr.attrs.update(dict(h5_ds.attrs))
 
-            # Copy data in chunks to manage memory
-            read_chunk = h5_ds.chunks[0] if h5_ds.chunks else h5_ds.shape[0]
-            for start in range(0, h5_ds.shape[0], read_chunk):
-                end = min(start + read_chunk, h5_ds.shape[0])
-                arr[start:end] = h5_ds[start:end]
+            # Copy in blocks of whole target chunks, about one source chunk tall,
+            # so each source chunk is decompressed once and memory stays bounded
+            # even when the source is contiguous.
+            src_rows = h5_ds.chunks[0] if h5_ds.chunks else rows
+            step = max(rows, src_rows // rows * rows)
+            for start in range(0, h5_ds.shape[0], step):
+                arr[start:start + step] = h5_ds[start:start + step]
 
             print(f"  {group_name}/{ds_name}: {h5_ds.chunks} → {new_chunks}")
 
 print("Migration with rechunking complete")
 ```
+
+Peak memory is one block of `step` rows, about 100 MB for `(100000, 1)` source chunks with 256 float32 channels. To rechunk a store that is already Zarr, use `zarr-chunk-optimization:rechunking`.
 
 ---
 
@@ -221,7 +234,7 @@ print("Migration with rechunking complete")
 
 **Dataset description:** A multi-terabyte climate dataset that was migrated from 500 NetCDF files to a single Zarr store. The migration took 8 hours and you need to verify data integrity before deleting the source files.
 
-**Problem:** You cannot load the entire dataset into memory for comparison. Validation must work chunk-by-chunk, reporting any discrepancies with their exact location.
+**Problem:** You cannot load the entire dataset into memory for comparison. Validation must work file by file, reporting any discrepancies with their exact location.
 
 **Code:**
 
@@ -236,7 +249,7 @@ logger = logging.getLogger(__name__)
 
 
 def validate_chunked(source_files, zarr_path, concat_dim="time", rtol=1e-5):
-    """Validate a large migration by comparing chunk-by-chunk."""
+    """Validate a large migration by comparing one source file at a time."""
     ds_zarr = xr.open_zarr(zarr_path, chunks={})
     errors = []
     total_checks = 0
@@ -245,32 +258,30 @@ def validate_chunked(source_files, zarr_path, concat_dim="time", rtol=1e-5):
     time_offset = 0
     for filepath in sorted(source_files):
         ds_src = xr.open_dataset(filepath)
-        n_time = len(ds_src[concat_dim])
+        n_time = ds_src.sizes[concat_dim]
 
-        for var in ds_src.data_vars:
+        for var in ds_src.data_vars:  # includes datetime variables such as time_bnds
             if var not in ds_zarr:
                 errors.append(f"Missing variable {var} in Zarr store")
                 continue
 
             # Extract the corresponding slice from Zarr
-            zarr_slice = ds_zarr[var].isel(
+            src = ds_src[var].load()
+            dst = ds_zarr[var].isel(
                 {concat_dim: slice(time_offset, time_offset + n_time)}
             ).compute()
 
-            src_vals = ds_src[var].values
-            zarr_vals = zarr_slice.values
-
-            # Handle dtype differences
-            if src_vals.dtype != zarr_vals.dtype:
-                src_vals = src_vals.astype(zarr_vals.dtype)
-
-            if not np.allclose(src_vals, zarr_vals, equal_nan=True, rtol=rtol):
-                diff = np.abs(src_vals - zarr_vals)
-                max_diff = float(np.nanmax(diff))
-                max_loc = np.unravel_index(np.nanargmax(diff), diff.shape)
-                errors.append(
-                    f"{filepath.name}/{var}: max_diff={max_diff:.2e} at {max_loc}"
-                )
+            try:
+                # NaN == NaN, works for datetimes, also checks the time coordinate
+                xr.testing.assert_allclose(src, dst, rtol=rtol)
+            except AssertionError:
+                msg = f"{filepath.name}/{var}: values differ"
+                if src.dtype.kind in "fiu":
+                    diff = np.abs(src.values.astype("float64") - dst.values.astype("float64"))
+                    if not np.all(np.isnan(diff)):
+                        loc = np.unravel_index(np.nanargmax(diff), diff.shape)
+                        msg += f", max_diff={np.nanmax(diff):.2e} at {loc}"
+                errors.append(msg)
             total_checks += 1
 
         time_offset += n_time
@@ -279,7 +290,7 @@ def validate_chunked(source_files, zarr_path, concat_dim="time", rtol=1e-5):
 
     # Check total size matches
     expected_time = time_offset
-    actual_time = len(ds_zarr[concat_dim])
+    actual_time = ds_zarr.sizes[concat_dim]
     if expected_time != actual_time:
         errors.append(f"Time dimension: expected {expected_time}, got {actual_time}")
 

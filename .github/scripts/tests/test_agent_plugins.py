@@ -76,6 +76,26 @@ def test_sync_generates_every_client_manifest(ap, repo):
     assert not (repo / "plugins/alpha/.cursor-plugin/plugin.json").exists()
 
 
+def test_marketplace_entries_carry_no_version(ap, repo):
+    # Claude Code reads plugin.json's version first and warns when an entry repeats a different one,
+    # so the version lives in the plugin's manifests only (#289).
+    entries = json.loads((repo / ".claude-plugin/marketplace.json").read_text())["plugins"]
+    assert [e for e in entries if "version" in e] == []
+    claude = json.loads((repo / "plugins/alpha/.claude-plugin/plugin.json").read_text())
+    assert claude["version"] == "1.0.0"
+
+
+def test_hand_added_entry_version_is_drift(ap, repo):
+    path = repo / ".claude-plugin/marketplace.json"
+    catalog = json.loads(path.read_text())
+    catalog["plugins"][0]["version"] = "1.0.0"
+    write(path, catalog)
+    assert any(".claude-plugin/marketplace.json: out of date" in e for e in problems(ap, repo))
+    ap.sync(repo)
+    assert "version" not in json.loads(path.read_text())["plugins"][0]
+    assert problems(ap, repo) == []
+
+
 def test_sync_is_idempotent(ap, repo, capsys):
     capsys.readouterr()
     ap.sync(repo)

@@ -19,7 +19,10 @@ Generated from them (``sync`` writes, ``check`` compares):
 
 - ``<plugin>/.claude-plugin/plugin.json``: Claude Code doesn't read the
   portable manifest, so it gets a copy of the shared fields;
-- the shared fields of each ``.claude-plugin/marketplace.json`` entry;
+- the shared fields of each ``.claude-plugin/marketplace.json`` entry, except
+  ``version``. Claude Code reads the version from plugin.json first and warns
+  when an entry repeats a different one, so a plugin's version lives only in
+  its manifests;
 - ``.agents/plugins/marketplace.json`` (Codex);
 - ``.cursor-plugin/marketplace.json`` (Cursor). There is no
   ``.cursor-plugin/plugin.json``: Cursor loads each package from its root
@@ -159,7 +162,7 @@ def expected_files(root: Path) -> dict[Path, str]:
         m = manifests[src]
         out[root / src / ".claude-plugin" / "plugin.json"] = dump(shared(m))
         new = {"name": m["name"], "source": src}
-        new.update({k: v for k, v in shared(m).items() if k != "name"})
+        new.update({k: v for k, v in shared(m).items() if k not in ("name", "version")})
         new.update({k: v for k, v in entry.items() if k not in new and k not in SHARED})
         entries.append(new)
     out[root / CATALOG] = dump({**catalog, "plugins": entries})

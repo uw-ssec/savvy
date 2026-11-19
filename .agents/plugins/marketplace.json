@@ -1,7 +1,7 @@
 {
-    "name": "rse-plugins",
+    "name": "savvy",
     "interface": {
-        "displayName": "rse-plugins"
+        "displayName": "savvy"
     },
     "plugins": [
         {

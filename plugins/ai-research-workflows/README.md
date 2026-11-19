@@ -183,11 +183,11 @@ For work where design decisions depend on what already exists in the field:
 This plugin is part of the `uw-ssec/rse-plugins` collection. To install from the marketplace:
 
 ```bash
-# Add the rse-plugins marketplace
-claude plugin marketplace add uw-ssec/rse-plugins
+# Add the savvy marketplace
+claude plugin marketplace add uw-ssec/savvy
 
 # Install the plugin
-claude plugin install ai-research-workflows@rse-plugins
+claude plugin install ai-research-workflows@savvy
 ```
 
 To use directly from a local clone:

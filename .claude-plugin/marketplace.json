@@ -1,5 +1,5 @@
 {
-    "name": "rse-plugins",
+    "name": "savvy",
     "owner": {
         "name": "UW SSEC Team",
         "url": "https://github.com/uw-ssec"
@@ -17,8 +17,8 @@
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "astronomy",
@@ -45,8 +45,8 @@
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "scientific-python",
@@ -74,8 +74,8 @@
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "holoviz",
@@ -103,8 +103,8 @@
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "ai-workflows",
@@ -130,8 +130,8 @@
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "MIT",
             "keywords": [
                 "project-management",
@@ -157,7 +157,7 @@
                 "name": "GAIA HazLab",
                 "url": "https://github.com/gaia-hazlab"
             },
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "gaia",
@@ -181,8 +181,8 @@
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "MIT",
             "keywords": [
                 "zarr",
@@ -210,8 +210,8 @@
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "zarr",
@@ -237,8 +237,8 @@
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "research-through-design",
@@ -260,8 +260,8 @@
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "proprietary",
             "keywords": [
                 "ui",
@@ -346,8 +346,8 @@
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "MIT",
             "keywords": [
                 "containerization",
@@ -380,8 +380,8 @@
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "supply-chain-security",

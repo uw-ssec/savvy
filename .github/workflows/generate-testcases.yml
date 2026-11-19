@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       pr-number:
-        description: Number of the rse-plugins PR that adds the new skill(s)
+        description: Number of the savvy PR that adds the new skill(s)
         required: true
         type: string
       dry-run:

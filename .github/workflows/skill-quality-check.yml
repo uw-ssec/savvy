@@ -3,7 +3,10 @@ name: Skill quality check
 # Replaces the Tessl PR skill review. Runs SkillEvaluator's keyless
 # `quality-check` (Tier 1 quality score only; no API key, no network calls
 # beyond installing the tool) on every skill a pull request changes, and fails
-# the check when a skill scores below MIN_SCORE.
+# the check when a skill scores below MIN_SCORE. Invoked through the
+# `skill-quality-check` pixi task (pixi.toml) so CI and local runs
+# (`pixi run -e ci skill-quality-check <skill>`) go through the same command
+# and the same pinned SkillEvaluator version.
 #
 # This is a quality-score gate, not full Tier 1 validation: `skillevaluator
 # validate` (schema, PII, licence and the Semgrep/SkillSpector/Gitleaks security
@@ -15,6 +18,8 @@ on:
       - "community-plugins/*/skills/**"
       - ".github/workflows/skill-quality-check.yml"
       - ".github/scripts/skill-quality.py"
+      - "pixi.toml"
+      - "pixi.lock"
 
 permissions: {}
 
@@ -23,9 +28,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # NVIDIA/SkillEvaluator v0.6.0. Bump deliberately: scores can shift between releases.
-  SKILLEVALUATOR_REF: 5320d9329c36ecc72bc94c4f58cc813d6b54224b
   # Every skill on main scored 80.0-89.8 (grade B) at v0.6.0 when this gate was added.
+  # The SkillEvaluator version itself is pinned once, in pixi.toml's
+  # [feature.ci.pypi-dependencies] (bump deliberately: scores can shift between releases).
   MIN_SCORE: "70"
 
 jobs:
@@ -40,9 +45,11 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - uses: prefix-dev/setup-pixi@ad1da6449d9e506fd127fd67ab2d054a769f6a94 # v0.11.2
         with:
-          python-version: "3.13"
+          pixi-version: v0.82.0
+          environments: ci
+          locked: true
 
       - name: Select changed skills
         id: select
@@ -53,10 +60,6 @@ jobs:
           python3 .github/scripts/skill-quality.py select --base "$BASE_SHA" --head "$HEAD_SHA" > "$RUNNER_TEMP/skills.txt"
           echo "count=$(grep -c . "$RUNNER_TEMP/skills.txt" || true)" >> "$GITHUB_OUTPUT"
           cat "$RUNNER_TEMP/skills.txt"
-
-      - name: Install SkillEvaluator
-        if: steps.select.outputs.count != '0'
-        run: uv tool install --python 3.13 "skillevaluator @ git+https://github.com/NVIDIA/SkillEvaluator.git@${SKILLEVALUATOR_REF}"
 
       - name: Run quality-check
         if: steps.select.outputs.count != '0'
@@ -71,7 +74,7 @@ jobs:
             # Keep going past a failure so every skill is scored; the summary
             # step fails the job on any non-zero exit or failing report.
             code=0
-            skillevaluator quality-check "$skill" --min-score "$MIN_SCORE" -r cli,json -o "$out" || code=$?
+            pixi run skill-quality-check "$skill" --min-score "$MIN_SCORE" -r cli,json -o "$out" || code=$?
             printf '%s\t%s\n' "$skill" "$code" >> "$RUNNER_TEMP/exits.tsv"
             echo "::endgroup::"
           done < "$RUNNER_TEMP/skills.txt"

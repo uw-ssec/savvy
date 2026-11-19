@@ -26,14 +26,14 @@ gh api -X GET /advisories -f cve_id=<CVE-ID> --jq '.[] | {ghsa_id, affected: [.v
 
 | Check | Command | Evidence |
 |---|---|---|
-| 1 Lockfile | `git grep -nwF -A3 '<pkg>' -- <lockfiles>`, then `git log -S'<bad-version>' --format='%h %cI %s' -- <lockfiles>` | `file:line`; when the bad version entered |
+| 1 Lockfile | `git grep -nwF -A3 '<pkg>' -- <lockfiles>`, then `git log -G'<bad-version>' --format='%h %cI %s' -- <lockfiles>` | `file:line`; when the bad version entered |
 | 2 CI cache | `gh cache list --sort created_at --order desc --limit 1000 --json id,key,createdAt` | ids with `createdAt` at or after the window start |
 | 3 Secrets | `gh secret list`, `gh secret list --env <env>`, `grep -rnw 'secrets' .github/workflows/` | every secret the affected jobs could read (`secrets: inherit` passes all) |
 | 4 Persistence | the runbook below | artifacts found, or "none" with the commands run |
 
 ## Response Order
 
-1. **Contain:** pin a known-good version in every lockfile; delete each cache from check 2 (`gh cache delete <id>`); disable workflows that ran the bad version (`gh workflow disable <workflow>`).
+1. **Contain:** pin a known-good version in every lockfile; delete each cache from check 2 (loop in `references/runbook-account-takeover.md`); disable workflows that ran the bad version (`gh workflow disable <workflow>`).
 2. **Eradicate:** rotate every secret from check 3. Hunt persistence.
 3. **Recover:** with the caches gone, re-run the release workflow normally. Verify any attestations with `supply-chain-sbom-provenance`.
 4. **Report:** fill every section of `assets/incident-report-template.md`. If this project shipped an affected version, file a GHSA.
@@ -59,5 +59,5 @@ gh api -X GET /advisories -f cve_id=<CVE-ID> --jq '.[] | {ghsa_id, affected: [.v
 
 - `gh actions cache …` is not a command. Use `gh cache list` and `gh cache delete <id>`.
 - The pathspec `'**/lock*'` matches no standard lockfile. Use `<lockfiles>`.
-- `git log -S'<pkg>'` misses version bumps. Use `-S'<bad-version>'`.
+- `git log -S` misses a bump when another package leaves that version. Use `-G'1\.2\.4'`.
 - `find -newer <date>` expects a file. Use `-newermt "<YYYY-MM-DD HH:MM> UTC"`.

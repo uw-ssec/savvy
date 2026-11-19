@@ -24,10 +24,11 @@ Where each lockfile records the version:
 - `pixi.lock`: in the package URL, `<pkg>-<version>-…`.
 - `go.sum`: on the same line, `<module> v<version>`.
 
-Then find when the bad version entered and left. Search for the version, not the package name: a version bump doesn't change how often the name appears, so `-S'<pkg>'` misses it. Confirm each hit with `git show <hash>`.
+Then find when the bad version entered and left. Search with `-G` for the version, dots escaped. `-S` counts occurrences, so it misses any commit that leaves the count unchanged: a bump searched by package name, or `<pkg>` moving to the bad version while another package moves off it. `-G` also lists commits where only other packages have that version, so confirm each hit with `git show <hash> -- <lockfile>` and read `<pkg>`'s lines.
 
 ```bash
-git log -S'<bad-version>' --format='%h %cI %s' -- '*package-lock.json' '*yarn.lock' '*pnpm-lock.yaml' \
+# <bad-version> with dots escaped, e.g. 1\.2\.4
+git log -G'<bad-version>' --format='%h %cI %s' -- '*package-lock.json' '*yarn.lock' '*pnpm-lock.yaml' \
   '*uv.lock' '*poetry.lock' '*pixi.lock' '*conda-lock.yml' '*Cargo.lock' '*go.sum'
 ```
 
@@ -43,11 +44,19 @@ gh cache list --sort created_at --order desc --limit 1000 \
   --json id,key,createdAt,ref \
   --jq '.[] | select(.createdAt >= "<YYYY-MM-DDTHH:MM>") | "\(.id) \(.createdAt) \(.ref) \(.key)"'
 
-# Delete them by id (one key can be shared by caches on several refs)
-gh cache list --sort created_at --order desc --limit 1000 --json id,createdAt \
-  --jq '.[] | select(.createdAt >= "<YYYY-MM-DDTHH:MM>") | .id' \
-  | while read -r id; do gh cache delete "$id"; done
+# Delete them by id (one key can be shared by caches on several refs). Each pass
+# deletes the window's caches among the newest 1000, until a pass finds none.
+(
+  while :; do
+    ids=$(gh cache list --sort created_at --order desc --limit 1000 --json id,createdAt \
+      --jq '.[] | select(.createdAt >= "<YYYY-MM-DDTHH:MM>") | .id') || exit 1
+    [ -z "$ids" ] && exit 0
+    printf '%s\n' "$ids" | while read -r id; do gh cache delete "$id" || exit 1; done || exit 1
+  done
+) || { echo "Cache deletion failed: check 2 stays open. Fix the error and rerun." >&2; false; }
 ```
+
+One pass is not enough: with 2,500 caches in the window, a single `--limit 1000` listing left 1,500 and still exited 0. The listing above has the same limit, so if it prints 1,000 lines, raise `--limit` for the evidence.
 
 Also purge any registry mirror caches (Artifactory, Verdaccio, devpi) covering the window — cache nuke is incomplete without these.
 

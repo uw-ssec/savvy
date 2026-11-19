@@ -108,7 +108,7 @@ Every pattern is dominated by Gaussian noise, so none of them compresses like re
 | `radio` | 1.13x | 1.15x | 1.12x |
 | `random` | 1.12x | 1.11x | 1.08x |
 
-Real scientific data often compresses 2–10x (see `chunking-strategy`'s `references/cloud-storage-patterns.md`). Synthetic chunks are therefore 2–10x larger on disk than the same chunks of real data, which overstates bytes read and I/O time, especially on cloud storage.
+Real scientific data often compresses 2–10x (see `chunking-strategy`'s `references/cloud-storage-patterns.md`). A synthetic chunk is larger on disk than the same chunk of real data by the real ratio divided by the synthetic ratio: `temperature` with `zstd` (1.26x) is about 1.6x larger than real data that compresses 2x and about 8x larger than real data that compresses 10x, while `constant` (2.0x) matches 2x real data and is 5x larger than 10x real data. Across the table the gap runs from none to about 9x; where real data compresses better, synthetic data overstates bytes read and I/O time, especially on cloud storage.
 
 ### Benchmarking With and Without Compression
 

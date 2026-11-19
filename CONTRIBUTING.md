@@ -117,6 +117,8 @@ Before submitting your PR, ensure:
 - [ ] README.md is updated if adding a new agent
 - [ ] Commit messages are clear and descriptive
 - [ ] `pixi run plugins-check` passes (run `pixi run plugins-sync` first if you changed a manifest or the catalog)
+- [ ] `CHANGELOG.md` has an entry under `## [Unreleased]` for each plugin you changed
+- [ ] Any rename, removal, or intent-breaking skill change follows [the deprecation policy](docs/deprecation.md)
 - [ ] A new skill has a catalog entry with an example prompt you've tried in Claude Code, and `pixi run catalog-check` passes (see [Skill Catalog](#-skill-catalog))
 - [ ] No sensitive information or credentials are included
 - [ ] The change passes the [security review checklist](#-security-review-checklist)
@@ -237,6 +239,14 @@ To add a skill:
    pixi run catalog-sync
    pixi run catalog-check
    ```
+
+## 🏷️ Versioning and Deprecation
+
+Releases use Ubuntu-style Calendar Versioning, and each plugin's manifest version is the release in which that plugin last changed. See the [versioning policy](docs/versioning.md) before editing a `version` field.
+
+Renaming or removing a skill, command, agent or plugin — and changing a skill so that a user's existing prompt no longer reaches the same behavior — requires advance notice under the [deprecation policy](docs/deprecation.md).
+
+Every pull request adds its entry to [`CHANGELOG.md`](CHANGELOG.md) under `## [Unreleased]`, in the subsection for the plugin it changes — or under `### Repository` if it changes no plugin, as a CI, tooling or documentation pull request does.
 
 ## 📊 Evaluating Skills
 

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Post-create script for GitHub Codespaces
-# Installs Claude Code, Copilot CLI with RSE plugins, and sets up .github/ directory
+# Installs Claude Code, Copilot CLI with savvy plugins, and sets up .github/ directory
 
 set -euo pipefail
 
 log() { echo "[post-create] $*"; }
 
 echo ""
-echo "=== Setting up RSE Plugins Codespace ==="
+echo "=== Setting up savvy Codespace ==="
 echo ""
 
 # --- Install Claude Code CLI ---
@@ -28,22 +28,22 @@ if ! command -v copilot &>/dev/null; then
     exit 1
 fi
 
-# --- Register RSE plugins marketplace ---
-log "Registering uw-ssec/rse-plugins marketplace..."
-copilot plugin marketplace add uw-ssec/rse-plugins
+# --- Register savvy marketplace ---
+log "Registering uw-ssec/savvy marketplace..."
+copilot plugin marketplace add uw-ssec/savvy
 
-# --- Install all RSE plugins ---
-log "Installing RSE plugins..."
+# --- Install all savvy plugins ---
+log "Installing savvy plugins..."
 PLUGINS=(
-    "ai-research-workflows@rse-plugins"
-    "scientific-python-development@rse-plugins"
-    "project-management@rse-plugins"
-    "scientific-domain-applications@rse-plugins"
-    "holoviz-visualization@rse-plugins"
-    "gaia-data-downloader@rse-plugins"
-    "zarr-chunk-optimization@rse-plugins"
-    "zarr-data-format@rse-plugins"
-    "research-software-design@rse-plugins"
+    "ai-research-workflows@savvy"
+    "scientific-python-development@savvy"
+    "project-management@savvy"
+    "scientific-domain-applications@savvy"
+    "holoviz-visualization@savvy"
+    "gaia-data-downloader@savvy"
+    "zarr-chunk-optimization@savvy"
+    "zarr-data-format@savvy"
+    "research-software-design@savvy"
 )
 
 for plugin in "${PLUGINS[@]}"; do

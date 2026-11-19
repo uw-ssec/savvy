@@ -301,7 +301,7 @@ pip install holoviz-mcp
 
 ## Architecture
 
-**Self-Contained Plugin Structure** - Designed for the rse-plugins marketplace:
+**Self-Contained Plugin Structure** - Designed for the savvy marketplace:
 
 ```
 plugins/holoviz-expert/                       # Self-contained plugin
@@ -643,7 +643,7 @@ The MCP server enables:
 ## Quality Assurance
 
 ### Validation Checklist
-- ✅ Plugin structure follows rse-plugins pattern
+- ✅ Plugin structure follows savvy pattern
 - ✅ All required metadata present
 - ✅ Naming conventions correct (kebab-case)
 - ✅ Documentation comprehensive

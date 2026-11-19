@@ -29,11 +29,11 @@ This Claude Code plugin encapsulates knowledge from the [gaia-data-downloaders](
 
 ## Installation
 
-### Claude Code (via rse-plugins marketplace)
+### Claude Code (via savvy marketplace)
 
 ```bash
 # Add the marketplace (if not already added)
-/plugin marketplace add uw-ssec/rse-plugins
+/plugin marketplace add uw-ssec/savvy
 
 # The gaia-data-downloader plugin is now available
 ```
@@ -47,15 +47,15 @@ claude --plugin-dir ./community-plugins/gaia-data-downloader
 
 ```bash
 # Add marketplace
-copilot plugin marketplace add uw-ssec/rse-plugins
+copilot plugin marketplace add uw-ssec/savvy
 
 # Install plugin
-copilot plugin install gaia-data-downloader@rse-plugins
+copilot plugin install gaia-data-downloader@savvy
 ```
 
 Or install directly:
 ```bash
-copilot plugin install uw-ssec/rse-plugins:community-plugins/gaia-data-downloader
+copilot plugin install uw-ssec/savvy:community-plugins/gaia-data-downloader
 ```
 
 ## Usage

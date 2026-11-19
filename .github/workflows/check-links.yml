@@ -9,6 +9,9 @@ on:
     branches: [main]
     paths:
       - '**/*.md'
+      # Also listed explicitly so edits in the hidden .agents/ directory always
+      # trigger a run (links-check passes --hidden to lychee).
+      - '.agents/**'
       - 'lychee.toml'
       - '.github/workflows/check-links.yml'
   schedule:

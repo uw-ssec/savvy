@@ -46,7 +46,7 @@ In Claude Code:
 
 ```bash
 claude plugin marketplace add uw-ssec/savvy
-claude plugin install scientific-python-development@rse-plugins
+claude plugin install scientific-python-development@savvy
 ```
 
 ## Available Plugins

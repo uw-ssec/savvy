@@ -1,5 +1,5 @@
 {
-    "name": "rse-plugins",
+    "name": "savvy",
     "owner": {
         "name": "UW SSEC Team",
         "url": "https://github.com/uw-ssec"
@@ -17,8 +17,8 @@
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "astronomy",
@@ -33,7 +33,7 @@
                 "multidimensional-data",
                 "scientific-computing"
             ],
-            "category": "data-science",
+            "category": "core",
             "strict": false
         },
         {
@@ -45,8 +45,8 @@
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "scientific-python",
@@ -62,7 +62,7 @@
                 "reproducibility",
                 "documentation"
             ],
-            "category": "development",
+            "category": "core",
             "strict": false
         },
         {
@@ -74,8 +74,8 @@
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "holoviz",
@@ -91,7 +91,7 @@
                 "interactive",
                 "geospatial"
             ],
-            "category": "data-science",
+            "category": "community",
             "strict": false
         },
         {
@@ -103,8 +103,8 @@
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "ai-workflows",
@@ -118,7 +118,7 @@
                 "reproducibility",
                 "research-software"
             ],
-            "category": "development",
+            "category": "core",
             "strict": false
         },
         {
@@ -130,8 +130,8 @@
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "MIT",
             "keywords": [
                 "project-management",
@@ -145,7 +145,7 @@
                 "markdownlint",
                 "open-source"
             ],
-            "category": "development",
+            "category": "core",
             "strict": false
         },
         {
@@ -157,7 +157,7 @@
                 "name": "GAIA HazLab",
                 "url": "https://github.com/gaia-hazlab"
             },
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "gaia",
@@ -169,7 +169,7 @@
                 "xarray",
                 "environmental-data"
             ],
-            "category": "data-science",
+            "category": "community",
             "strict": false
         },
         {
@@ -181,8 +181,8 @@
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "MIT",
             "keywords": [
                 "zarr",
@@ -210,8 +210,8 @@
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "zarr",
@@ -237,8 +237,8 @@
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "research-through-design",
@@ -248,7 +248,7 @@
                 "scientific-literature",
                 "software-design"
             ],
-            "category": "research",
+            "category": "core",
             "strict": false
         },
         {
@@ -260,8 +260,8 @@
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "proprietary",
             "keywords": [
                 "ui",
@@ -334,7 +334,7 @@
                 "theming",
                 "design-case-studies"
             ],
-            "category": "design",
+            "category": "core",
             "strict": false
         },
         {
@@ -346,8 +346,8 @@
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "MIT",
             "keywords": [
                 "containerization",
@@ -368,7 +368,7 @@
                 "multi-stage-build",
                 "research-software"
             ],
-            "category": "development",
+            "category": "core",
             "strict": false
         },
         {
@@ -380,8 +380,8 @@
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "supply-chain-security",

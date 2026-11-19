@@ -301,7 +301,7 @@ pip install holoviz-mcp
 
 ## Architecture
 
-**Self-Contained Plugin Structure** - Designed for the rse-plugins marketplace:
+**Self-Contained Plugin Structure** - Designed for the savvy marketplace:
 
 ```
 plugins/holoviz-expert/                       # Self-contained plugin

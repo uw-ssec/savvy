@@ -162,7 +162,7 @@ What the script does and does not handle (checked against zarr 3.1.5):
 
 - `--target-size` is in GiB (2^30 bytes). The sample is the first N indices along dimension 0 at full extent elsewhere, so a time-leading sample covers only the start of the record and can miss seasonal or regime changes.
 - The source must be a Zarr v3 **array**. An xarray store is a group and fails with `'Group' object has no attribute 'shape'`; pass the variable's path (`store.zarr/<var>`). Zarr v2 arrays fail with `Expected dict, got <class 'numcodecs...'>`.
-- The sample keeps the source's chunk shape, codecs and attributes, but not its `dimension_names`, and it is written as a bare array (see "Opening the Output with xarray" below).
+- The sample keeps the source's chunk shape, codecs and attributes, but not its `dimension_names`, and it is written as a bare array (see "Opening the Output with xarray" below). `benchmark_runner.py` therefore labels its dimensions `dim_0`, `dim_1`, ...
 - The whole sample is read into memory in one step, so `--target-size 8` needs more than 8 GiB of free RAM.
 - `--overwrite` is ignored here: an existing output is replaced silently.
 
@@ -170,7 +170,7 @@ For an xarray dataset, `ds.isel(time=slice(0, n)).to_zarr(...)` (as in `chunking
 
 ### Opening the Output with xarray
 
-The script writes a single array at the store root and keeps `--dims` only in `attrs["dimensions"]`, not in Zarr v3 `dimension_names`. `xr.open_zarr` accepts only groups, so it raises `ContainsArrayError`, and `chunking-strategy`'s `benchmark_runner.py` (which calls `xr.open_zarr`) cannot read the store. Open PR #246 changes both scripts to handle this. Until it lands, rewrite the array as a Dataset (needs dask; the copy uses xarray's default codecs, not the source's):
+The script writes a single array at the store root and records `--dims` both as Zarr v3 `dimension_names` and in `attrs["dimensions"]`. `chunking-strategy`'s `benchmark_runner.py` opens such a store directly. `xr.open_zarr` and `xr.open_dataset(..., engine="zarr")` accept only groups, so they raise `ContainsArrayError`. To use the output in your own xarray code, rewrite it as a Dataset (needs dask; the copy uses xarray's default codecs, not the source's):
 
 ```python
 import dask.array as da

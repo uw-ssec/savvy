@@ -73,7 +73,7 @@ assert np.isfinite(sample).all() and sample.std() > 0
 
 | Mistake | Fix |
 |---------|-----|
-| Feeding the output to `chunking-strategy`'s `benchmark_runner.py` | `xr.open_zarr` raises `ContainsArrayError`: the store is a bare array with `--dims` only in `attrs`. Wrap it as a Dataset first (see the reference) until PR #246 lands. |
+| Opening the output with `xr.open_zarr` | It raises `ContainsArrayError`: the store is a bare array, not a group. `chunking-strategy`'s `benchmark_runner.py` opens it as is; for your own xarray code, wrap it as a Dataset (see the reference). |
 | Picking a codec from synthetic results | Noise barely compresses: you measure codec CPU cost without the I/O saving. |
 | `--dtype int16` or `complex64` | Values are generated as float32 and cast: int16 holds a handful of small integers, complex has a zero imaginary part. |
 | `--sample-from store.zarr` on an xarray store | It is a group (`'Group' object has no attribute 'shape'`); point at the variable, `store.zarr/<var>`. |

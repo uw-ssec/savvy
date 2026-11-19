@@ -35,7 +35,7 @@ exclude = [
     "^https://doi\\.org/10\\.1109/MCG\\.2018\\.2877473$",
     "^https://doi\\.org/10\\.1109/MCSE\\.2023\\.3302524$",
     "^https://github\\.com/jose-elias-alvarez/null-ls\\.nvim$",
-    "^https://github\\.com/uw-ssec/rse-plugins/discussions$",
+    "^https://github\\.com/uw-ssec/savvy/discussions$",
     "^https://holoviews\\.org/user_guide/Styling_Plots\\.html$",
     "^https://holoviz\\.org/gallery/index\\.html$",
     "^https://hvplot\\.holoviz\\.org/reference/index\\.html$",

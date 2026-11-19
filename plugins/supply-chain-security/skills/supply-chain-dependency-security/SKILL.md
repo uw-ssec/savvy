@@ -16,14 +16,14 @@ Observed 2025–2026, verified 2026-11: major incidents were maintainer account 
 - A Dependabot or Renovate PR, any lockfile diff, or a new package
 - CI fails under `--ignore-scripts`
 
-**Not for** workflow hardening (`supply-chain-hardened-ci-cd`). If a dependency you use is compromised:
+**Not for** workflow hardening (`supply-chain-hardened-ci-cd`). If a dependency is compromised:
 
 **REQUIRED SUB-SKILL:** Use supply-chain-security:supply-chain-incident-response
 
 ## Rules
 
-1. **Lockfile only.** Commit it. CI installs with a command that fails on a stale lockfile (table below). No `*` or `latest` in manifests.
-2. **Install scripts off.** Never drop `--ignore-scripts`, not for one build. Rebuild only what needs it:
+1. **Lockfile only.** Commit it. CI's install command must fail on a stale lockfile (table below). No `*` or `latest` in manifests.
+2. **Install scripts off.** Never drop `--ignore-scripts`, even once. Rebuild only what needs it:
 
    ```bash
    npm ci --ignore-scripts
@@ -31,9 +31,10 @@ Observed 2025–2026, verified 2026-11: major incidents were maintainer account 
    ```
 
    npm 12+: approve it first (`npm install-scripts approve <package>`, commit `package.json`).
-3. **7-day cooldown.** Nothing younger merges. The settings below only filter resolution, not locked versions, so check the age of every version a lockfile diff adds: `npm view <package> time`, or the cooldown check in `supply-chain-threat-awareness`.
+3. **7-day cooldown.** Nothing younger merges. Cooldown settings filter resolution, not locked versions. Check the age of every version a lockfile diff adds: `npm view <package> time`, or the cooldown check in `supply-chain-threat-awareness`.
 4. **Check the publisher.** Compare with earlier releases (`npm view <package>@<version> _npmUser`), run `npm audit signatures`, read `npm diff --diff=<package>@<old> --diff=<package>@<new>`. A first-time publisher on an established package is the takeover pattern: hold the version.
 5. **`.pth` files:** use the PyPI `.pth` check in `supply-chain-ecosystem-quirks`.
+6. **Findings:** class, `<package>@<version>`, advisory or campaign, install-time reach, fix.
 
 ## Quick Reference
 

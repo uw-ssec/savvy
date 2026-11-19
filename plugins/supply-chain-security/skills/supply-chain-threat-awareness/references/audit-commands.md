@@ -37,16 +37,16 @@ Checked with `--help` for npm 11.20.0, pnpm 12.21.0, Yarn 1.22.22 and 4.18.1, uv
 ## Step 2 — Action pinning
 
 ```bash
-grep -rnE --include='*.yml' --include='*.yaml' '^[[:space:]]*(-[[:space:]]+)?uses:' .github/ \
+git grep -nE '^[[:space:]]*(-[[:space:]]+)?uses:' -- '.github/*.yml' '.github/*.yaml' 'action.yml' '*/action.yml' 'action.yaml' '*/action.yaml' \
   | grep -vE 'uses:[[:space:]]*[^[:alnum:][:space:]]?\./' \
-  | grep -vE 'uses:[[:space:]]*[^[:space:]]+@[0-9a-f]{40}([^[:alnum:]_.-]|$)' \
+  | grep -vE "uses:[[:space:]]*[\"']?[^[:space:]\"']+@[0-9a-f]{40}[\"']?([[:space:]]|$)" \
   | grep -vE 'docker://[^[:space:]]*@sha256:[0-9a-f]{64}' \
   || echo "OK: every uses: ref is SHA- or digest-pinned, or local"
 ```
 
-Every line it prints is a FAIL. The scan reads `.yml` and `.yaml` files anywhere under `.github/`, including local composite actions. It accepts only:
+Every line it prints is a FAIL. The scan reads the tracked `.yml` and `.yaml` files under `.github/` and every `action.yml` or `action.yaml` in the repository, so local composite actions are checked wherever they live (`./actions/build` as well as `./.github/actions/lint`). It accepts only:
 
-- a full 40-character commit SHA;
+- a full 40-character commit SHA that ends the ref, optionally quoted and followed by a comment (`@<sha>/maintenance` is a branch, not a pin);
 - a local `./` path;
 - a `docker://` image pinned by `@sha256:` digest.
 
@@ -94,20 +94,29 @@ pub=$(npm view <package> time --json | jq --arg v '<version>' '.[$v] | sub("\\.[
 #    PyPI (earliest uploaded file):
 pub=$(curl -s https://pypi.org/pypi/<package>/<version>/json | jq '[.urls[].upload_time_iso_8601 | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601] | min')
 
-# 2. Time of the commit that first added it. <token> is the text the lockfile
-#    uses for this version in its file names and URLs. npm and conda keep hyphens
-#    (scoped npm packages drop the scope: @scope/name -> name-<version>). Python
-#    wheel and sdist names use underscores: pydantic-core 2.50.4 is
-#    pydantic_core-2.50.4 in uv.lock and pixi.lock. pnpm-lock.yaml uses
-#    <package>@<version>. Check that `grep -c '<token>' <lockfile>` isn't 0.
-adopted=$(git log --reverse --format=%ct -S '<token>' -- <lockfile> | head -1)
+# 2. Merge time of the change that first added it. Run this on the default
+#    branch. <token> is the text the lockfile uses for this version in its file
+#    names and URLs. npm and conda keep hyphens (scoped npm packages drop the
+#    scope: @scope/name -> name-<version>). Python wheel and sdist names use
+#    underscores: pydantic-core 2.50.4 is pydantic_core-2.50.4 in uv.lock and
+#    pixi.lock. pnpm-lock.yaml uses <package>@<version>. Check that
+#    `grep -c '<token>' <lockfile>` isn't 0.
+#    --first-parent -m finds the commit that brought it onto the default branch,
+#    not the earlier commit on the feature branch.
+sha=$(git log --first-parent -m --reverse --format=%H -S '<token>' -- <lockfile> | head -1)
+#    The pull request's merge time, or a merge commit's own time. A commit pushed
+#    without a pull request has no merge time and stays UNKNOWN.
+adopted=$([ -n "$sha" ] && gh api "repos/{owner}/{repo}/commits/$sha/pulls" \
+  --jq '[.[] | select(.merged_at)][0].merged_at // empty | fromdateiso8601' 2>/dev/null)
+[ -z "$adopted" ] && [ -n "$sha" ] && git rev-parse -q --verify "$sha^2" >/dev/null \
+  && adopted=$(git log -1 --format=%ct "$sha")
 
 # 3. Age at adoption. A missing time means UNKNOWN, never FAIL.
 if [ -z "$pub" ] || [ "$pub" = null ] || [ -z "$adopted" ]; then echo UNKNOWN
 else echo "$(( (adopted - pub) / 3600 )) hours"; fi
 ```
 
-FAIL when the age is below the project's cooldown, or below 7 days if it has none. Report UNKNOWN when the publish time or the adopting commit can't be found, and check that version by hand. A commit is never later than its merge, so this check errs toward FAIL. Tested against npm (`axios` 1.14.1 adopted 90 minutes after publish gives 1 hour) and PyPI (`pydantic` 2.14.3 gives 298 hours).
+FAIL when the age is below the project's cooldown, or below 7 days if it has none. Report UNKNOWN when the publish time or the merge time can't be found, and check that version by hand. Never use the time of the commit on the feature branch: a version committed an hour after publication and merged eight days later meets a 7-day cooldown. Tested on 2026-11-19: that case gives 193 hours (the feature-branch commit time gives 1 hour); a squash-merged pull request on this repository gives its `merged_at`; a commit fast-forwarded without a pull request gives UNKNOWN.
 
 Fix with the update bot's cooldown setting:
 

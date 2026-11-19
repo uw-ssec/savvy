@@ -46,7 +46,7 @@ In Claude Code:
 
 ```bash
 claude plugin marketplace add uw-ssec/savvy
-claude plugin install scientific-python-development@rse-plugins
+claude plugin install scientific-python-development@savvy
 ```
 
 ## Available Plugins
@@ -334,6 +334,8 @@ For detailed information about the plugins and their contents:
 
 - [Installation](docs/install.md) - Which clients load which parts of a plugin, and how to install in each
 - [Contributing Guidelines](CONTRIBUTING.md) - How to contribute to this repository
+- [Versioning Policy](docs/versioning.md) - How releases and plugin versions are numbered
+- [Deprecation Policy](docs/deprecation.md) - Notice you get before a skill, command, agent or plugin changes or disappears
 - [Trust and Safety](docs/trust-and-safety.md) - What plugins can and can't do, how to review one before installing, and where to find each client's permission controls
 - [Security Policy](SECURITY.md) - How to report a vulnerability privately, response times and supported versions
 - [HoloViz Ecosystem Overview](community-plugins/holoviz-visualization/references/holoviz-ecosystem.md) - Introduction to the HoloViz ecosystem
@@ -369,6 +371,12 @@ For detailed information about the plugins and their contents:
 ### Claude Code
 - [Claude Code Documentation](https://docs.anthropic.com/claude/docs)
 - [Claude Plugin Marketplace](https://code.claude.com/docs/en/plugins)
+
+## How to cite
+
+If you use savvy in your research, please cite it. The **Cite this repository** button in the repository sidebar gives APA and BibTeX, generated from [CITATION.cff](CITATION.cff).
+
+Each GitHub Release is archived on Zenodo with a DOI. The DOI will be listed here after the first release.
 
 ## License
 

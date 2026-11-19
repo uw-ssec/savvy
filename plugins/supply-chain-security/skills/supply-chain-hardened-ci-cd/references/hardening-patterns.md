@@ -29,6 +29,8 @@ jobs:
       # Quoted: unquoted, the ": " in ":all: " makes this line invalid YAML
       - run: "python -m pip install --only-binary=:all: build"
       - run: python -m build
+        env:
+          PIP_ONLY_BINARY: ":all:"  # build installs the build requirements with its own pip run
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: dist
@@ -55,7 +57,8 @@ jobs:
 - **The publish job** has no checkout and runs no project or dependency code. It only downloads `dist/` and uploads it. It is the only job with `id-token: write`.
 - **`environment: pypi`** gates nothing until the environment has required reviewers.
 - **harden-runner** starts in `audit` mode. After a clean run, switch to `egress-policy: block` and list the endpoints that run used under `allowed-endpoints`.
-- **npm:** keep the same two jobs. The publish job runs plain `npm publish` with `id-token: write` and a trusted publisher configured on npmjs.com. This needs npm CLI 11.5.1 or later and Node 22.14.0 or later, and npm then adds provenance on its own. Install with `npm ci --ignore-scripts`.
+- **`PIP_ONLY_BINARY`** on the build step: `--only-binary` on the install line covers only `build` itself. `python -m build` installs the project's build requirements in a fresh environment with another pip run, and without the variable it built an sdist-only requirement and ran its code.
+- **npm:** keep the same two jobs. The build job runs `npm ci --ignore-scripts`, then `npm pack`, and uploads the `.tgz`. The publish job downloads it and runs `npm publish ./<name>-<version>.tgz --ignore-scripts` with `id-token: write` and a trusted publisher configured on npmjs.com. Don't run `npm publish` on a checkout there: it runs `prepublishOnly`, `prepack`, `prepare`, `postpack`, `publish` and `postpublish` from `package.json`, in the job that holds the publish credential. Trusted publishing needs npm CLI 11.5.1 or later and Node 22.14.0 or later, and npm then adds provenance on its own.
 
 ## Pwn Request
 
@@ -78,4 +81,4 @@ jobs:
       - run: make test
 ```
 
-Run untrusted code under `on: pull_request` instead. For pull requests from forks, GitHub passes no secrets except `GITHUB_TOKEN`, and that token is read-only. Keep `pull_request_target` for jobs that never check out or run pull request code, such as labelling.
+Run untrusted code under `on: pull_request` instead. For pull requests from forks, GitHub passes no secrets except `GITHUB_TOKEN`, and that token is read-only. A private repository can override both under Settings → Actions → General → Fork pull request workflows, with "Send write tokens to workflows from pull requests" and "Send secrets to workflows from pull requests". Check that both are off before fork code runs. An organization that disables them stops repositories from turning them on. Keep `pull_request_target` for jobs that never check out or run pull request code, such as labelling.

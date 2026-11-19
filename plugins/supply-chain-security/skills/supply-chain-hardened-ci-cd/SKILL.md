@@ -23,11 +23,11 @@ Writing or reviewing any `.github/workflows/*.yml`, above all release jobs; addi
 |---|---|---|
 | Pin to a commit SHA | `@v4`, `@main`, `@release/v1` | `@<40-char-sha>  # vX.Y.Z` |
 | Deny by default | `write-all`, or no top-level `permissions:` | `permissions: {}`, then per-job grants |
-| No Pwn Request | `pull_request_target` plus checkout of PR code | `pull_request`: forks get no secrets, read-only token |
+| No Pwn Request | `pull_request_target` plus checkout of PR code | `pull_request`: forks get no secrets, read-only token by default |
 | Split build and publish | One job builds and uploads | Artifact handoff; publish job `needs: build` |
 | OIDC trusted publishing | `password:`, `PYPI_TOKEN`, `NPM_TOKEN` | PyPI/npm trusted publisher; `id-token: write` in publish job only; delete the secret |
 | Gate publishing | Publish job without `environment:` | `environment:` with required reviewers |
-| No install scripts | Bare `npm ci` or `pip install` | `npm ci --ignore-scripts`; `pip install --only-binary=:all:` or `uv sync --locked --no-build` |
+| No install scripts | Bare `npm ci`, `npm publish`, `pip install`, `python -m build` | `--ignore-scripts`; `PIP_ONLY_BINARY=:all:` or `uv sync --locked --no-build` |
 | Limit egress | Release job without egress control | `step-security/harden-runner` first: `egress-policy: audit`, then `block` |
 | Automated check | | `zizmor --pedantic .github/workflows/` |
 

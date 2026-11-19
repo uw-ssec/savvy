@@ -1,5 +1,5 @@
 {
-  "name": "RSE Plugins Demo",
+  "name": "savvy Demo",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
   "features": {
     "ghcr.io/devcontainers/features/python:1": {

@@ -97,7 +97,9 @@ def test_skill_dir_without_skill_md_is_not_selected(sq, repo):
     assert selected(sq, repo, base, head) == []
 
 
-@pytest.mark.parametrize("gate", [".github/workflows/skill-quality-check.yml", ".github/scripts/skill-quality.py"])
+@pytest.mark.parametrize("gate", [
+    ".github/workflows/skill-quality-check.yml", ".github/scripts/skill-quality.py", "pixi.toml", "pixi.lock",
+])
 def test_changing_the_gate_selects_every_skill(sq, repo, gate):
     base, head = commit(repo, {gate: "changed\n"})
     assert selected(sq, repo, base, head) == [
@@ -190,7 +192,7 @@ def test_summarize_cli_exit_code(sq, tmp_path):
 
 
 # The run and summary steps of skill-quality-check.yml, run as the runner would,
-# with a stub `skillevaluator` standing in for the pinned checker.
+# with a stub `pixi` standing in for the `skill-quality-check` task (the pinned checker).
 
 PASSING_REPORT = json.dumps({"overall_passed": True, "quality_summary": [{"overall_score": 85.0, "grade": "B"}]})
 STUB_PASS = (
@@ -216,7 +218,7 @@ def run_gate(tmp_path, stub):
     (temp / "skills.txt").write_text(skill + "\n", encoding="utf-8")
     env = {"RUNNER_TEMP": str(temp), "MIN_SCORE": "70", "GITHUB_STEP_SUMMARY": str(temp / "step-summary.md"),
            "PASSING_REPORT": PASSING_REPORT}
-    run, _ = run_step(workflow_step("skill-quality-check.yml", "Run quality-check"), work, env, {"skillevaluator": stub})
+    run, _ = run_step(workflow_step("skill-quality-check.yml", "Run quality-check"), work, env, {"pixi": stub})
     summary, _ = run_step(workflow_step("skill-quality-check.yml", "Summarize"), work, env)
     return run, summary
 

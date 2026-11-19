@@ -142,7 +142,10 @@ def validate_input(
     logger.info(f"  Shape: {shape}")
     logger.info(f"  Current chunks: {chunks}")
     logger.info(f"  Dtype: {arr.dtype}")
-    logger.info(f"  Compressor: {arr.compressor}")
+    if arr.metadata.zarr_format == 3:
+        logger.info(f"  Codecs: {arr.metadata.codecs}")
+    else:
+        logger.info(f"  Compressor: {arr.compressor}")
 
     return arr, shape, chunks
 
@@ -337,15 +340,41 @@ def rechunk_zarr(
         # Fallback to zarr.copy
         try:
             # Open or create output array
+            source_format = source_array.metadata.zarr_format
+            create_kwargs = {}
+            if source_format == 3:
+                # Zarr v3 has no single `compressor`; carry the codec pipeline.
+                # Rebuild it from filters, serializer and compressors: on a
+                # sharded source these are the inner codecs, so the old
+                # sharding codec (and its inner chunk shape) is not copied.
+                create_kwargs['codecs'] = (
+                    *source_array.filters,
+                    source_array.serializer,
+                    *source_array.compressors,
+                )
+                # Dimension names are array metadata, not attributes, so
+                # `attrs.update()` below does not carry them.
+                create_kwargs['dimension_names'] = source_array.metadata.dimension_names
+                if source_array.shards is not None:
+                    logger.warning(
+                        f"Source is sharded (shards {source_array.shards}, inner "
+                        f"chunks {source_array.chunks}); writing unsharded output "
+                        f"with chunks {target_chunks}. To shard the result, "
+                        f"rewrite it with zarr.create_array(..., shards=...)."
+                    )
+            else:
+                create_kwargs['compressor'] = source_array.compressor
+                create_kwargs['order'] = source_array.order
+
             output_array = zarr.open(
                 output_path,
                 mode='w',
                 shape=source_shape,
                 chunks=target_chunks,
                 dtype=source_array.dtype,
-                compressor=source_array.compressor,
                 fill_value=source_array.fill_value,
-                order=source_array.order
+                zarr_format=source_format,
+                **create_kwargs
             )
 
             # Copy metadata
@@ -429,6 +458,11 @@ def rechunk_zarr(
     logger.info(f"  Chunks: {output_array.chunks}")
     logger.info(f"  Total elements: {output_array.size:,}")
 
+    # Zarr v3 stores a codec pipeline; v2 stores a single compressor.
+    def _source_codecs_repr(arr) -> str:
+        codecs = getattr(arr.metadata, 'codecs', None)
+        return str(codecs) if codecs is not None else str(arr.compressor)
+
     # Step 8: Create summary
     summary = {
         'timestamp': datetime.datetime.now().isoformat(),
@@ -438,7 +472,7 @@ def rechunk_zarr(
         'source_chunks': list(source_chunks),
         'target_chunks': list(target_chunks),
         'dtype': str(source_array.dtype),
-        'compressor': str(source_array.compressor),
+        'codecs': _source_codecs_repr(source_array),
         'estimated_time_seconds': estimated_time,
         'actual_time_seconds': actual_time,
         'estimated_output_size_mb': output_size_mb,

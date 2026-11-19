@@ -50,8 +50,10 @@ import time
 import tracemalloc
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+import dask.array as da
 import numpy as np
 import xarray as xr
+import zarr
 
 
 # Configure logging
@@ -60,6 +62,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+_WARNED_STORES: set = set()
 
 
 def clear_fsspec_cache():
@@ -86,6 +89,82 @@ def clear_fsspec_cache():
         logger.debug("fsspec cache cleared")
     except ImportError:
         logger.warning("fsspec not available, skipping cache clear")
+
+
+def _dataset_from_array(
+    array: zarr.Array, dataset_path: str, member: str = '', taken=()
+) -> xr.Dataset:
+    """
+    Wrap one Zarr array as a single-variable Dataset.
+
+    Dimension names come from the array's ``dimension_names`` metadata when
+    present, else from positional ``dim_<i>`` names. The variable name is the
+    store (or group member) name, forced to differ from every dimension: a
+    variable named like one of its dimensions becomes a coordinate, leaving no
+    data variable to benchmark (e.g. ``time.zarr`` over ``time``).
+    """
+    names = getattr(array.metadata, 'dimension_names', None)
+    dims = list(names) if names else [f'dim_{i}' for i in range(array.ndim)]
+    if member:
+        base = member.split('/')[-1]
+    else:
+        base = dataset_path.rstrip('/').rsplit('/', 1)[-1].replace('.zarr', '')
+    name = base or 'data'
+    while name in dims or name in taken:
+        name += '_data'
+    return xr.Dataset({name: xr.DataArray(da.from_array(array, chunks=array.chunks), dims=dims)})
+
+
+def open_dataset(dataset_path: str, chunks: str = 'auto') -> xr.Dataset:
+    """
+    Open a Zarr store as an xarray Dataset, whether it holds a group or a bare array.
+
+    ``xr.open_zarr`` only accepts group stores. ``synthetic_data.py`` writes a
+    single array at the store root, so opening its output raised
+    ``ContainsArrayError``. Array stores are wrapped here, using the array's
+    ``dimension_names`` metadata when present.
+
+    Group stores written by xarray open as before. A v3 group whose members were
+    created without ``dimension_names`` (zarr's own default for
+    ``create_array()``, and what a v2 -> v3 migration leaves behind) makes
+    ``xr.open_zarr`` raise ``KeyError: ... missing the ``dimension_names``
+    metadata``; those are assembled from the group's arrays instead.
+
+    Parameters
+    ----------
+    dataset_path : str
+        Path or URL of the Zarr store.
+    chunks : str
+        Chunking passed to the group opener; array stores keep their stored chunks.
+
+    Returns
+    -------
+    xr.Dataset
+    """
+    node = zarr.open(dataset_path, mode='r')
+    if isinstance(node, zarr.Array):
+        return _dataset_from_array(node, dataset_path)
+    try:
+        return xr.open_zarr(dataset_path, chunks=chunks)
+    except KeyError as exc:
+        if 'dimension_names' not in str(exc):
+            raise
+        arrays = [
+            (path, member) for path, member in node.members(max_depth=None)
+            if isinstance(member, zarr.Array)
+        ]
+        if not arrays:
+            raise
+        ds = xr.Dataset()
+        for member_path, array in arrays:
+            ds = xr.merge([ds, _dataset_from_array(array, dataset_path, member_path, set(ds.data_vars))])
+        if dataset_path not in _WARNED_STORES:
+            _WARNED_STORES.add(dataset_path)
+            logger.warning(
+                f"Store '{dataset_path}' has no `dimension_names` metadata; opened "
+                f"{len(arrays)} array(s) as {list(ds.data_vars)} over dims {list(ds.dims)}"
+            )
+        return ds
 
 
 def get_dimension_names(ds: xr.Dataset) -> List[str]:
@@ -379,7 +458,7 @@ def run_benchmark(
         import s3fs  # noqa: F401
 
     # Open dataset
-    ds = xr.open_zarr(dataset_path, chunks='auto')
+    ds = open_dataset(dataset_path, chunks='auto')
     dims = get_dimension_names(ds)
     var_name = list(ds.data_vars)[0]
 
@@ -457,6 +536,10 @@ def run_benchmark(
 
     for metric in metric_names:
         values = [run[metric] for run in all_metrics]
+        if any(v is None for v in values):
+            # ttfb and chunk_utilization are documented as not-yet-measured
+            # (None); averaging them raised TypeError and failed every run.
+            continue
         statistics[metric] = {
             'mean': float(np.mean(values)),
             'std': float(np.std(values)),
@@ -522,7 +605,7 @@ def run_all_benchmarks(
         Complete benchmark results for all combinations
     """
     # Determine dataset dimensionality
-    ds = xr.open_zarr(dataset_path, chunks='auto')
+    ds = open_dataset(dataset_path, chunks='auto')
     dims = get_dimension_names(ds)
     num_dims = len(dims)
 

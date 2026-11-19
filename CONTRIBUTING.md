@@ -193,6 +193,8 @@ Plugins follow the [Agent Plugins](https://agent-plugins.org/specification) v1.0
 | `.claude-plugin/marketplace.json`: the plugin list, each entry's `source`, `category` and `strict` | the other fields of each `.claude-plugin/marketplace.json` entry |
 | `<plugin>/mcp.json` and `<plugin>/.mcp.json` | `.agents/plugins/marketplace.json` (Codex) and `.cursor-plugin/marketplace.json` (Cursor) |
 
+A plugin's `version` is written only to its two `plugin.json` files, never to a marketplace entry. Claude Code reads the version from `plugin.json` first, and `claude plugin validate` warns when an entry repeats a different one.
+
 After changing a source, regenerate the rest and check the result. The tasks run in the `ci` [pixi](https://pixi.sh) environment, which locks Python, PyYAML and the other tools, so you don't need a system Python. CI runs the same tasks:
 
 ```bash

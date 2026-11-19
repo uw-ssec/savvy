@@ -19,7 +19,10 @@ Generated from them (``sync`` writes, ``check`` compares):
 
 - ``<plugin>/.claude-plugin/plugin.json``: Claude Code doesn't read the
   portable manifest, so it gets a copy of the shared fields;
-- the shared fields of each ``.claude-plugin/marketplace.json`` entry;
+- the shared fields of each ``.claude-plugin/marketplace.json`` entry, except
+  ``version``. Claude Code reads the version from plugin.json first and warns
+  when an entry repeats a different one, so a plugin's version lives only in
+  its manifests;
 - ``.agents/plugins/marketplace.json`` (Codex);
 - ``.cursor-plugin/marketplace.json`` (Cursor). There is no
   ``.cursor-plugin/plugin.json``: Cursor loads each package from its root
@@ -55,7 +58,11 @@ Package checks, for every plugin:
   ``..`` and symlinks are resolved;
 - an agent's ``skills`` frontmatter is a list. Claude Code accepts a list or
   a string; the rule exists for Copilot CLI, which silently drops an agent
-  whose ``skills`` is a plain string.
+  whose ``skills`` is a plain string;
+- every symlink in a plugin resolves inside that plugin. Clients install one
+  plugin directory on its own, so a link to ``../../LICENSE`` (or a sibling
+  plugin) is unreadable after the copy; ``sync`` turns such a LICENSE into a
+  real copy of the root file.
 
 Needs PyYAML, so frontmatter is read the way clients read it.
 """
@@ -159,7 +166,7 @@ def expected_files(root: Path) -> dict[Path, str]:
         m = manifests[src]
         out[root / src / ".claude-plugin" / "plugin.json"] = dump(shared(m))
         new = {"name": m["name"], "source": src}
-        new.update({k: v for k, v in shared(m).items() if k != "name"})
+        new.update({k: v for k, v in shared(m).items() if k not in ("name", "version")})
         new.update({k: v for k, v in entry.items() if k not in new and k not in SHARED})
         entries.append(new)
     out[root / CATALOG] = dump({**catalog, "plugins": entries})
@@ -182,13 +189,26 @@ def expected_files(root: Path) -> dict[Path, str]:
         "plugins": [{"name": m["name"], "source": e["source"], "description": m.get("description", "")}
                     for e, m in local],
     })
+
+    # A per-plugin LICENSE that points at the repository root is materialized into a real file.
+    # Clients install one plugin directory on its own, so `../../LICENSE` does not exist there and
+    # the linked file cannot be read (Hermes aborts the whole install). Plugins that carry their
+    # own license text (MIT, a third-party copyright) are regular files already and stay untouched.
+    root_license = root / "LICENSE"
+    if root_license.is_file():
+        text = root_license.read_text(encoding="utf-8")
+        for src in manifests:
+            if (root / src / "LICENSE").is_symlink():
+                out[root / src / "LICENSE"] = text
     return out
 
 
 def sync(root: Path) -> int:
     for path, text in expected_files(root).items():
-        if not path.exists() or path.read_text(encoding="utf-8") != text:
+        if not path.exists() or path.is_symlink() or path.read_text(encoding="utf-8") != text:
             path.parent.mkdir(parents=True, exist_ok=True)
+            if path.is_symlink():
+                path.unlink()  # writes go to the file itself, not through the link
             path.write_text(text, encoding="utf-8")
             print(f"wrote {path.relative_to(root)}")
     return 0
@@ -480,6 +500,22 @@ def check_agents(pdir: Path, root: Path, errors: list[str]) -> None:
                           " whose skills is a single string")
 
 
+def check_plugin_symlinks(pdir: Path, root: Path, errors: list[str]) -> None:
+    """Every symlink must resolve inside its own plugin directory.
+
+    Clients install a plugin directory on its own (Copilot CLI, Codex, Cursor local copy, Hermes,
+    and any manual copy), so a link to `../../LICENSE` or a sibling plugin dangles or disappears
+    there. The per-plugin LICENSE files used to be exactly that. Bundle a copy instead;
+    `sync` materializes a LICENSE that still points at the repository root.
+    """
+    for f in sorted(pdir.rglob("*")):
+        if "__pycache__" in f.parts or not f.is_symlink():
+            continue
+        if not inside(f, pdir):
+            errors.append(f"{f.relative_to(root)}: symlink -> {os.readlink(f)} resolves outside its"
+                          " plugin; a plugin installed on its own can't follow it (bundle the file)")
+
+
 def check(root: Path, run_claude: bool) -> list[str]:
     errors: list[str] = []
     catalog = load(root / CATALOG)
@@ -496,6 +532,7 @@ def check(root: Path, run_claude: bool) -> list[str]:
         check_mcp(pdir, root, errors)
         check_skills(pdir, root, errors)
         check_agents(pdir, root, errors)
+        check_plugin_symlinks(pdir, root, errors)
     check_unique_names(root, errors)
     check_doc_links(root, errors)
     try:

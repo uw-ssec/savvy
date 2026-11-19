@@ -7,6 +7,8 @@ scheme = ["https", "http"]
 exclude_path = [
     "^\\./\\.pixi/",
     "^\\./\\.git/",
+    # Local agent worktrees, and the .claude/skills symlink to .agents/skills.
+    "^\\./\\.claude/",
     "^\\./evals/",
     "^\\./docs/specs/",
     "/skills/[^/]+/assets/",
@@ -60,13 +62,17 @@ exclude = [
     "^https://vizier\\.cds\\.unistra\\.fr/$",
     "^https://www\\.anthropic\\.com/claude/code$",
     "^https://www\\.sphinx-doc\\.org/en/master/usage/accessibility\\.html$",
+    # TLS chain validation fails on the CI runner (UnknownIssuer against its
+    # Let's Encrypt intermediate); loads fine in a browser and from other hosts.
+    "^https://www\\.softwareheritage\\.org/$",
 ]
 exclude_loopback = true
 exclude_private = true
 
-# 429 (rate limited) and 403 (publishers and Q&A sites refusing bots) both
-# mean the server answered; failing on them would make the check flaky.
-accept = ["200..=299", "403", "429"]
+# 429 (rate limited), 403 (publishers and Q&A sites refusing bots), and 503
+# (github.com's blob-render endpoint throttling under load) all mean the
+# server answered; failing on them would make the check flaky.
+accept = ["200..=299", "403", "429", "503"]
 max_retries = 3
 retry_wait_time = 5
 timeout = 30

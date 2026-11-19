@@ -114,13 +114,13 @@ Some activities are intentionally delegated to specialist plugins:
 | Need | Defer to |
 |---|---|
 | Conda / pixi environment management | `scientific-python-development:pixi-package-manager` |
-| pip / uv environment management | `python-development:uv-package-manager` |
+| pip / uv environment management | commit `uv.lock`, install with `uv sync --frozen` (no dedicated skill) |
 | Writing or running Python tests | `scientific-python-development:python-testing` |
 | Python packaging and distribution | `scientific-python-development:python-packaging` |
 | Sphinx / MkDocs / Quarto documentation | `scientific-python-development:scientific-documentation` |
 | Community health files (CODE_OF_CONDUCT, CONTRIBUTING) | `project-management:community-health-files` |
-| Project handoff (end-of-engagement summary) | `project-management:project-handoff` |
-| Heavy multi-source, fact-checked research | `deep-research` |
+| Project handoff (end-of-engagement summary) | `creating-handoffs`; `/project-handoff` command in `project-management` |
+| Heavy multi-source, fact-checked research | a `deep-research` skill if the client provides one |
 
 ## Workflow patterns
 
@@ -183,11 +183,11 @@ For work where design decisions depend on what already exists in the field:
 This plugin is part of the `uw-ssec/rse-plugins` collection. To install from the marketplace:
 
 ```bash
-# Add the rse-plugins marketplace
-claude plugin marketplace add uw-ssec/rse-plugins
+# Add the savvy marketplace
+claude plugin marketplace add uw-ssec/savvy
 
 # Install the plugin
-claude plugin install ai-research-workflows@rse-plugins
+claude plugin install ai-research-workflows@savvy
 ```
 
 To use directly from a local clone:

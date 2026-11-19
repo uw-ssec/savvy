@@ -5,12 +5,12 @@
 | Section | Lines | Description |
 |---------|-------|-------------|
 | Issue 1: HDF5 Features Not Supported in Zarr | 17–78 | Links, object references, variable-length strings and plugin filters |
-| Issue 2: Metadata Loss During Conversion | 79–122 | `encoding=` replacing the source's packing and fill value |
-| Issue 3: Memory Errors on Large File Conversion | 123–181 | Whole variables loaded into memory during migration |
-| Issue 4: Virtual References Become Invalid | 182–233 | Source files moved or renamed after creating references |
-| Issue 5: Chunk Size Not Optimal After Migration | 234–274 | Inheriting the HDF5 chunk layout |
-| Issue 6: Fill Value Mismatch Between HDF5 and Zarr | 275–323 | HDF5 fill values that xarray does not mask |
-| Issue 7: Encoding/Dtype Differences Between Source and Target | 324–377 | Unexpected type or time changes during migration |
+| Issue 2: Metadata Loss During Conversion | 79–136 | `encoding=` replacing the source's packing and fill value |
+| Issue 3: Memory Errors on Large File Conversion | 137–195 | Whole variables loaded into memory during migration |
+| Issue 4: Virtual References Become Invalid | 196–247 | Source files moved or renamed after creating references |
+| Issue 5: Chunk Size Not Optimal After Migration | 248–290 | Inheriting the HDF5 chunk layout |
+| Issue 6: Fill Value Mismatch Between HDF5 and Zarr | 291–333 | HDF5 fill values that xarray does not mask |
+| Issue 7: Encoding/Dtype Differences Between Source and Target | 334–381 | Unexpected type or time changes during migration |
 
 ---
 
@@ -83,7 +83,7 @@ For a full recursive copy with attributes, see [patterns.md](patterns.md) Patter
 - Packed `int16` data stored as `float64` or `float32`, making the store several times larger
 - CF encoding attributes moved from `attrs` to `encoding` or vice versa
 
-**Cause:** xarray moves `_FillValue`, `scale_factor`, `add_offset`, `dtype`, `units` and `calendar` (for times) from `attrs` into each variable's `encoding` when it decodes. A plain `ds.to_zarr()` writes them back. Passing `encoding={var: {...}}` **replaces** that variable's encoding, so anything not in your dict is gone. Passing the whole source encoding back fails too: `ValueError: unexpected encoding parameters for zarr backend: ['zlib', 'szip', ...]`.
+**Cause:** xarray moves `_FillValue`, `missing_value`, `scale_factor`, `add_offset`, `_Unsigned`, `dtype`, `units` and `calendar` (for times) from `attrs` into each variable's `encoding` when it decodes. A plain `ds.to_zarr()` writes them back. Passing `encoding={var: {...}}` **replaces** that variable's encoding, so anything not in your dict is gone. Passing the whole source encoding back fails too: `ValueError: unexpected encoding parameters for zarr backend: ['zlib', 'szip', ...]`.
 
 **Solution:**
 
@@ -106,15 +106,29 @@ ds = xr.open_dataset("source.nc", decode_cf=False)
 ds.to_zarr("output.zarr", mode="w")
 
 # ── Fix 2: Keep the CF keys when you pass encoding ──
+import numpy as np
+
+KEEP = ("dtype", "scale_factor", "add_offset", "_FillValue", "missing_value")
+
+
+def cf_encoding(var):
+    """The source packing and fill keys, which encoding= would otherwise drop."""
+    enc = {k: v for k, v in var.encoding.items() if k in KEEP}
+    if var.encoding.get("_Unsigned") == "true":  # zarr rejects _Unsigned: store the unsigned dtype
+        signed = np.dtype(enc["dtype"])
+        enc["dtype"] = np.dtype(f"u{signed.itemsize}")
+        for k in ("_FillValue", "missing_value"):
+            if k in enc:
+                enc[k] = np.asarray(enc[k], signed).view(enc["dtype"])
+    return enc
+
+
 ds = xr.open_dataset("source.nc")
-encoding = {}
-for var in ds.data_vars:
-    encoding[var] = {
-        k: v for k, v in ds[var].encoding.items()
-        if k in ("_FillValue", "scale_factor", "add_offset", "dtype")
-    }
+encoding = {name: cf_encoding(var) for name, var in ds.data_vars.items()}
 ds.to_zarr("output.zarr", mode="w", encoding=encoding)
 ```
+
+Without `missing_value`, values masked by it are written as `0`. Without the unsigned dtype, an `_Unsigned` byte of `200` reads back as `-56`: xarray keeps the signed storage dtype, and the zarr backend rejects `_Unsigned` in `encoding=`.
 
 Don't copy the raw attributes back onto decoded data with `ds[var].attrs.update(...)`: `to_zarr` then raises `ValueError: Key 'add_offset' already exists in attrs`, and if it didn't, readers would apply the scale twice.
 
@@ -261,12 +275,14 @@ for var in ds.data_vars:
 target = {"time": 30, "lat": 90, "lon": 180}
 ds_src = xr.open_dataset("source.h5", engine="h5netcdf", chunks=target)
 encoding = {
-    var: {"chunks": tuple(target[d] for d in ds_src[var].dims)}
-    for var in ds_src.data_vars
-    if set(ds_src[var].dims) == {"time", "lat", "lon"}
+    name: cf_encoding(var) | {"chunks": tuple(target[d] for d in var.dims)}  # cf_encoding: Issue 2
+    for name, var in ds_src.data_vars.items()
+    if set(var.dims) == {"time", "lat", "lon"}
 }
 ds_src.to_zarr("rechunked_output.zarr", mode="w", encoding=encoding)
 ```
+
+Chunks alone would replace the source encoding and write packed integers as floats (Issue 2).
 
 **For a store that is already Zarr**, don't install `rechunker`: 0.5.4, its latest release, requires `zarr<3,>=2.11`. Under zarr-python 3, use `zarr.from_array` for single arrays or `ds.chunk(...).to_zarr(...)` after popping `chunks`, `shards` and `preferred_chunks` from every variable's `encoding`. Without that cleanup xarray silently keeps the old chunks. The `zarr-chunk-optimization:rechunking` skill covers both routes, memory planning and validation.
 
@@ -296,13 +312,7 @@ for var in ds_raw.data_vars:
 
 # ── Fix 1: Preserve fill values (and the packing they belong to) in encoding ──
 ds = xr.open_dataset("source.nc")
-encoding = {}
-for var in ds.data_vars:
-    encoding[var] = {
-        k: v for k, v in ds[var].encoding.items()
-        if k in ("_FillValue", "dtype", "scale_factor", "add_offset")
-    }
-
+encoding = {name: cf_encoding(var) for name, var in ds.data_vars.items()}  # cf_encoding: Issue 2
 ds.to_zarr("output.zarr", mode="w", encoding=encoding)
 
 # ── Fix 2: Use NaN as fill value (simplest for float data) ──
@@ -352,13 +362,7 @@ print(f"time: source {ds_decoded.time.encoding.get('units')} / {ds_decoded.time.
 
 # ── Fix 1: Preserve original packing ──
 ds = xr.open_dataset("source.nc")
-encoding = {}
-for var in ds.data_vars:
-    enc = ds[var].encoding
-    encoding[var] = {
-        k: v for k, v in enc.items()
-        if k in ("dtype", "scale_factor", "add_offset", "_FillValue")
-    }
+encoding = {name: cf_encoding(var) for name, var in ds.data_vars.items()}  # cf_encoding: Issue 2
 ds.to_zarr("output.zarr", mode="w", encoding=encoding)
 
 # ── Fix 2: Skip CF decoding entirely ──

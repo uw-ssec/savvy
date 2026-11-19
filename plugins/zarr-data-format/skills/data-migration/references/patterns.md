@@ -4,13 +4,13 @@
 
 | Section | Lines | Description |
 |---------|-------|-------------|
-| Pattern 1: Single HDF5 File to Zarr via xarray | 17–62 | Convert one HDF5 file with new chunks and a deliberate dtype change |
-| Pattern 2: Directory of NetCDF Files to Single Zarr Store | 63–117 | Combine many NetCDFs into one Zarr store |
-| Pattern 3: Virtual References with VirtualiZarr or Kerchunk | 118–227 | Reference existing HDF5/NetCDF4 chunks without copying |
-| Pattern 4: Group-by-Group Copy with h5py | 228–305 | Copy an HDF5 tree xarray can't model, chunk by chunk |
-| Pattern 5: Incremental Migration with Checkpointing | 306–378 | Append file by file with a resumable checkpoint |
-| Pattern 6: Post-Migration Validation Pipeline | 379–439 | Compare source and target chunk by chunk, with a report |
-| Pattern 7: Zarr v2 Store to Zarr v3 | 440–479 | Rewrite a v2 store in the v3 format |
+| Pattern 1: Single HDF5 File to Zarr via xarray | 17–76 | Convert one HDF5 file with new chunks and a deliberate dtype change |
+| Pattern 2: Directory of NetCDF Files to Single Zarr Store | 77–131 | Combine many NetCDFs into one Zarr store |
+| Pattern 3: Virtual References with VirtualiZarr or Kerchunk | 132–241 | Reference existing HDF5/NetCDF4 chunks without copying |
+| Pattern 4: Group-by-Group Copy with h5py | 242–321 | Copy an HDF5 tree xarray can't model, chunk by chunk |
+| Pattern 5: Incremental Migration with Checkpointing | 322–396 | Append file by file with a resumable checkpoint |
+| Pattern 6: Post-Migration Validation Pipeline | 397–457 | Compare source and target chunk by chunk, with a report |
+| Pattern 7: Zarr v2 Store to Zarr v3 | 458–497 | Rewrite a v2 store in the v3 format |
 
 ---
 
@@ -26,6 +26,7 @@
 **Code example:**
 
 ```python
+import numpy as np
 import xarray as xr
 
 target = {"time": 30, "x": 100, "y": 100}
@@ -38,11 +39,24 @@ print(f"Variables: {list(ds.data_vars)}")
 
 # ── Define encoding for Zarr ──
 # encoding= replaces each listed variable's source encoding, so carry over
-# the packing and fill value, then change only what you mean to change.
-KEEP = ("dtype", "scale_factor", "add_offset", "_FillValue")
+# the packing and fill values, then change only what you mean to change.
+KEEP = ("dtype", "scale_factor", "add_offset", "_FillValue", "missing_value")
+
+
+def cf_encoding(var):
+    enc = {k: v for k, v in var.encoding.items() if k in KEEP}
+    if var.encoding.get("_Unsigned") == "true":  # zarr rejects _Unsigned: store the unsigned dtype
+        signed = np.dtype(enc["dtype"])
+        enc["dtype"] = np.dtype(f"u{signed.itemsize}")
+        for k in ("_FillValue", "missing_value"):
+            if k in enc:
+                enc[k] = np.asarray(enc[k], signed).view(enc["dtype"])
+    return enc
+
+
 encoding = {}
 for name, var in ds.data_vars.items():
-    enc = {k: v for k, v in var.encoding.items() if k in KEEP}
+    enc = cf_encoding(var)
     if var.dtype == "float64" and "scale_factor" not in enc:
         enc["dtype"] = "float32"  # deliberate narrowing
     enc["chunks"] = tuple(target.get(d, ds.sizes[d]) for d in var.dims)
@@ -253,7 +267,9 @@ def to_json(value):
     if isinstance(value, bytes):
         return value.decode("utf-8", "replace")
     if isinstance(value, np.ndarray):
-        return [to_json(v) for v in value.tolist()]
+        return to_json(value.tolist())  # nested lists for 2-D and up
+    if isinstance(value, (list, tuple)):
+        return [to_json(v) for v in value]
     if isinstance(value, np.generic):
         return value.item()
     return value
@@ -313,7 +329,7 @@ for path, node in root.members(max_depth=None):  # root.tree() needs the rich pa
 - Need to track progress and stop cleanly on a bad file
 
 **Two traps this code guards against:**
-- **Time units.** Appends reuse the store's `time` units and dtype. With `days since ...` stored as int64, 6-hourly appends were written as the wrong dates (2000-01-03T06 became 2000-02-24), with only a `UserWarning`. Set units fine enough for every file on the first write.
+- **Time units.** Appends reuse the store's `time` units and dtype. With `days since ...` stored as int64, 6-hourly appends were written as the wrong dates (2000-01-03T06 became 2000-02-24), with only a `UserWarning`. Set units fine enough for every file on the first write, for every datetime variable: `time_bnds` keeps its own units from the file, and its 6-hourly bounds were appended as April dates. Update `encoding` in place so each variable keeps its calendar and fill value; `encoding={"time": {...}}` replaced a `standard` calendar with `proleptic_gregorian`.
 - **Partial appends.** `to_zarr(append_dim=...)` resizes the arrays before writing data. A crash in between leaves extra fill-value steps, and blindly re-appending duplicates the file. Record the expected length and stop if the store disagrees.
 
 **Code example:**
@@ -356,8 +372,10 @@ def incremental_migrate(
     for filepath in remaining:  # any exception stops the run; fix the file and rerun
         with xr.open_dataset(filepath) as ds:
             if not state["done"]:
-                ds.to_zarr(zarr_path, mode="w-",
-                           encoding={"time": {"units": time_units, "dtype": "int64"}})
+                for var in ds.variables.values():
+                    if " since " in str(var.encoding.get("units", "")):  # time, time_bnds, ...
+                        var.encoding.update(units=time_units, dtype="int64")
+                ds.to_zarr(zarr_path, mode="w-")
             else:
                 ds.to_zarr(zarr_path, append_dim="time")
             state["time_len"] += ds.sizes["time"]

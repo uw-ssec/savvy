@@ -6,8 +6,8 @@
 |---------|-------|-------------|
 | Example 1: Migrating a Climate Model Archive | 14–87 | Convert a directory of monthly NetCDF files to a single Zarr store |
 | Example 2: Virtual Zarr References for Granules on S3 | 88–142 | Create virtual references for cloud-hosted HDF5/NetCDF4 files |
-| Example 3: HDF5 Instrument Data to Cloud Zarr with Rechunking | 143–232 | Migrate and rechunk instrument data for cloud-optimized access |
-| Example 4: Validating a Large Migration | 233–316 | Per-file source-vs-target validation |
+| Example 3: HDF5 Instrument Data to Cloud Zarr with Rechunking | 143–234 | Migrate and rechunk instrument data for cloud-optimized access |
+| Example 4: Validating a Large Migration | 235–318 | Per-file source-vs-target validation |
 
 ---
 
@@ -161,7 +161,9 @@ def to_json(value):
     if isinstance(value, bytes):
         return value.decode("utf-8", "replace")
     if isinstance(value, np.ndarray):
-        return [to_json(v) for v in value.tolist()]
+        return to_json(value.tolist())  # nested lists for 2-D and up
+    if isinstance(value, (list, tuple)):
+        return [to_json(v) for v in value]
     if isinstance(value, np.generic):
         return value.item()
     return value

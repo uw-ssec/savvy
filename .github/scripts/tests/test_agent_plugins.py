@@ -33,7 +33,7 @@ def skill(root, plugin, name, body=""):
 def repo(tmp_path, ap):
     """Two synced plugins: one with skills and MCP, one community plugin."""
     write(tmp_path / ".claude-plugin/marketplace.json", {
-        "name": "rse-plugins",
+        "name": "savvy",
         "owner": {"name": "UW SSEC Team"},
         "metadata": {"description": "test"},
         "plugins": [

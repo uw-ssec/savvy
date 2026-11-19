@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Post-create script for GitHub Codespaces
-# Installs Claude Code, Copilot CLI with RSE plugins, and sets up .github/ directory
+# Installs Claude Code, Copilot CLI with savvy plugins, and sets up .github/ directory
 
 set -euo pipefail
 
 log() { echo "[post-create] $*"; }
 
 echo ""
-echo "=== Setting up RSE Plugins Codespace ==="
+echo "=== Setting up savvy Codespace ==="
 echo ""
 
 # --- Install Claude Code CLI ---
@@ -28,12 +28,12 @@ if ! command -v copilot &>/dev/null; then
     exit 1
 fi
 
-# --- Register RSE plugins marketplace ---
+# --- Register savvy marketplace ---
 log "Registering uw-ssec/savvy marketplace..."
 copilot plugin marketplace add uw-ssec/savvy
 
-# --- Install all RSE plugins ---
-log "Installing RSE plugins..."
+# --- Install all savvy plugins ---
+log "Installing savvy plugins..."
 PLUGINS=(
     "ai-research-workflows@savvy"
     "scientific-python-development@savvy"

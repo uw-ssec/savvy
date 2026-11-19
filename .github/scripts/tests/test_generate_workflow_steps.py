@@ -42,7 +42,7 @@ def test_find_added_skills_paginates_filters_and_keeps_title_inert(tmp_path):
         {"filename": "plugins/old/skills/o/SKILL.md", "status": "modified"},
         {"filename": "plugins/new/skills/s3/nested/SKILL.md", "status": "added"},
     ]
-    env = {"GH_TOKEN": "t", "PR_NUMBER": "125", "REPO": "uw-ssec/rse-plugins",
+    env = {"GH_TOKEN": "t", "PR_NUMBER": "125", "REPO": "uw-ssec/savvy",
            "GH_FILES": json.dumps(files), "GH_PR": json.dumps({"head": {"sha": "abc123"}, "title": HOSTILE_TITLE})}
     script = workflow_step("generate-testcases.yml", "Find added SKILL.md files")
     proc, out = run_step(script, tmp_path, env, {"gh": GH_STUB})
@@ -76,7 +76,7 @@ def testcases_checkout(tmp_path):
 
 
 def push_env():
-    return {"GH_TOKEN": "t", "PR_NUMBER": "125", "REPO": "uw-ssec/rse-plugins",
+    return {"GH_TOKEN": "t", "PR_NUMBER": "125", "REPO": "uw-ssec/savvy",
             "TESTCASES_REPO": "uw-ssec/rse-plugins-testcases", "GH_FILES": "[]", "GH_PR": "{}"}
 
 

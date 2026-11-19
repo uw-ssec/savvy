@@ -221,18 +221,52 @@ By default `from_array` keeps the source's Zarr format and codecs. In zarr-pytho
 
 ### Zarr Group or xarray Dataset: `.chunk()` + `to_zarr`
 
+This route needs dimension names on every array: `dimension_names` in v3 metadata, or the `_ARRAY_DIMENSIONS` attribute in v2. xarray writes them, but arrays made with `Group.create_array()` usually lack them, and `xr.open_zarr` then raises `KeyError` before rechunking starts. For those groups, use the array-by-array route below.
+
 ```python
 import xarray as xr
+import zarr
 
+source_format = zarr.open_group("/data/source.zarr", mode="r").metadata.zarr_format
 ds = xr.open_zarr("/data/source.zarr")
 ds = ds.chunk({"time": 100, "lat": 180, "lon": 360})
 for var in ds.variables.values():
     for key in ("chunks", "shards", "preferred_chunks"):
         var.encoding.pop(key, None)  # stale source layout
-ds.to_zarr("/data/rechunked.zarr", mode="w-")
+ds.to_zarr("/data/rechunked.zarr", mode="w-", zarr_format=source_format)
 ```
 
-Without the `encoding` cleanup, xarray reuses the source chunk shape or raises an error that the encoded chunks would overlap several dask chunks. To write a sharded v3 store, pass `encoding={"var": {"chunks": inner, "shards": outer}}` and make the dask chunks whole multiples of `outer`. xarray rejects dask chunks that straddle shards, because concurrent partial-shard writes corrupt data.
+Without the `encoding` cleanup, xarray reuses the source chunk shape or raises an error that the encoded chunks would overlap several dask chunks. Pass `zarr_format`: a v2 source keeps v2 `numcodecs` compressors in its encoding, and the zarr-python 3 default of v3 rejects them (`Expected a BytesBytesCodec`). To migrate formats as well, drop `compressors` and `filters` from the encoding too, or replace them with v3 codecs. To write a sharded v3 store, pass `encoding={"var": {"chunks": inner, "shards": outer}}` and make the dask chunks whole multiples of `outer`. xarray rejects dask chunks that straddle shards, because concurrent partial-shard writes corrupt data.
+
+### Zarr Group Without Dimension Names: Array by Array
+
+```python
+import zarr
+
+target_chunks = {"temp": (50, 512, 512), "sub/precip": (50, 512, 512)}  # one entry per array path
+
+src = zarr.open_group("/data/source.zarr", mode="r")
+dst = zarr.create_group(  # raises if the path exists
+    "/data/rechunked.zarr",
+    zarr_format=src.metadata.zarr_format,
+    attributes=dict(src.attrs),
+)
+for path, node in src.members(max_depth=None):  # parents come before children
+    if isinstance(node, zarr.Group):
+        dst.create_group(path, attributes=dict(node.attrs))
+    else:
+        zarr.from_array(
+            dst.store,
+            name=path,
+            data=node,
+            chunks=target_chunks[path],
+            shards=None,
+            fill_value=node.fill_value,
+            attributes=dict(node.attrs),
+        )
+```
+
+Each array keeps its format and codecs, as in the single-array route.
 
 ### Dask Rechunk Methods: `tasks` vs `p2p`
 

@@ -294,7 +294,7 @@ mv /data/dataset_new.zarr /data/dataset.zarr
 rm -rf /data/dataset_old.zarr
 ```
 
-Each `mv` within one filesystem is an atomic rename, but the swap takes two, so readers briefly see no `/data/dataset.zarr`. Stop readers during the swap, or use the symlink pattern below, where one `ln -sfn` switches readers. A move across filesystems copies the data and is not atomic. Object stores (S3, GCS) have no rename at all: point readers at the new prefix rather than moving objects.
+Each `mv` within one filesystem is an atomic rename, but the swap takes two, so readers briefly see no `/data/dataset.zarr`. Stop readers during the swap, or use the symlink pattern below, where one rename switches readers. A move across filesystems copies the data and is not atomic. Object stores (S3, GCS) have no rename at all: point readers at the new prefix rather than moving objects.
 
 ### Pattern 2: Versioned Backups
 
@@ -307,11 +307,18 @@ For datasets that are rechunked periodically, use versioned paths:
 /data/dataset_current.zarr -> dataset_v3.zarr  # Symlink to current version
 ```
 
-Update the symlink atomically:
+Update the symlink atomically: create a temporary link in the same directory, then rename it over the old one.
 
-```bash
-ln -sfn /data/dataset_v3.zarr /data/dataset_current.zarr
+```python
+import os
+
+os.symlink("/data/dataset_v3.zarr", "/data/.dataset_current.zarr.tmp")
+os.replace("/data/.dataset_current.zarr.tmp", "/data/dataset_current.zarr")
 ```
+
+Don't use `ln -sfn`: BSD `ln`, as on macOS, deletes the old link before creating the new one, so readers can find no path.
+
+Readers should open the resolved path, `zarr.open(os.path.realpath("/data/dataset_current.zarr"))`. An array opened through the symlink resolves it again for every chunk, so a swap during a long read mixes chunks from two versions.
 
 ### Pattern 3: Cloud Versioning
 

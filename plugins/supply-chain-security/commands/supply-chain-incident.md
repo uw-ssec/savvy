@@ -1,6 +1,7 @@
 ---
 description: Walk through supply-chain incident response for an advisory, CVE, GHSA, package name, or campaign name. Engages the supply-chain-incident-responder agent. Performs the 4-point check (lockfile → CI cache → secrets → persistence) and produces a filled incident-report-template.md. Read-only.
 user-invocable: true
+disable-model-invocation: true
 allowed-tools:
   - Read
   - Glob

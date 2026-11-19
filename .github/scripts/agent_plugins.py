@@ -35,11 +35,19 @@ https://github.com/uw-ssec/rse-plugins/issues/240.
 Package checks, for every plugin:
 
 - plugin.json follows the closed manifest schema and its name is the directory;
-- every directory under plugins/ and community-plugins/ is in the catalog;
-- each skills/<dir>/SKILL.md has Agent Skills frontmatter whose name is <dir>;
+- every directory under plugins/ and community-plugins/ is in the catalog,
+  and each catalog entry has a name, source and category and appears once;
+- plugin names and skill names are unique across the repository (two
+  installed plugins with the same skill name make activation ambiguous);
+- each skills/<dir>/SKILL.md has Agent Skills frontmatter whose name is <dir>
+  and a description of 100-1024 characters (shorter ones can't say when the
+  skill applies);
 - no file, symlink or relative Markdown/wiki link inside a skill resolves
   outside that skill, and every relative link resolves to a file (installed
   skills are copied on their own, so a link to ../sibling breaks);
+- every relative link in the other Markdown (root *.md, docs/ except
+  docs/specs/, and plugin files outside skills/) resolves inside the repo.
+  External URLs are checked separately by lychee (check-links.yml);
 - a plugin with a Claude ``.mcp.json`` also ships a portable ``mcp.json``
   (once root plugin.json exists, Codex reads only mcp.json), and mcp.json
   follows the closed MCP schema. A stdio ``command`` that is a path and every
@@ -47,7 +55,11 @@ Package checks, for every plugin:
   ``..`` and symlinks are resolved;
 - an agent's ``skills`` frontmatter is a list. Claude Code accepts a list or
   a string; the rule exists for Copilot CLI, which silently drops an agent
-  whose ``skills`` is a plain string.
+  whose ``skills`` is a plain string;
+- every symlink in a plugin resolves inside that plugin. Clients install one
+  plugin directory on its own, so a link to ``../../LICENSE`` (or a sibling
+  plugin) is unreadable after the copy; ``sync`` turns such a LICENSE into a
+  real copy of the root file.
 
 Needs PyYAML, so frontmatter is read the way clients read it.
 """
@@ -77,6 +89,14 @@ SHARED = ["name", "version", "description", "author", "homepage", "repository", 
 MANIFEST_FIELDS = {"$schema", *SHARED, "extensions"}
 PLUGIN_NAME = re.compile(r"^(?!.*(?:--|\.\.))[a-z0-9](?:[a-z0-9.-]{0,62}[a-z0-9])?$")
 SKILL_NAME = re.compile(r"^(?!.*--)[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$")
+DESCRIPTION_LENGTH = (100, 1024)
+# Docs whose relative links aren't checked yet. Each entry needs an open issue.
+LINK_CHECK_SKIP = {
+    # Index pages for topic files that were never added: #248.
+    "community-plugins/holoviz-visualization/references/best-practices/README.md",
+    "community-plugins/holoviz-visualization/references/patterns/README.md",
+    "community-plugins/holoviz-visualization/references/troubleshooting/README.md",
+}
 SKILL_FIELDS = {"name", "description", "license", "compatibility", "metadata", "allowed-tools"}
 MCP_VARIANTS = {
     "stdio": ({"type", "command"}, {"args", "env", "cwd"}),
@@ -166,13 +186,26 @@ def expected_files(root: Path) -> dict[Path, str]:
         "plugins": [{"name": m["name"], "source": e["source"], "description": m.get("description", "")}
                     for e, m in local],
     })
+
+    # A per-plugin LICENSE that points at the repository root is materialized into a real file.
+    # Clients install one plugin directory on its own, so `../../LICENSE` does not exist there and
+    # the linked file cannot be read (Hermes aborts the whole install). Plugins that carry their
+    # own license text (MIT, a third-party copyright) are regular files already and stay untouched.
+    root_license = root / "LICENSE"
+    if root_license.is_file():
+        text = root_license.read_text(encoding="utf-8")
+        for src in manifests:
+            if (root / src / "LICENSE").is_symlink():
+                out[root / src / "LICENSE"] = text
     return out
 
 
 def sync(root: Path) -> int:
     for path, text in expected_files(root).items():
-        if not path.exists() or path.read_text(encoding="utf-8") != text:
+        if not path.exists() or path.is_symlink() or path.read_text(encoding="utf-8") != text:
             path.parent.mkdir(parents=True, exist_ok=True)
+            if path.is_symlink():
+                path.unlink()  # writes go to the file itself, not through the link
             path.write_text(text, encoding="utf-8")
             print(f"wrote {path.relative_to(root)}")
     return 0
@@ -313,6 +346,20 @@ def link_targets(text: str):
                 yield n, target.strip()
 
 
+def local_links(f: Path):
+    """(line number, target, path) for every relative link in a Markdown file."""
+    for n, target in link_targets(f.read_text(encoding="utf-8")):
+        if EXTERNAL.match(target):
+            continue
+        path = target.split("#", 1)[0].split("?", 1)[0]
+        if path:
+            yield n, target, path
+
+
+def resolves(dest: Path) -> bool:
+    return dest.exists() or (not dest.suffix and dest.with_suffix(".md").exists())
+
+
 def check_skills(pdir: Path, root: Path, errors: list[str]) -> None:
     sdir = pdir / "skills"
     if not sdir.is_dir():
@@ -337,8 +384,10 @@ def check_skills(pdir: Path, root: Path, errors: list[str]) -> None:
             errors.append(f"{srel}/SKILL.md: name {fm.get('name')!r} must equal the lowercase-hyphenated"
                           f" directory name {skill.name!r}")
         desc = fm.get("description")
-        if not isinstance(desc, str) or not 1 <= len(desc) <= 1024:
-            errors.append(f"{srel}/SKILL.md: description must be a string of 1-1024 characters")
+        lo, hi = DESCRIPTION_LENGTH
+        if not isinstance(desc, str) or not lo <= len(desc) <= hi:
+            errors.append(f"{srel}/SKILL.md: description must be a string of {lo}-{hi} characters"
+                          " that says what the skill does and when to use it")
         for k in ("license", "compatibility", "allowed-tools"):
             if k in fm and not isinstance(fm[k], str):
                 errors.append(f"{srel}/SKILL.md: {k} must be a string")
@@ -363,18 +412,73 @@ def check_skills(pdir: Path, root: Path, errors: list[str]) -> None:
             # assets/ holds output templates whose links point into the user's project.
             if f.suffix != ".md" or not f.is_file() or "assets" in f.relative_to(skill).parts[:1]:
                 continue
-            for n, target in link_targets(f.read_text(encoding="utf-8")):
-                if EXTERNAL.match(target):
-                    continue
-                path = target.split("#", 1)[0].split("?", 1)[0]
-                if not path:
-                    continue
+            for n, target, path in local_links(f):
                 dest = (skill if path.startswith("/") else f.parent) / path.lstrip("/")
                 if path.startswith("/") or not inside(dest, skill):
                     errors.append(f"{frel}:{n}: link {target!r} leaves the skill; a skill installed on its"
                                   " own can't follow it")
-                elif not dest.exists() and not dest.with_suffix(".md").exists():
+                elif not resolves(dest):
                     errors.append(f"{frel}:{n}: link {target!r} points at nothing")
+
+
+def doc_files(root: Path) -> list[Path]:
+    """Markdown outside skills: root files, docs/ (minus internal specs), plugin READMEs, agents, commands."""
+    files = sorted(root.glob("*.md"))
+    docs = root / "docs"
+    if docs.is_dir():
+        files += sorted(f for f in docs.rglob("*.md") if not inside(f, docs / "specs"))
+    for pdir in plugin_dirs(root):
+        files += sorted(f for f in pdir.rglob("*.md") if f.relative_to(pdir).parts[0] != "skills")
+    return files
+
+
+def check_doc_links(root: Path, errors: list[str]) -> None:
+    for f in doc_files(root):
+        rel = f.relative_to(root).as_posix()
+        if rel in LINK_CHECK_SKIP:
+            continue
+        for n, target, path in local_links(f):
+            dest = (root if path.startswith("/") else f.parent) / path.lstrip("/")
+            if not inside(dest, root):
+                errors.append(f"{rel}:{n}: link {target!r} leaves the repository")
+            elif not resolves(dest):
+                errors.append(f"{rel}:{n}: link {target!r} points at nothing")
+
+
+def check_unique_names(root: Path, errors: list[str]) -> None:
+    pdirs = plugin_dirs(root)
+    skills = [s for pdir in pdirs if (pdir / "skills").is_dir() for s in (pdir / "skills").iterdir() if s.is_dir()]
+    for kind, owner, dirs in (("plugin", "directory", pdirs), ("skill", "plugin", skills)):
+        seen: dict[str, list[str]] = {}
+        for d in dirs:
+            seen.setdefault(d.name, []).append(d.relative_to(root).as_posix())
+        for name, where in sorted(seen.items()):
+            if len(where) > 1:
+                errors.append(f"{kind} name {name!r} is used by more than one {owner}: {', '.join(where)}")
+
+
+def check_catalog(catalog, errors: list[str]) -> None:
+    if not isinstance(catalog, dict):
+        errors.append(f"{CATALOG}: must be a JSON object")
+        return
+    plugins = catalog.get("plugins", [])
+    if not isinstance(plugins, list):
+        errors.append(f"{CATALOG}: plugins must be a list")
+        return
+    seen = set()
+    for i, entry in enumerate(plugins):
+        if not isinstance(entry, dict):
+            errors.append(f"{CATALOG}: plugins[{i}] must be an object")
+            continue
+        name = entry.get("name")
+        where = f"{CATALOG}: plugin {name!r}" if isinstance(name, str) and name else f"{CATALOG}: plugins[{i}]"
+        for k in ("name", "source", "category"):
+            if not (isinstance(entry.get(k), str) and entry[k]):
+                errors.append(f"{where}: {k} must be a non-empty string")
+        if isinstance(name, str) and name:
+            if name in seen:
+                errors.append(f"{where} is listed more than once")
+            seen.add(name)
 
 
 def check_agents(pdir: Path, root: Path, errors: list[str]) -> None:
@@ -393,10 +497,29 @@ def check_agents(pdir: Path, root: Path, errors: list[str]) -> None:
                           " whose skills is a single string")
 
 
+def check_plugin_symlinks(pdir: Path, root: Path, errors: list[str]) -> None:
+    """Every symlink must resolve inside its own plugin directory.
+
+    Clients install a plugin directory on its own (Copilot CLI, Codex, Cursor local copy, Hermes,
+    and any manual copy), so a link to `../../LICENSE` or a sibling plugin dangles or disappears
+    there. The per-plugin LICENSE files used to be exactly that. Bundle a copy instead;
+    `sync` materializes a LICENSE that still points at the repository root.
+    """
+    for f in sorted(pdir.rglob("*")):
+        if "__pycache__" in f.parts or not f.is_symlink():
+            continue
+        if not inside(f, pdir):
+            errors.append(f"{f.relative_to(root)}: symlink -> {os.readlink(f)} resolves outside its"
+                          " plugin; a plugin installed on its own can't follow it (bundle the file)")
+
+
 def check(root: Path, run_claude: bool) -> list[str]:
     errors: list[str] = []
     catalog = load(root / CATALOG)
-    listed = {e.get("source") for e in catalog.get("plugins", [])}
+    check_catalog(catalog, errors)
+    if errors:
+        return errors
+    listed = {e.get("source") for e in catalog.get("plugins", []) if isinstance(e, dict)}
     for pdir in plugin_dirs(root):
         src = "./" + pdir.relative_to(root).as_posix()
         if src not in listed:
@@ -406,6 +529,9 @@ def check(root: Path, run_claude: bool) -> list[str]:
         check_mcp(pdir, root, errors)
         check_skills(pdir, root, errors)
         check_agents(pdir, root, errors)
+        check_plugin_symlinks(pdir, root, errors)
+    check_unique_names(root, errors)
+    check_doc_links(root, errors)
     try:
         for path, text in expected_files(root).items():
             if not path.is_file() or path.read_text(encoding="utf-8") != text:

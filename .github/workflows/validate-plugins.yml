@@ -8,6 +8,8 @@ on:
       - '.claude-plugin/**'
       - '.agents/plugins/**'
       - '.cursor-plugin/**'
+      - '*.md'
+      - 'docs/**'
       - 'marketplace/**'
       - 'docs/catalog.md'
       - 'docs/catalog.yml'
@@ -18,11 +20,25 @@ on:
   push:
     branches: [ main ]
 
+permissions: {}
+
+# A new push to a PR cancels that PR's older run, since its result no longer
+# matters. Runs on main are never cancelled: each merge keeps its own result,
+# so a failure points at the commit that caused it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - uses: prefix-dev/setup-pixi@ad1da6449d9e506fd127fd67ab2d054a769f6a94 # v0.11.2
         with:
@@ -33,8 +49,10 @@ jobs:
       - name: Check Agent Plugins manifests and skills
         run: |
           # Fails on manifest drift (run `pixi run plugins-sync`),
-          # a plugin missing from the catalog, an invalid plugin.json or mcp.json,
-          # and skill files or links that leave their skill directory.
+          # a plugin missing from or listed twice in the catalog, an invalid
+          # plugin.json or mcp.json, bad SKILL.md frontmatter, duplicate plugin
+          # or skill names, skill files or links that leave their skill
+          # directory, and relative links in any doc that point at nothing.
           pixi run plugins-check
 
       - name: Check the skill catalog
@@ -112,21 +130,6 @@ jobs:
                     exit 1
                   fi
                 done < <(find "$plugin/scripts" -type f -name "*.sh")
-              fi
-            fi
-          done < <(jq -r '.plugins[].source' .claude-plugin/marketplace.json)
-
-      - name: Validate marketplace catalog
-        run: |
-          echo "Validating marketplace catalog..."
-          jq empty .claude-plugin/marketplace.json
-
-          # Check all plugin sources exist
-          while IFS= read -r source; do
-            if [[ "$source" == ./* ]]; then
-              if [ ! -d "$source" ]; then
-                echo "Plugin source not found: $source"
-                exit 1
               fi
             fi
           done < <(jq -r '.plugins[].source' .claude-plugin/marketplace.json)

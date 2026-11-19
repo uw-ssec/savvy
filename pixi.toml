@@ -17,14 +17,31 @@ python = "3.12.*"
 pyyaml = "6.0.3.*"
 pytest = "9.2.0.*"
 check-jsonschema = "0.38.2.*"
+lychee = "0.24.2.*"
+
+# The single pin for SkillEvaluator's version: skill-quality-check.yml runs
+# the checker through pixi (the skill-quality-check task below), so bumping
+# this rev is the only place a version bump is needed. Bump deliberately:
+# scores can shift between SkillEvaluator releases.
+[feature.ci.pypi-dependencies]
+skillevaluator = { git = "https://github.com/NVIDIA/SkillEvaluator.git", rev = "5320d9329c36ecc72bc94c4f58cc813d6b54224b" }
 
 [feature.ci.tasks]
 plugins-sync = { cmd = "python .github/scripts/agent_plugins.py sync", description = "Regenerate the generated plugin manifests and marketplaces" }
 plugins-check = { cmd = "python .github/scripts/agent_plugins.py check", description = "Check plugin manifests, skills and links (CI gate)" }
 plugins-check-claude = { cmd = "python .github/scripts/agent_plugins.py check --claude", description = "Run plugins-check plus `claude plugin validate --strict`" }
+links-check = { cmd = "lychee --config lychee.toml --no-progress --hidden .", description = "Check external URLs in Markdown (set GITHUB_TOKEN to avoid GitHub rate limits)" }
 test-scripts = { cmd = "pytest .github/scripts/tests -q", description = "Run the CI script tests" }
 catalog-sync = { cmd = "python .github/scripts/skill_catalog.py sync", description = "Regenerate docs/catalog.md from SKILL.md frontmatter and docs/catalog.yml" }
 catalog-check = { cmd = "python .github/scripts/skill_catalog.py check", description = "Check docs/catalog.md is current and every skill has a catalog entry (CI gate)" }
+check-all = { depends-on = ["plugins-check", "catalog-check", "test-scripts"], description = "Run the offline CI gates: plugins-check, catalog-check and test-scripts" }
+skill-quality-check = { cmd = "skillevaluator quality-check --min-score 70", description = "Run SkillEvaluator's quality-check on a skill, e.g. `pixi run -e ci skill-quality-check plugins/<plugin>/skills/<skill>`" }
+
+# OKF agent memory: provides the `okf` CLI that reads and writes the knowledge/
+# bundle (see the okf-memory skill in .agents/skills/).
+[feature.okf.dependencies]
+okf-agent-memory = ">=0.6.1,<0.7"
 
 [environments]
+default = { features = ["okf"], solve-group = "default" }
 ci = { features = ["ci"], no-default-feature = true }

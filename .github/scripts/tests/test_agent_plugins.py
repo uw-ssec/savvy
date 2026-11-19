@@ -2,6 +2,7 @@ import json
 import os
 import shutil
 import tomllib
+from pathlib import Path
 
 import pytest
 from conftest import SCRIPTS, _load, run_step, workflow_step
@@ -20,8 +21,12 @@ def write(path, data):
     path.write_text(data if isinstance(data, str) else json.dumps(data, indent=4) + "\n", encoding="utf-8")
 
 
+# Exactly the minimum length check enforces.
+DESC = "Use when testing. " + "x" * 82
+
+
 def skill(root, plugin, name, body=""):
-    write(root / plugin / "skills" / name / "SKILL.md", f"---\nname: {name}\ndescription: Does {name}.\n---\n{body}")
+    write(root / plugin / "skills" / name / "SKILL.md", f"---\nname: {name}\ndescription: {DESC}\n---\n{body}")
 
 
 @pytest.fixture
@@ -189,9 +194,39 @@ def test_symlink_out_of_skill_fails(ap, repo):
     assert any("resolves outside its skill" in e for e in problems(ap, repo))
 
 
+def test_license_symlink_to_root_fails_and_sync_materializes_it(ap, repo):
+    # Clients install one plugin directory on its own, so ../../LICENSE dangles there.
+    write(repo / "LICENSE", "BSD 3-Clause License\n")
+    link = repo / "plugins/alpha/LICENSE"
+    link.symlink_to(Path("../../LICENSE"))
+    assert any("plugins/alpha/LICENSE: symlink -> ../../LICENSE resolves outside its plugin" in e
+               for e in problems(ap, repo))
+    assert ap.sync(repo) == 0
+    assert not link.is_symlink()
+    assert link.read_text(encoding="utf-8") == "BSD 3-Clause License\n"
+    assert problems(ap, repo) == []
+
+
+def test_symlink_inside_its_plugin_passes(ap, repo):
+    write(repo / "plugins/alpha/docs/shared.md", "# shared\n")
+    (repo / "plugins/alpha/docs/alias.md").symlink_to(repo / "plugins/alpha/docs/shared.md")
+    assert problems(ap, repo) == []
+
+
+def test_other_plugin_licenses_are_not_rewritten(ap, repo):
+    # A plugin with its own license text (MIT, a third-party copyright) keeps it.
+    write(repo / "LICENSE", "BSD 3-Clause License\n")
+    write(repo / "community-plugins/beta/LICENSE", "MIT License\n")
+    assert problems(ap, repo) == []
+    ap.sync(repo)
+    assert (repo / "community-plugins/beta/LICENSE").read_text(encoding="utf-8") == "MIT License\n"
+
+
 @pytest.mark.parametrize("frontmatter, message", [
     ("name: other\ndescription: d\n", "must equal the lowercase-hyphenated directory name"),
-    ("name: one\n", "description must be a string of 1-1024 characters"),
+    ("name: one\n", "description must be a string of 100-1024 characters"),
+    (f"name: one\ndescription: {DESC[:-1]}\n", "description must be a string of 100-1024 characters"),
+    (f"name: one\ndescription: {'x' * 1025}\n", "description must be a string of 100-1024 characters"),
     ("name: one\ndescription: d\ncolor: red\n", "frontmatter field 'color'"),
     ("name: one\ndescription: [d]\n", "description must be a string"),
     ("name: one\ndescription: d\nlicense: [MIT]\n", "license must be a string"),
@@ -209,10 +244,10 @@ def test_skill_frontmatter(ap, repo, frontmatter, message):
 
 
 @pytest.mark.parametrize("frontmatter", [
-    "name: one # a YAML comment\ndescription: d\n",
-    "name: 'one'\ndescription: 'Has a # inside quotes'\n",
-    "name: one\ndescription: >-\n  Folded\n  text.\nmetadata:\n  references: references/two.md\n",
-    "name: one\ndescription: d\nmetadata:\n  last-verified: '2026-10-27'\n",
+    f"name: one # a YAML comment\ndescription: {DESC}\n",
+    f"name: 'one'\ndescription: 'Has a # inside quotes. {DESC}'\n",
+    f"name: one\ndescription: >-\n  Folded\n  {DESC}\nmetadata:\n  references: references/two.md\n",
+    f"name: one\ndescription: {DESC}\nmetadata:\n  last-verified: '2026-10-27'\n",
 ])
 def test_skill_frontmatter_is_read_as_yaml(ap, repo, frontmatter):
     write(repo / "plugins/alpha/skills/one/SKILL.md", f"---\n{frontmatter}---\nbody\n")
@@ -231,6 +266,73 @@ def test_agent_skills_must_be_a_list(ap, repo, skills, ok):
     ap.sync(repo)
     errs = problems(ap, repo)
     assert (errs == []) if ok else any("agents/a.md: skills must be a YAML list" in e for e in errs)
+
+
+def test_skill_names_are_unique_across_plugins(ap, repo):
+    skill(repo, "community-plugins/beta", "one")
+    assert any("skill name 'one' is used by more than one plugin" in e for e in problems(ap, repo))
+
+
+def test_plugin_names_are_unique_across_parents(ap, repo):
+    write(repo / "plugins/beta/plugin.json", {"$schema": SCHEMA, "name": "beta"})
+    assert any("plugin name 'beta' is used by more than one directory" in e for e in problems(ap, repo))
+
+
+def edit_catalog(repo, change):
+    path = repo / ".claude-plugin/marketplace.json"
+    catalog = json.loads(path.read_text(encoding="utf-8"))
+    change(catalog["plugins"])
+    write(path, catalog)
+
+
+@pytest.mark.parametrize("change, message", [
+    (lambda ps: ps[0].pop("category"), "category must be a non-empty string"),
+    (lambda ps: ps[0].update(category=""), "category must be a non-empty string"),
+    (lambda ps: ps.append(dict(ps[0])), "plugin 'alpha' is listed more than once"),
+    (lambda ps: ps[0].update(source="./plugins/gone"), "plugins/gone/plugin.json: missing"),
+    (lambda ps: ps[0].update(name=["alpha"]), "name must be a non-empty string"),
+    (lambda ps: ps[0].update(source=["./plugins/alpha"]), "source must be a non-empty string"),
+    (lambda ps: ps[0].update(category=None), "category must be a non-empty string"),
+    (lambda ps: ps.__setitem__(0, None), "plugins[0] must be an object"),
+])
+def test_catalog_entry_rules(ap, repo, change, message):
+    edit_catalog(repo, change)
+    assert any(message in e for e in problems(ap, repo))
+
+
+@pytest.mark.parametrize("catalog, message", [
+    ([], "must be a JSON object"),
+    ({"plugins": {}}, "plugins must be a list"),
+])
+def test_catalog_structure_rules(ap, repo, catalog, message):
+    write(repo / ".claude-plugin/marketplace.json", catalog)
+    assert any(message in e for e in problems(ap, repo))
+
+
+@pytest.mark.parametrize("path", [
+    "README.md",
+    "docs/guide.md",
+    "plugins/alpha/README.md",
+    "plugins/alpha/agents/a.md",
+    "community-plugins/beta/references/topic/README.md",
+])
+def test_doc_links_outside_skills_must_resolve(ap, repo, path):
+    write(repo / path, "Intro.\n[gone](./gone.md)\n")
+    assert f"{path}:2: link './gone.md' points at nothing" in problems(ap, repo)
+
+
+def test_doc_links_may_cross_directories_and_internal_docs_are_skipped(ap, repo):
+    write(repo / "README.md", "[a](plugins/alpha/skills/one/SKILL.md) [b](/CONTRIBUTING.md#x) [c](plugins/alpha/)\n")
+    write(repo / "CONTRIBUTING.md", "[up](README.md) [web](https://example.com/gone.md)\n")
+    write(repo / "plugins/alpha/agents/a.md", "---\nname: a\ndescription: d\n---\n[r](../../../README.md)\n")
+    write(repo / "docs/specs/s.md", "[gone](gone.md)\n")
+    write(repo / "evals/e.md", "[gone](gone.md)\n")
+    assert problems(ap, repo) == []
+
+
+def test_link_check_skips_only_existing_files(ap):
+    # A stale entry would hide nothing and should be removed with its issue.
+    assert all((SCRIPTS.parents[1] / p).is_file() for p in ap.LINK_CHECK_SKIP)
 
 
 def claude_stub(tmp_path, monkeypatch, report):

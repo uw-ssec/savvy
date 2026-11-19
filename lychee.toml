@@ -1,0 +1,83 @@
+# External link check (check-links.yml). Relative links are checked by
+# `pixi run plugins-check`, so lychee only follows web URLs.
+scheme = ["https", "http"]
+
+# Internal working docs, generated environments, and skill asset templates
+# (their links point into the user's project).
+exclude_path = [
+    "^\\./\\.pixi/",
+    "^\\./\\.git/",
+    # Local agent worktrees, and the .claude/skills symlink to .agents/skills.
+    "^\\./\\.claude/",
+    "^\\./evals/",
+    "^\\./docs/specs/",
+    "/skills/[^/]+/assets/",
+]
+
+# Allowlist: URLs that are placeholders or block automated requests.
+# Add a comment with the reason for each new entry.
+exclude = [
+    # Placeholders in examples.
+    "^https?://(www\\.)?example\\.(com|org)",
+    "^https?://localhost",
+    "^https?://127\\.0\\.0\\.1",
+    "^https?://0\\.0\\.0\\.0",
+    # OIDC issuer, not a web page.
+    "^https://token\\.actions\\.githubusercontent\\.com",
+    # Broken on main when this check was added: #249. Delete each line once fixed.
+    "^https://citation-file-format\\.github\\.io/cff-initializer-guide/$",
+    "^https://conda-forge\\.org/docs/orga/governance/$",
+    "^https://corteva\\.github\\.io/geocube/$",
+    "^https://corteva\\.github\\.io/rioxarray/$",
+    "^https://discourse\\.sphinx-doc\\.org/$",
+    "^https://docs\\.astral\\.sh/uv/concepts/projects/lock/$",
+    "^https://docs\\.readthedocs\\.io/en/stable/guides/troubleshooting\\.html$",
+    "^https://doi\\.org/10\\.1109/MCG\\.2018\\.2877473$",
+    "^https://doi\\.org/10\\.1109/MCSE\\.2023\\.3302524$",
+    "^https://github\\.com/jose-elias-alvarez/null-ls\\.nvim$",
+    "^https://github\\.com/uw-ssec/rse-plugins/discussions$",
+    "^https://holoviews\\.org/user_guide/Styling_Plots\\.html$",
+    "^https://holoviz\\.org/gallery/index\\.html$",
+    "^https://hvplot\\.holoviz\\.org/reference/index\\.html$",
+    "^https://lumen\\.holoviz\\.org/gallery/$",
+    "^https://lumen\\.holoviz\\.org/lumen_ai/$",
+    "^https://lumen\\.holoviz\\.org/reference/index\\.html$",
+    "^https://lumen\\.holoviz\\.org/user_guide/Layouts\\.html$",
+    "^https://lumen\\.holoviz\\.org/user_guide/Sources\\.html$",
+    "^https://lumen\\.holoviz\\.org/user_guide/Transforms\\.html$",
+    "^https://lumen\\.holoviz\\.org/user_guide/Troubleshooting\\.html$",
+    "^https://lumen\\.holoviz\\.org/user_guide/Views\\.html$",
+    "^https://matplotlib\\.org/stable/users/explain/accessibility\\.html$",
+    "^https://nbsphinx\\.readthedocs\\.io/en/latest/troubleshooting\\.html$",
+    "^https://panel\\.holoviz\\.org/how_to/parameters/index\\.html$",
+    "^https://panel\\.holoviz\\.org/user_guide/$",
+    "^https://panel\\.holoviz\\.org/user_guide/Components\\.html$",
+    "^https://panel\\.holoviz\\.org/user_guide/Deploy\\.html$",
+    "^https://panel\\.holoviz\\.org/user_guide/Performance\\.html$",
+    "^https://panel\\.holoviz\\.org/user_guide/Styling\\.html$",
+    "^https://param\\.holoviz\\.org/API/param\\.Parameterized\\.html$",
+    "^https://pixi\\.sh/latest/features/lockfile/$",
+    "^https://squidfunk\\.github\\.io/mkdocs-material/setup/accessibility/$",
+    "^https://vale\\.sh/studio/$",
+    "^https://vizier\\.cds\\.unistra\\.fr/$",
+    "^https://www\\.anthropic\\.com/claude/code$",
+    "^https://www\\.sphinx-doc\\.org/en/master/usage/accessibility\\.html$",
+    # TLS chain validation fails on the CI runner (UnknownIssuer against its
+    # Let's Encrypt intermediate); loads fine in a browser and from other hosts.
+    "^https://www\\.softwareheritage\\.org/$",
+]
+exclude_loopback = true
+exclude_private = true
+
+# 429 (rate limited), 403 (publishers and Q&A sites refusing bots), and 503
+# (github.com's blob-render endpoint throttling under load) all mean the
+# server answered; failing on them would make the check flaky.
+accept = ["200..=299", "403", "429", "503"]
+max_retries = 3
+retry_wait_time = 5
+timeout = 30
+max_concurrency = 16
+
+# Reuse results between runs (the workflow caches .lycheecache).
+cache = true
+max_cache_age = "1d"

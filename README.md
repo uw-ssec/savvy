@@ -370,6 +370,12 @@ For detailed information about the plugins and their contents:
 - [Claude Code Documentation](https://docs.anthropic.com/claude/docs)
 - [Claude Plugin Marketplace](https://code.claude.com/docs/en/plugins)
 
+## How to cite
+
+If you use savvy in your research, please cite it. The **Cite this repository** button in the repository sidebar gives APA and BibTeX, generated from [CITATION.cff](CITATION.cff).
+
+Each GitHub Release is archived on Zenodo with a DOI. The DOI will be listed here after the first release.
+
 ## License
 
 This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICENSE) file for details.

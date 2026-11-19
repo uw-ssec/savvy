@@ -203,6 +203,7 @@ pixi run plugins-check           # or plugins-check-claude to also run `claude p
 Some rules matter to clients other than Claude Code:
 
 - **A new plugin** needs a root `plugin.json` and an entry in `.claude-plugin/marketplace.json`. `check` fails on a plugin directory that isn't in the catalog. `plugin.json` has a closed schema: only `$schema`, `name`, `version`, `description`, `author`, `homepage`, `repository`, `license`, `keywords` and `extensions` are allowed.
+- **A per-plugin `LICENSE` is a real file, not a symlink.** Copilot CLI, Codex, Hermes and any manual copy install a single plugin directory, so `LICENSE -> ../../LICENSE` is unreadable there (Hermes refuses the install). `pixi run plugins-sync` materializes a copy of the root license, and `check` fails on a link that leaves its plugin. Keep `plugin.json`'s `license` field in step with the bundled text: a plugin may bundle a different license (MIT, a third-party copyright) as long as the two agree.
 - **Keep each skill self-contained.** OpenCode and other skills-only clients install a skill directory on its own, so every file and relative link in a skill must stay inside that skill's directory. Link to a sibling skill by naming it (for example "see the `design-tokens` skill"), not with `../design-tokens/SKILL.md`. Put shared material in each skill's `references/`.
 - **MCP servers** need both files. `.mcp.json` is for Claude Code. `mcp.json` is the portable version that Codex, Copilot and Cursor read: it has the Agent Plugins `$schema`, an explicit `type` on each server, and no other top-level fields. Cursor doesn't expand `${PLUGIN_ROOT}` or `${PLUGIN_DATA}`, so avoid them in `mcp.json`.
 - **Agent `skills:`** must be a YAML list (`skills:` then `  - name`), even for one skill. Claude Code accepts a string, but Copilot CLI silently skips an agent whose `skills` is a plain string, so `check` requires a list.
@@ -237,7 +238,13 @@ To add a skill:
 
 ## 📊 Evaluating Skills
 
-On every pull request that changes a skill, **Skill quality check** runs [SkillEvaluator](https://github.com/NVIDIA/SkillEvaluator)'s keyless `quality-check` (pinned to v0.6.0) on each changed skill. It fails if a skill scores below 70, and lists every changed skill's score and grade in the job summary. It scores quality only: SkillEvaluator's full `validate` (schema, PII and security scanners) is not part of this check. To check a skill locally before pushing:
+On every pull request that changes a skill, **Skill quality check** runs [SkillEvaluator](https://github.com/NVIDIA/SkillEvaluator)'s keyless `quality-check` (pinned to v0.6.0) on each changed skill. It fails if a skill scores below 70, and lists every changed skill's score and grade in the job summary. It scores quality only: SkillEvaluator's full `validate` (schema, PII and security scanners) is not part of this check. To check a skill locally before pushing, using the same pinned version as CI:
+
+```bash
+pixi run -e ci skill-quality-check plugins/<plugin>/skills/<skill>
+```
+
+Or, without pixi:
 
 ```bash
 uv tool install --python 3.13 "skillevaluator @ git+https://github.com/NVIDIA/SkillEvaluator.git@5320d9329c36ecc72bc94c4f58cc813d6b54224b"
@@ -257,6 +264,12 @@ Two manually triggered workflows measure skills (**Actions → workflow → Run 
 | `TESSL_WORKSPACE` (optional variable) | Evaluate All Skills | Tessl workspace to use when the token can see more than one |
 
 Run the unit tests for these workflows' scripts with `pixi run test-scripts`.
+
+## 🤖 Working With AI Agents
+
+AI-assisted contributions are welcome under the [AI policy](AI_POLICY.md): disclose the harness and model in the PR template and with an `Assisted-by:` commit trailer, and review every line you submit.
+
+If you use a coding agent on this repository, it reads [`AGENTS.md`](AGENTS.md) (Claude Code reads it through `CLAUDE.md`). That file is a short entry point to on-demand rules in `.agents/rules/` and to repo-maintenance skills in `.agents/skills/` (`commit`, `create-pr`, `release`, `okf-memory` and others; `.claude/skills` links there). These guide work on this repository and are not part of any plugin. `knowledge/` is the project's [OKF](https://github.com/uw-ssec/project-template#project-memory) memory bundle, which agents read and write with `pixi run okf`. The setup is adapted from [uw-ssec/project-template](https://github.com/uw-ssec/project-template).
 
 ## 📋 Code of Conduct
 

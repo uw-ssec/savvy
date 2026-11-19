@@ -29,21 +29,21 @@ if ! command -v copilot &>/dev/null; then
 fi
 
 # --- Register RSE plugins marketplace ---
-log "Registering uw-ssec/rse-plugins marketplace..."
-copilot plugin marketplace add uw-ssec/rse-plugins
+log "Registering uw-ssec/savvy marketplace..."
+copilot plugin marketplace add uw-ssec/savvy
 
 # --- Install all RSE plugins ---
 log "Installing RSE plugins..."
 PLUGINS=(
-    "ai-research-workflows@rse-plugins"
-    "scientific-python-development@rse-plugins"
-    "project-management@rse-plugins"
-    "scientific-domain-applications@rse-plugins"
-    "holoviz-visualization@rse-plugins"
-    "gaia-data-downloader@rse-plugins"
-    "zarr-chunk-optimization@rse-plugins"
-    "zarr-data-format@rse-plugins"
-    "research-software-design@rse-plugins"
+    "ai-research-workflows@savvy"
+    "scientific-python-development@savvy"
+    "project-management@savvy"
+    "scientific-domain-applications@savvy"
+    "holoviz-visualization@savvy"
+    "gaia-data-downloader@savvy"
+    "zarr-chunk-optimization@savvy"
+    "zarr-data-format@savvy"
+    "research-software-design@savvy"
 )
 
 for plugin in "${PLUGINS[@]}"; do

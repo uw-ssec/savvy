@@ -7,6 +7,8 @@ scheme = ["https", "http"]
 exclude_path = [
     "^\\./\\.pixi/",
     "^\\./\\.git/",
+    # Local agent worktrees, and the .claude/skills symlink to .agents/skills.
+    "^\\./\\.claude/",
     "^\\./evals/",
     "^\\./docs/specs/",
     "/skills/[^/]+/assets/",

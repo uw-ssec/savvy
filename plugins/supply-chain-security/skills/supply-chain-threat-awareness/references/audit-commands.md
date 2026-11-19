@@ -58,7 +58,7 @@ A pinned composite action can still call actions by tag. To check one, list the 
 gh api 'repos/<owner>/<repo>/contents/action.yml?ref=<sha>' --jq .content | base64 --decode | grep -n 'uses:'
 ```
 
-Fix: `/supply-chain-pin-actions` (dry run first), then rerun the scan.
+Fix: pin each ref to its full commit SHA (with `/supply-chain-pin-actions`, dry run first, if that command is available), then rerun the scan.
 
 ## Step 3 — Install-time code
 

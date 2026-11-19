@@ -38,4 +38,4 @@ For each finding, the entry MUST include:
 - Campaign or pattern name (e.g., "TeamPCP — mutable action ref").
 - `file:line` citation (the workflow, lockfile, or manifest where the issue lives).
 - Blast radius (which secrets/environments would be exposed if exploited).
-- Remediation: a specific slash command or skill name (e.g., `/supply-chain-pin-actions`, `supply-chain-hardened-ci-cd`).
+- Remediation: the concrete fix and the skill that covers it (e.g., "pin to the full commit SHA", `supply-chain-hardened-ci-cd`). Name a `/supply-chain-*` command only if it is in your available commands.

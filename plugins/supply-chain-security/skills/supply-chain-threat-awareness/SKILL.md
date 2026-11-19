@@ -31,10 +31,12 @@ Read a campaign file only when a finding matches.
 
 Run all five steps, then report. FAILs in steps 1–3 are critical. Commands and PASS/FAIL details: `references/audit-commands.md`.
 
+The `/supply-chain-*` commands below load only in clients that load plugin commands. If one is not in your available commands, report the fix itself, without the command name.
+
 | Step | FAIL when | Fix | Campaigns |
 |---|---|---|---|
 | 1. Lockfiles | An ecosystem has no committed lockfile, or CI installs without it (`npm install`; `pixi install` or `uv sync` without `--locked`) | `npm ci`, `uv sync --locked`, `pixi install --locked`; `/supply-chain-lockfile-check` | all |
-| 2. Action pinning | Any `uses:` ref is not a full 40-character SHA, a local `./` path or an image digest | `/supply-chain-pin-actions` | TeamPCP |
+| 2. Action pinning | Any `uses:` ref is not a full 40-character SHA, a local `./` path or an image digest | Pin each ref to its full commit SHA with a `# vX.Y.Z` comment; `/supply-chain-pin-actions` | TeamPCP |
 | 3. Install-time code | A CI npm install runs scripts, or a lifecycle script is unreviewed | `npm ci --ignore-scripts`. For `.pth` files, use the PyPI `.pth` check in `supply-chain-ecosystem-quirks`. | Shai-Hulud, axios, LiteLLM |
 | 4. Cooldown | A newly adopted version was younger than the cooldown (7 days unless the project sets one) when merged | Dependabot `cooldown`, Renovate `minimumReleaseAge` | all |
 | 5. Provenance | Releases have no SBOM or signature | `supply-chain-sbom-provenance` | none |

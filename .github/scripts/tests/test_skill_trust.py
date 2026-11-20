@@ -47,7 +47,8 @@ def accept(st, **kw):
 
 
 def test_is_pilot(st):
-    assert st.is_pilot("plugins/supply-chain-security/skills/x")
+    assert st.is_pilot("plugins/ai-research-workflows/skills/x")
+    assert not st.is_pilot("plugins/supply-chain-security/skills/x")
     assert not st.is_pilot("plugins/holoviz-visualization/skills/x")
     assert not st.is_pilot("community-plugins/supply-chain-security/skills/x")
 

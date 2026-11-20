@@ -24,7 +24,8 @@ from pathlib import Path
 
 import yaml
 
-PILOT_PLUGINS: tuple[str, ...] = ("supply-chain-security", "ai-research-workflows")
+# supply-chain-security is deferred; re-adding it is a one-line change here.
+PILOT_PLUGINS: tuple[str, ...] = ("ai-research-workflows",)
 BLOCKING_SEVERITIES = {"high", "critical"}
 FIELDS = ("skill", "check_name", "file_path", "line_content", "file_sha256", "reason")
 SHA256_RE = re.compile(r"[0-9a-f]{64}")

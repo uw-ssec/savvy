@@ -169,7 +169,8 @@ def test_critical_finding_blocks(st):
 
 
 def test_path_normalisation_ignores_prefix_collision(st):
-    res = st.gate(report(finding(path=f"/abs/{SKILL}-y/SKILL.md")), SKILL, [accept(st)])
+    # "-y/SKILL.md" is what a prefix-only match on the skill dir would wrongly produce.
+    res = st.gate(report(finding(path=f"/abs/{SKILL}-y/SKILL.md")), SKILL, [accept(st, file_path="-y/SKILL.md")])
     assert len(res.blocking) == 1
     assert len(res.stale) == 1
 

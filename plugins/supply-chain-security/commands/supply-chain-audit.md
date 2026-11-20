@@ -43,10 +43,10 @@ Before classifying findings, collect ground truth with these exact commands:
 
 Every `uses:` reference in workflow files and local action files must point to a 40-character commit SHA, not a mutable ref (`@v4`, `@main`, `@latest`, `@release/v1`). The SHA must end the ref: `@<sha>/maintenance` is a branch.
 
-- Scan, from the repository root. It reads the tracked `.yml` and `.yaml` files under `.github/` and every `action.yml` or `action.yaml` in the repository, so local composite actions are checked wherever they live. Local `./` refs and `docker://` images pinned by `@sha256:` digest are accepted:
+- Scan, from the repository root. It reads the `.yml` and `.yaml` files under `.github/` and every `action.yml` or `action.yaml` in the repository, tracked or not (files matched by `.gitignore` are skipped), so local composite actions are checked wherever they live. Local `./` refs and `docker://` images pinned by `@sha256:` digest are accepted:
 
   ```bash
-  git grep -nE '^[[:space:]]*(-[[:space:]]+)?uses:' -- '.github/*.yml' '.github/*.yaml' 'action.yml' '*/action.yml' 'action.yaml' '*/action.yaml' \
+  git grep --untracked -nE '^[[:space:]]*(-[[:space:]]+)?uses:' -- '.github/*.yml' '.github/*.yaml' 'action.yml' '*/action.yml' 'action.yaml' '*/action.yaml' \
     | grep -vE 'uses:[[:space:]]*[^[:alnum:][:space:]]?\./' \
     | grep -vE "uses:[[:space:]]*[\"']?[^[:space:]\"']+@[0-9a-f]{40}[\"']?([[:space:]]|$)" \
     | grep -vE 'docker://[^[:space:]]*@sha256:[0-9a-f]{64}' \

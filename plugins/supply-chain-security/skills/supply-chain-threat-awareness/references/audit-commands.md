@@ -37,14 +37,14 @@ Checked with `--help` for npm 11.20.0, pnpm 12.21.0, Yarn 1.22.22 and 4.18.1, uv
 ## Step 2 — Action pinning
 
 ```bash
-git grep -nE '^[[:space:]]*(-[[:space:]]+)?uses:' -- '.github/*.yml' '.github/*.yaml' 'action.yml' '*/action.yml' 'action.yaml' '*/action.yaml' \
+git grep --untracked -nE '^[[:space:]]*(-[[:space:]]+)?uses:' -- '.github/*.yml' '.github/*.yaml' 'action.yml' '*/action.yml' 'action.yaml' '*/action.yaml' \
   | grep -vE 'uses:[[:space:]]*[^[:alnum:][:space:]]?\./' \
   | grep -vE "uses:[[:space:]]*[\"']?[^[:space:]\"']+@[0-9a-f]{40}[\"']?([[:space:]]|$)" \
   | grep -vE 'docker://[^[:space:]]*@sha256:[0-9a-f]{64}' \
   || echo "OK: every uses: ref is SHA- or digest-pinned, or local"
 ```
 
-Every line it prints is a FAIL. The scan reads the tracked `.yml` and `.yaml` files under `.github/` and every `action.yml` or `action.yaml` in the repository, so local composite actions are checked wherever they live (`./actions/build` as well as `./.github/actions/lint`). It accepts only:
+Every line it prints is a FAIL. The scan reads the `.yml` and `.yaml` files under `.github/` and every `action.yml` or `action.yaml` in the repository, tracked or not (files matched by `.gitignore` are skipped), so local composite actions are checked wherever they live (`./actions/build` as well as `./.github/actions/lint`). It accepts only:
 
 - a full 40-character commit SHA that ends the ref, optionally quoted and followed by a comment (`@<sha>/maintenance` is a branch, not a pin);
 - a local `./` path;

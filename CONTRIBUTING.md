@@ -99,7 +99,7 @@ Good agents for scientific software should:
 
 4. **Test Your Agent**: Test the agent with Claude Code to ensure it works as expected
 
-5. **Update Documentation**: If adding a new agent, update the category README to list it
+5. **Update Documentation**: If adding a new agent, list it in the plugin's README and run `pixi run catalog-sync` so the [skill catalog](docs/catalog.md) picks it up
 
 6. **Submit a Pull Request**: 
    - Provide a clear description of the agent and its purpose
@@ -114,7 +114,7 @@ Before submitting your PR, ensure:
 - [ ] Filename follows kebab-case convention
 - [ ] Agent prompt is clear and well-documented
 - [ ] Agent has been tested with Claude Code (or equivalent)
-- [ ] README.md is updated if adding a new agent
+- [ ] A new agent is listed in the plugin's README, and `docs/catalog.md` is regenerated with `pixi run catalog-sync`
 - [ ] Commit messages are clear and descriptive
 - [ ] `pixi run plugins-check` passes (run `pixi run plugins-sync` first if you changed a manifest or the catalog)
 - [ ] `CHANGELOG.md` has an entry under `## [Unreleased]` for each plugin you changed
@@ -187,7 +187,7 @@ To test your agent:
 
 ## 📦 Plugin Manifests and Other Clients
 
-Plugins follow the [Agent Plugins](https://agent-plugins.org/specification) v1.0.0 format, so they install in Claude Code, GitHub Copilot, Codex and Cursor, and their skills also work in Gemini CLI and OpenCode (see [Installation](docs/install.md)). Each client reads different files. Most of those files are generated, so edit only the sources:
+Plugins follow the [Agent Plugins](https://agent-plugins.org/specification) v1.0.0 format, so they install in Claude Code, GitHub Copilot, Codex, Cursor and Antigravity CLI, and their skills also work in OpenCode (see [Installation](docs/install.md)). Each client reads different files. Most of those files are generated, so edit only the sources:
 
 | Edit | Don't edit (generated) |
 | --- | --- |
@@ -223,7 +223,7 @@ Some rules matter to clients other than Claude Code:
   | `capability-mcp` | `none`, `uses` |
 
   A value states what the skill **directs the agent to do**, not what code it ships. `network: read` means it tells the agent to fetch pages or packages. `write` means it tells the agent to publish or upload. `environment: read` means it tells the agent to read environment variables or credentials. CI checks that the keys are present and the values are allowed; a reviewer, not CI, checks that the values match the skill's content.
-- **Agents and commands** load only in Claude Code and Cursor. Put anything other clients need in a skill, and update the matrix in [docs/install.md](docs/install.md) when client support changes.
+- **Agents and commands** don't load everywhere: agents load in Claude Code, Cursor and Antigravity CLI, and commands only in Claude Code and Cursor. Put anything other clients need in a skill, and update the matrix in [docs/install.md](docs/install.md) when client support changes.
 
 ## 📚 Skill Catalog
 

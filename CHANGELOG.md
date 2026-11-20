@@ -124,3 +124,10 @@ First tagged release. Plugin versions move to this release for every plugin belo
 
 - Skill trust evidence pilot for `ai-research-workflows` ([#293](https://github.com/uw-ssec/savvy/issues/293)): a skill card and a public eval task set (`evals/evals.json`) for each skill, a manually run benchmark workflow (`BENCHMARK.md`, reported and never gating), and per-skill archives signed with Sigstore by `release-sign.yml` when a release is published. These files don't count as plugin changes for [versioning](docs/versioning.md). See [Checking a skill before you install it](docs/trust-and-safety.md#checking-a-skill-before-you-install-it) and [Signed skill archives](docs/releasing.md#signed-skill-archives). Signing starts with the first release cut after this change merges, and the `release` skill no longer builds an unsigned zip for `ai-research-workflows`.
 - `CHANGELOG.md`, a [versioning policy](docs/versioning.md), and a [deprecation policy](docs/deprecation.md).
+- [docs/codespaces.md](docs/codespaces.md), with the Codespaces and LiteLLM gateway setup moved out of the README.
+- README badges for CI, the Zenodo DOI, the license, and pixi.
+
+#### Changed
+
+- The README is shorter and points to the [skill catalog](docs/catalog.md) and the other docs instead of listing every plugin, skill, and agent itself.
+- [docs/install.md](docs/install.md) and [docs/trust-and-safety.md](docs/trust-and-safety.md) cover Antigravity CLI instead of Gemini CLI, which Google retired for most users in June 2026. Each plugin README's note on client support now says which parts Antigravity CLI loads.

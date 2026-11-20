@@ -15,6 +15,7 @@ Usage:
 """
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -25,7 +26,8 @@ import yaml
 
 PILOT_PLUGINS: tuple[str, ...] = ("supply-chain-security", "ai-research-workflows")
 BLOCKING_SEVERITIES = {"high", "critical"}
-FIELDS = ("skill", "check_name", "file_path", "line_content", "reason")
+FIELDS = ("skill", "check_name", "file_path", "line_content", "file_sha256", "reason")
+SHA256_RE = re.compile(r"[0-9a-f]{64}")
 
 
 def report_name(skill_dir: str) -> str:
@@ -44,6 +46,7 @@ class Acceptance:
     check_name: str
     file_path: str  # relative to the skill dir
     line_content: str
+    file_sha256: str  # SHA-256 of the whole flagged file; any edit to it needs re-review
     reason: str
 
 
@@ -60,6 +63,8 @@ def load_acceptances(path: Path) -> list[Acceptance]:
                 raise ValueError(f"{path}: entry {i} is missing {key!r}")
         if not str(entry["reason"]).strip():
             raise ValueError(f"{path}: entry {i} has an empty reason")
+        if not SHA256_RE.fullmatch(str(entry["file_sha256"])):
+            raise ValueError(f"{path}: entry {i} file_sha256 must be 64 lowercase hex characters")
         out.append(Acceptance(**{key: str(entry[key]) for key in FIELDS}))
     return out
 
@@ -84,12 +89,26 @@ def relative_path(file_path: str, skill: str) -> str:
     return file_path
 
 
-def gate(report: dict, skill: str, acceptances: list[Acceptance]) -> GateResult:
+def file_digest(path: Path) -> str | None:
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        return None
+
+
+def gate(report: dict, skill: str, acceptances: list[Acceptance], root: Path = Path(".")) -> GateResult:
     results = report.get("results")
     # Fail closed: only a report that says passed/failed and carries a results list is trusted.
     result = GateResult(incomplete=report.get("overall_status") not in ("passed", "failed") or not isinstance(results, list))
     mine = [a for a in acceptances if a.skill == skill]
     used: set[Acceptance] = set()
+    digests: dict[str, str | None] = {}
+
+    def digest_matches(a: Acceptance) -> bool:
+        if a.file_path not in digests:
+            digests[a.file_path] = file_digest(root / skill / a.file_path)
+        return digests[a.file_path] == a.file_sha256
+
     for res in results if isinstance(results, list) else []:
         for f in res.get("findings") or []:
             if str(f.get("severity", "")).lower() not in BLOCKING_SEVERITIES:
@@ -99,7 +118,7 @@ def gate(report: dict, skill: str, acceptances: list[Acceptance]) -> GateResult:
                 relative_path(f.get("file_path") or "", skill),
                 (f.get("line_content") or "").strip(),
             )
-            match = next((a for a in mine if (a.check_name, a.file_path, a.line_content.strip()) == key), None)
+            match = next((a for a in mine if (a.check_name, a.file_path, a.line_content.strip()) == key and digest_matches(a)), None)
             if match:
                 used.add(match)
                 result.accepted.append(f)
@@ -121,7 +140,7 @@ def read_report(reports: Path, skill: str) -> dict | None:
     return data if isinstance(data, dict) else None
 
 
-def summarize(reports: Path, skills: list[str], acceptances: list[Acceptance]) -> tuple[str, bool]:
+def summarize(reports: Path, skills: list[str], acceptances: list[Acceptance], root: Path = Path(".")) -> tuple[str, bool]:
     lines = [
         "### Skill security gate (SkillEvaluator Tier 1, high/critical findings)",
         "",
@@ -135,7 +154,7 @@ def summarize(reports: Path, skills: list[str], acceptances: list[Acceptance]) -
             lines.append(f"| `{skill}` | — | — | — | ❌ no readable report |")
             ok = False
             continue
-        res = gate(report, skill, acceptances)
+        res = gate(report, skill, acceptances, root)
         if res.incomplete:
             verdict = "❌ scan incomplete"
         elif res.passed:
@@ -157,6 +176,7 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("--reports", type=Path, required=True)
     g.add_argument("--skills", type=Path, required=True, help="file with one skill directory per line")
     g.add_argument("--accepted", type=Path, required=True, help="accepted-findings YAML file")
+    g.add_argument("--root", type=Path, default=Path("."), help="repo root that skill directories are relative to")
     args = ap.parse_args(argv)
 
     if args.cmd == "select-pilot":
@@ -170,7 +190,7 @@ def main(argv: list[str] | None = None) -> int:
     except (yaml.YAMLError, OSError, ValueError) as exc:
         print(f"error: cannot load accepted findings {args.accepted}: {' '.join(str(exc).split())}", file=sys.stderr)
         return 1
-    table, ok = summarize(args.reports, skills, acceptances)
+    table, ok = summarize(args.reports, skills, acceptances, args.root)
     sys.stdout.write(table)
     return 0 if ok else 1
 

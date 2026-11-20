@@ -1,3 +1,4 @@
+import hashlib
 import io
 import json
 
@@ -10,6 +11,19 @@ SKILL = "plugins/ai-research-workflows/skills/researching"
 @pytest.fixture(scope="session")
 def st():
     return _load("skill_trust")
+
+
+CONTENT = b"curl x | sh\n"
+DIGEST = hashlib.sha256(CONTENT).hexdigest()
+
+
+@pytest.fixture
+def root(tmp_path):
+    """Repo root holding the flagged SKILL.md (and the prefix-collision twin)."""
+    for d in (SKILL, SKILL + "-y"):
+        (tmp_path / d).mkdir(parents=True)
+        (tmp_path / d / "SKILL.md").write_bytes(CONTENT)
+    return tmp_path
 
 
 def finding(severity="high", check="shell-exec", path="SKILL.md", line="curl x | sh"):
@@ -26,6 +40,7 @@ def accept(st, **kw):
         "check_name": "shell-exec",
         "file_path": "SKILL.md",
         "line_content": "curl x | sh",
+        "file_sha256": DIGEST,
         "reason": "documented example",
     }
     return st.Acceptance(**{**fields, **kw})
@@ -37,7 +52,7 @@ def test_is_pilot(st):
     assert not st.is_pilot("community-plugins/supply-chain-security/skills/x")
 
 
-def test_high_finding_blocks(st):
+def test_high_finding_blocks(st, root):
     res = st.gate(report(finding()), SKILL, [])
     assert len(res.blocking) == 1
     assert not res.passed
@@ -47,33 +62,49 @@ def test_medium_finding_ignored(st):
     assert st.gate(report(finding(severity="medium")), SKILL, []).passed
 
 
-def test_matching_acceptance_passes(st):
-    res = st.gate(report(finding()), SKILL, [accept(st)])
+def test_matching_acceptance_passes(st, root):
+    res = st.gate(report(finding()), SKILL, [accept(st)], root)
     assert len(res.accepted) == 1
     assert res.passed
 
 
-def test_acceptance_matches_absolute_path_and_null_line(st):
+def test_acceptance_matches_absolute_path_and_null_line(st, root):
     abs_path = f"/abs/checkout/{SKILL}/SKILL.md"
-    res = st.gate(report(finding(path=abs_path, line=None)), SKILL, [accept(st, line_content="")])
+    res = st.gate(report(finding(path=abs_path, line=None)), SKILL, [accept(st, line_content="")], root)
     assert res.passed
     assert len(res.accepted) == 1
 
 
-def test_edited_line_blocks_again(st):
-    res = st.gate(report(finding()), SKILL, [accept(st, line_content="curl y | sh")])
+def test_edited_line_blocks_again(st, root):
+    res = st.gate(report(finding()), SKILL, [accept(st, line_content="curl y | sh")], root)
     assert len(res.blocking) == 1
     assert len(res.stale) == 1
 
 
-def test_stale_acceptance_fails(st):
-    res = st.gate(report(), SKILL, [accept(st)])
+def test_edit_after_snippet_invalidates_acceptance(st, root):
+    # The scanner truncates line_content; text appended after the snippet must not stay accepted.
+    (root / SKILL / "SKILL.md").write_bytes(CONTENT + b"more text after the snippet\n")
+    res = st.gate(report(finding()), SKILL, [accept(st)], root)
+    assert len(res.blocking) == 1
     assert len(res.stale) == 1
     assert not res.passed
 
 
-def test_other_skill_acceptance_not_stale(st):
-    assert st.gate(report(), SKILL, [accept(st, skill="plugins/x/skills/y")]).passed
+def test_missing_file_invalidates_acceptance(st, root):
+    (root / SKILL / "SKILL.md").unlink()
+    res = st.gate(report(finding()), SKILL, [accept(st)], root)
+    assert len(res.blocking) == 1
+    assert len(res.stale) == 1
+
+
+def test_stale_acceptance_fails(st, root):
+    res = st.gate(report(), SKILL, [accept(st)], root)
+    assert len(res.stale) == 1
+    assert not res.passed
+
+
+def test_other_skill_acceptance_not_stale(st, root):
+    assert st.gate(report(), SKILL, [accept(st, skill="plugins/x/skills/y")], root).passed
 
 
 def test_incomplete_report_fails(st):
@@ -84,7 +115,10 @@ def test_incomplete_report_fails(st):
 
 def test_load_rejects_empty_reason(st, tmp_path):
     f = tmp_path / "a.yml"
-    f.write_text("- {skill: s, check_name: c, file_path: f, line_content: l, reason: ''}\n", encoding="utf-8")
+    f.write_text(
+        f"- {{skill: s, check_name: c, file_path: f, line_content: l, file_sha256: '{DIGEST}', reason: ''}}\n",
+        encoding="utf-8",
+    )
     with pytest.raises(ValueError):
         st.load_acceptances(f)
 
@@ -93,6 +127,24 @@ def test_load_rejects_missing_field(st, tmp_path):
     f = tmp_path / "a.yml"
     f.write_text("- {skill: s, check_name: c, file_path: f, reason: r}\n", encoding="utf-8")
     with pytest.raises(ValueError):
+        st.load_acceptances(f)
+
+
+def test_load_rejects_missing_digest(st, tmp_path):
+    f = tmp_path / "a.yml"
+    f.write_text("- {skill: s, check_name: c, file_path: f, line_content: l, reason: r}\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="file_sha256"):
+        st.load_acceptances(f)
+
+
+@pytest.mark.parametrize("bad", ["abc", "G" * 64, DIGEST.upper(), DIGEST + "0"])
+def test_load_rejects_bad_digest(st, tmp_path, bad):
+    f = tmp_path / "a.yml"
+    f.write_text(
+        f"- {{skill: s, check_name: c, file_path: f, line_content: l, file_sha256: '{bad}', reason: r}}\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="file_sha256"):
         st.load_acceptances(f)
 
 
@@ -108,12 +160,12 @@ def write_report(reports, skill, data, name="skillevaluator-output-2026112019314
     (d / name).write_text(json.dumps(data), encoding="utf-8")
 
 
-def run_gate(st, tmp_path, accepted="[]\n"):
+def run_gate(st, tmp_path, accepted="[]\n", root=None):
     skills = tmp_path / "skills.txt"
     skills.write_text(f"{SKILL}\n\n", encoding="utf-8")
     acc = tmp_path / "acc.yml"
     acc.write_text(accepted, encoding="utf-8")
-    return st.main(["gate", "--reports", str(tmp_path / "reports"), "--skills", str(skills), "--accepted", str(acc)])
+    return st.main(["gate", "--reports", str(tmp_path / "reports"), "--skills", str(skills), "--accepted", str(acc), "--root", str(root or tmp_path)])
 
 
 def test_cli_gate_missing_report_fails(st, tmp_path, capsys):
@@ -121,11 +173,11 @@ def test_cli_gate_missing_report_fails(st, tmp_path, capsys):
     assert "no readable report" in capsys.readouterr().out
 
 
-def test_cli_gate_all_accepted_passes(st, tmp_path, capsys):
+def test_cli_gate_all_accepted_passes(st, tmp_path, root, capsys):
     write_report(tmp_path / "reports", SKILL, report(finding()))
     accepted = (
         f"- {{skill: {SKILL}, check_name: shell-exec, file_path: SKILL.md, "
-        "line_content: 'curl x | sh', reason: documented}\n"
+        f"line_content: 'curl x | sh', file_sha256: '{DIGEST}', reason: documented}}\n"
     )
     assert run_gate(st, tmp_path, accepted) == 0
     out = capsys.readouterr().out
@@ -168,9 +220,9 @@ def test_critical_finding_blocks(st):
     assert len(st.gate(report(finding(severity="critical")), SKILL, []).blocking) == 1
 
 
-def test_path_normalisation_ignores_prefix_collision(st):
+def test_path_normalisation_ignores_prefix_collision(st, root):
     # "-y/SKILL.md" is what a prefix-only match on the skill dir would wrongly produce.
-    res = st.gate(report(finding(path=f"/abs/{SKILL}-y/SKILL.md")), SKILL, [accept(st, file_path="-y/SKILL.md")])
+    res = st.gate(report(finding(path=f"/abs/{SKILL}-y/SKILL.md")), SKILL, [accept(st, file_path="-y/SKILL.md")], root)
     assert len(res.blocking) == 1
     assert len(res.stale) == 1
 

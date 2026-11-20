@@ -1,14 +1,16 @@
 # Accepted SkillEvaluator high/critical findings for the skill trust pilot.
 # Each entry is a mapping with: skill (repo-relative skill dir), check_name,
-# file_path (relative to the skill dir), line_content (exact line, stripped),
-# and reason (why the finding is safe). An entry that stops matching a finding
-# fails the gate, and a changed line is a new finding. CODEOWNERS reviews
-# every change to this file.
+# file_path (relative to the skill dir), line_content (the scanner's reported
+# snippet: may be multi-line and truncated, copy it exactly from the report),
+# file_sha256 (SHA-256 of the whole flagged file, so any edit to that file
+# needs re-review; compute with `shasum -a 256 <skill>/<file_path>`), and
+# reason (why the finding is safe). An entry that stops matching a finding or
+# whose file changed fails the gate. CODEOWNERS reviews every change to this file.
 - skill: plugins/ai-research-workflows/skills/validating-implementations
   check_name: Anti-Refusal Statement (AR2)
   file_path: SKILL.md
   line_content: "- No memory of implementation decisions; reconstruct from git and artifacts.\n- Focus\
     \ on observable facts: does the code match the plan, do tests pass, are\n  success criteria met?\n\
     - Don't speculate abo"
-  reason: 'False positive: describes the context of a fresh review session (no prior memory), not an instruction
-    to suppress warnings or refusals.'
+  file_sha256: bb09df9fe645ea6d0a390ab907069997c0198c0ae46b6659d528a9960cdde41f
+  reason: "False positive: the trigger is 'without judging' (line 50), which asks the reviewer to report deviations neutrally, not to suppress warnings or refusals; line 47 describes a fresh session."

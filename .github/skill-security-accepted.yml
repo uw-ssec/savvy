@@ -1,0 +1,7 @@
+# Accepted SkillEvaluator high/critical findings for the skill trust pilot.
+# Each entry is a mapping with: skill (repo-relative skill dir), check_name,
+# file_path (relative to the skill dir), line_content (exact line, stripped),
+# and reason (why the finding is safe). An entry that stops matching a finding
+# fails the gate, and a changed line is a new finding. CODEOWNERS reviews
+# every change to this file.
+[]

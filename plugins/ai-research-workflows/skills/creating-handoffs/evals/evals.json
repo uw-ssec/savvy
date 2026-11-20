@@ -1,0 +1,115 @@
+{
+  "skill_name": "creating-handoffs",
+  "evals": [
+    {
+      "id": "creating-handoffs-001",
+      "prompt": "Please write a handoff for the auth refactor I've been working on. I'm done for the day and someone else will pick it up tomorrow in a fresh session.",
+      "expected_output": "A handoff markdown file named in the pattern handoff-YYYY-MM-DD-HH-MM-<slug>.md (slug describing the auth refactor) saved under the project's docs/rse/specs/ area. It records the current git branch, short commit hash, and a summary of uncommitted changes, lists task statuses (completed, in progress, planned), names the 2-3 critical files to read first with file:line references, and gives prioritized next steps. Uncommitted or unpushed work and any failing or unrun tests are called out explicitly rather than glossed over.",
+      "assertions": [
+        "The agent ran git commands to capture the current branch, short commit hash, and git status/diff --stat output, and the resulting values appear in the handoff",
+        "The agent wrote a file whose name matches handoff-YYYY-MM-DD-HH-MM-<kebab-slug>.md",
+        "The handoff includes a section flagging uncommitted/unpushed changes and the actual test status (failing or unrun tests are named, not implied green)",
+        "The handoff lists next steps in priority order and references critical files with file:line notation",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+      ],
+      "expected_skill": "creating-handoffs",
+      "expected_script": null
+    },
+    {
+      "id": "creating-handoffs-002",
+      "prompt": "I'm about to run out of time and a teammate is taking over this branch tomorrow. Can you summarize all the context from what we did this session so they can pick up exactly where we left off?",
+      "expected_output": "A persisted handoff document capturing the session's work for the teammate: tasks worked on with status, the current workflow phase, the git branch/commit/uncommitted-change state, relevant plan/research/implement documents found under docs/rse/specs/ (or legacy .agents/), recent code changes with file:line references, learnings or gotchas discovered, and prioritized next steps.",
+      "assertions": [
+        "The agent inspected the repository's git state and searched docs/rse/specs/ (and legacy .agents/) for existing research, plan, implement, validation, or handoff documents",
+        "The agent produced a handoff document file (not just a chat summary) containing task statuses, the current workflow phase, and next steps",
+        "The handoff references relevant existing workflow artifacts by path and omits template sections that do not apply",
+        "The agent's final response tells the user where the handoff file was saved",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+      ],
+      "expected_skill": "creating-handoffs",
+      "expected_script": null
+    },
+    {
+      "id": "creating-handoffs-003",
+      "prompt": "I've been training a model for 3 days. The sweep job is still running on the cluster (job id 48213), the last checkpoint is at outputs/run_07/ckpt_epoch40.pt, I used seed 1234 and the uv.lock is committed, but my eval script on the validation split is throwing a shape error I haven't fixed yet. I have to go on leave tomorrow, so prepare a handoff for whoever continues this.",
+      "expected_output": "A handoff document that preserves the research state needed to resume: seed 1234, the uv.lock environment, dataset version/path details (or an explicit note that they were not provided), the checkpoint at outputs/run_07/ckpt_epoch40.pt, and the in-flight job 48213 with instructions on how to check or resume it. The broken validation eval script with the shape error appears in a prominent 'Known-broken / unverified' callout, and results are not presented as validated.",
+      "assertions": [
+        "The agent's handoff records seed 1234, the uv.lock environment, the checkpoint path outputs/run_07/ckpt_epoch40.pt, and job ID 48213 with a way to check on or resume it",
+        "The handoff includes a clearly labeled known-broken/unverified section stating that the eval script on the validation split fails with a shape error",
+        "The agent did not describe the training results as verified or passing, and flagged missing information such as dataset version/checksum rather than inventing it",
+        "The agent wrote the handoff to a file named handoff-YYYY-MM-DD-HH-MM-<slug>.md",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+      ],
+      "expected_skill": "creating-handoffs",
+      "expected_script": null
+    },
+    {
+      "id": "creating-handoffs-004",
+      "prompt": "My context window is nearly full and I'm stopping here. We're in the middle of Phase 2 of docs/rse/specs/plan-cache-layer.md. Two tests are still failing (tests/test_eviction.py::test_ttl and tests/test_eviction.py::test_lru_order). Write this up so a fresh session can continue.",
+      "expected_output": "A handoff file recording the current workflow phase (implementation of Phase 2), a reference to the plan by path, the two failing tests named explicitly, next steps in priority order and the 2-3 critical files the next session must read first.",
+      "assertions": [
+        "The agent wrote a handoff file in docs/rse/specs/ named handoff-YYYY-MM-DD-HH-MM-<slug>.md",
+        "The handoff references docs/rse/specs/plan-cache-layer.md by path and states that the work is in the implementation phase (Phase 2)",
+        "The handoff names tests/test_eviction.py::test_ttl and tests/test_eviction.py::test_lru_order as failing and does not describe the test suite as passing",
+        "The handoff names the 2-3 most important files the next session must read first",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+      ],
+      "expected_skill": "creating-handoffs",
+      "expected_script": null
+    },
+    {
+      "id": "creating-handoffs-005",
+      "prompt": "Yesterday's handoff is at docs/rse/specs/handoff-2026-03-02-10-15-etl-fix.md. Today I finished the retry logic it listed as the next step but the schema migration is still open. Please create a new handoff for tomorrow.",
+      "expected_output": "A new handoff document that references the previous handoff by path, marks the retry logic as done, keeps the schema migration open as a next step, and captures the current repository state.",
+      "assertions": [
+        "The agent wrote a new timestamped handoff-YYYY-MM-DD-HH-MM-<slug>.md file rather than only editing the earlier handoff",
+        "The new handoff references docs/rse/specs/handoff-2026-03-02-10-15-etl-fix.md as the previous handoff",
+        "The handoff records the retry logic as completed and the schema migration as still open or next",
+        "The agent ran commands to capture the branch, short commit hash and uncommitted changes and included them in the handoff",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+      ],
+      "expected_skill": "creating-handoffs",
+      "expected_script": null
+    },
+    {
+      "id": "creating-handoffs-neg-001",
+      "prompt": "I finished the rate limiter and I'm about to open a PR. Can you check that it matches docs/rse/specs/plan-rate-limiter.md and that nothing was missed?",
+      "expected_output": "A validation of the implementation against the plan (plan read, tests run, per-phase status). This belongs to validating-implementations, not to a handoff.",
+      "assertions": [
+        "The agent read docs/rse/specs/plan-rate-limiter.md, compared it with the code and ran the tests",
+        "The agent did not create a handoff-*.md file",
+        "The agent gave a verdict on whether the implementation matches the plan",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+      ],
+      "expected_skill": null,
+      "expected_script": null
+    },
+    {
+      "id": "creating-handoffs-neg-002",
+      "prompt": "Can you explain the difference between git rebase and git merge, and when I should use each one?",
+      "expected_output": "A clear explanation of how git rebase and git merge differ (rebase rewrites history onto a new base for a linear history; merge preserves history with a merge commit), with guidance on when to use each, such as rebasing local feature branches and merging shared or public branches, and a warning about rebasing shared history. No handoff document is created.",
+      "assertions": [
+        "The agent's response explains that merge preserves history with a merge commit while rebase replays commits onto a new base",
+        "The response gives concrete guidance on when to choose each, including caution about rebasing shared branches",
+        "The agent did not create any handoff-*.md file or run commands to gather the repository's session state",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+      ],
+      "expected_skill": null,
+      "expected_script": null
+    }
+  ],
+  "generation": {
+    "mode": "llm",
+    "grounding": "skill",
+    "inputs": [
+      {
+        "kind": "skill_md",
+        "path": "SKILL.md",
+        "sha256": "ae9a0c07a802e4ad030bd7eb4438182f94335352377131c9b52b6941f36f2f60"
+      }
+    ],
+    "generated_at": "2026-11-20T20:44:04.394766+00:00",
+    "review_state": "unreviewed",
+    "needs_review_count": 0
+  }
+}

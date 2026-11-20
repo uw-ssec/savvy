@@ -1,18 +1,18 @@
-# RSE Plugins
+# savvy
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/uw-ssec/rse-plugins?quickstart=1)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/uw-ssec/savvy?quickstart=1)
 
 Custom AI agents and skills for Research Software Engineering (RSE) and Scientific Computing tasks, designed for use with [Claude Code](https://www.anthropic.com/claude/code) and compatible AI coding assistants.
 
 ## GitHub Codespaces
 
-Click the badge above to open a Codespace with all RSE plugins pre-installed. Claude Code and GitHub Copilot CLI are ready to use immediately.
+Click the badge above to open a Codespace with all savvy plugins pre-installed. Claude Code and GitHub Copilot CLI are ready to use immediately.
 
 ### Using a LiteLLM Gateway (Optional)
 
 To route Copilot through a custom LiteLLM-compatible gateway, you need to set two secrets. Because GitHub Codespaces secrets can only be scoped to repos you own, follow these steps:
 
-1. **Fork this repo** — Click **Fork** on [github.com/uw-ssec/rse-plugins](https://github.com/uw-ssec/rse-plugins).
+1. **Fork this repo** — Click **Fork** on [github.com/uw-ssec/savvy](https://github.com/uw-ssec/savvy).
 2. **Add secrets** — Go to your GitHub account settings: **Settings → Codespaces → Secrets**, then add:
    - `LITELLM_BASE_URL` — your gateway base URL
    - `LITELLM_API_KEY` — your gateway API key
@@ -46,7 +46,7 @@ In Claude Code:
 
 ```bash
 claude plugin marketplace add uw-ssec/savvy
-claude plugin install scientific-python-development@rse-plugins
+claude plugin install scientific-python-development@savvy
 ```
 
 ## Available Plugins
@@ -183,7 +183,7 @@ Browse the [plugins directory](plugins/) and [community-plugins directory](commu
 ## Repository Structure
 
 ```
-rse-plugins/
+savvy/
 ├── .claude-plugin/
 │   └── marketplace.json                                # Plugin catalog (Claude Code, Copilot CLI, Codex)
 ├── .agents/plugins/
@@ -334,6 +334,8 @@ For detailed information about the plugins and their contents:
 
 - [Installation](docs/install.md) - Which clients load which parts of a plugin, and how to install in each
 - [Contributing Guidelines](CONTRIBUTING.md) - How to contribute to this repository
+- [Versioning Policy](docs/versioning.md) - How releases and plugin versions are numbered
+- [Deprecation Policy](docs/deprecation.md) - Notice you get before a skill, command, agent or plugin changes or disappears
 - [Trust and Safety](docs/trust-and-safety.md) - What plugins can and can't do, how to review one before installing, and where to find each client's permission controls
 - [Security Policy](SECURITY.md) - How to report a vulnerability privately, response times and supported versions
 - [HoloViz Ecosystem Overview](community-plugins/holoviz-visualization/references/holoviz-ecosystem.md) - Introduction to the HoloViz ecosystem
@@ -370,6 +372,12 @@ For detailed information about the plugins and their contents:
 - [Claude Code Documentation](https://docs.anthropic.com/claude/docs)
 - [Claude Plugin Marketplace](https://code.claude.com/docs/en/plugins)
 
+## How to cite
+
+If you use savvy in your research, please cite it. The **Cite this repository** button in the repository sidebar gives APA and BibTeX, generated from [CITATION.cff](CITATION.cff).
+
+Each GitHub Release is archived on Zenodo with a DOI. The DOI will be listed here after the first release.
+
 ## License
 
 This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICENSE) file for details.
@@ -380,4 +388,4 @@ Developed and maintained by the University of Washington Scientific Software Eng
 
 ## Questions or Issues?
 
-Please open an issue on [GitHub](https://github.com/uw-ssec/rse-plugins/issues). Report security problems privately as described in [SECURITY.md](SECURITY.md), not in a public issue.
+Please open an issue on [GitHub](https://github.com/uw-ssec/savvy/issues). Report security problems privately as described in [SECURITY.md](SECURITY.md), not in a public issue.

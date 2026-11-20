@@ -13,8 +13,13 @@ on:
 
 permissions: {}  # deny everything; each job opts in
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false  # never cancel a publish halfway
+
 jobs:
   build:
+    name: Build distributions
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -23,6 +28,8 @@ jobs:
         with:
           egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false  # keep the token out of .git/config
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: "3.13"
@@ -37,6 +44,7 @@ jobs:
           path: dist/
 
   publish:
+    name: Publish to PyPI
     needs: build
     runs-on: ubuntu-latest
     environment: pypi  # add required reviewers in Settings → Environments

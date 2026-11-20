@@ -59,7 +59,7 @@ Read [references/hardening-patterns.md](references/hardening-patterns.md) before
 
 ## Common Mistakes
 
-- A step left on a branch ref, like this skill's old `pypa/gh-action-pypi-publish@release/v1` example.
+- A step left on a branch ref, such as `pypa/gh-action-pypi-publish@release/v1`.
 - Snippets that don't parse (`permissions:` then a bare `- uses:`). Validate before proposing.
 - `@...` or `<sha>` placeholders without the resolve command.
 - `environment:` without required reviewers gates nothing.

@@ -55,7 +55,7 @@ copilot plugin install gaia-data-downloader@savvy
 
 Or install directly:
 ```bash
-copilot plugin install uw-ssec/rse-plugins:community-plugins/gaia-data-downloader
+copilot plugin install uw-ssec/savvy:community-plugins/gaia-data-downloader
 ```
 
 ## Usage

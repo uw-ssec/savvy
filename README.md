@@ -1,12 +1,12 @@
 # savvy
 
+[![UW SSEC Project](https://img.shields.io/endpoint?url=https://uwssec.org/badges/uw-ssec.json&label=Project)](https://uwssec.org)
 [![Validate Plugins](https://github.com/uw-ssec/savvy/actions/workflows/validate-plugins.yml/badge.svg?branch=main)](https://github.com/uw-ssec/savvy/actions/workflows/validate-plugins.yml?query=branch%3Amain)
 [![Test CI scripts](https://github.com/uw-ssec/savvy/actions/workflows/test-ci-scripts.yml/badge.svg?branch=main)](https://github.com/uw-ssec/savvy/actions/workflows/test-ci-scripts.yml?query=branch%3Amain)
 [![DOI](https://zenodo.org/badge/1091290859.svg)](https://zenodo.org/badge/latestdoi/1091290859)
 [![License: BSD-3-Clause](https://img.shields.io/github/license/uw-ssec/savvy)](LICENSE)
 [![Pixi Badge](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/prefix-dev/pixi/main/assets/badge/v0.json)](https://pixi.sh)
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/uw-ssec/savvy?quickstart=1)
-[![UW SSEC Project](https://img.shields.io/endpoint?url=https://uwssec.org/badges/uw-ssec.json&label=Project)](https://uwssec.org)
 
 savvy is a collection of plugins that help AI coding assistants with research software engineering and scientific computing, so the code they help write follows the practices the Scientific Python community already uses. The plugins cover environments with pixi, packaging, testing, documentation, containers, supply-chain security, research workflows, and project handoff, along with domain work in astronomy, climate and Earth science, Zarr, and interactive visualization with HoloViz. Each plugin bundles skills (instructions the assistant loads when a request matches them), and many add agents and commands for Claude Code.
 

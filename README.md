@@ -1,6 +1,6 @@
 # savvy
 
-[![UW SSEC Project](https://img.shields.io/endpoint?url=https://uwssec.org/badges/uw-ssec.json&label=Project)](https://uwssec.org)
+[![UW SSEC Project](https://img.shields.io/endpoint?url=https://uwssec.org/badges/uw-ssec.json&label=Project)](https://escience.washington.edu/software-engineering/ssec/)
 [![Validate Plugins](https://github.com/uw-ssec/savvy/actions/workflows/validate-plugins.yml/badge.svg?branch=main)](https://github.com/uw-ssec/savvy/actions/workflows/validate-plugins.yml?query=branch%3Amain)
 [![Test CI scripts](https://github.com/uw-ssec/savvy/actions/workflows/test-ci-scripts.yml/badge.svg?branch=main)](https://github.com/uw-ssec/savvy/actions/workflows/test-ci-scripts.yml?query=branch%3Amain)
 [![DOI](https://zenodo.org/badge/1091290859.svg)](https://zenodo.org/badge/latestdoi/1091290859)

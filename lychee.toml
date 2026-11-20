@@ -62,6 +62,10 @@ exclude = [
     "^https://vizier\\.cds\\.unistra\\.fr/$",
     "^https://www\\.anthropic\\.com/claude/code$",
     "^https://www\\.sphinx-doc\\.org/en/master/usage/accessibility\\.html$",
+    # README DOI badge: Zenodo returns 404 until the first release is archived.
+    # Delete these lines after the first release.
+    "^https://zenodo\\.org/badge/1091290859\\.svg$",
+    "^https://zenodo\\.org/badge/latestdoi/1091290859$",
     # TLS chain validation fails on the CI runner (UnknownIssuer against its
     # Let's Encrypt intermediate); loads fine in a browser and from other hosts.
     "^https://www\\.softwareheritage\\.org/$",

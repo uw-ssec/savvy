@@ -1,119 +1,53 @@
 ---
 name: cloud-storage-backends
-description: Configures Zarr stores on cloud object storage, covering S3, GCS, and Azure Blob backends via fsspec (s3fs, gcsfs, adlfs), the high-performance Rust-based obstore library, and Icechunk for versioned cloud storage. Covers authentication patterns, caching strategies, and performance tuning for remote I/O. Use when the user asks about reading or writing Zarr data on S3, GCS, or Azure, or mentions fsspec, obstore, or Icechunk for remote Zarr access.
+description: Use when reading or writing Zarr data on Amazon S3, Google Cloud Storage, Azure Blob or an S3-compatible endpoint such as MinIO, when setting up FsspecStore, ObjectStore (obstore), s3fs, gcsfs, adlfs or Icechunk storage and credentials, or when remote Zarr access fails or is slow, with symptoms like 403 Forbidden, NoCredentialsError, requester-pays buckets, slow store opens, timeouts, high GET-request bills, CORS errors, or an fsspec simplecache or filecache that errors or never hits.
 metadata:
   references: references/patterns.md references/examples.md references/common-issues.md
 ---
 
 # Cloud Storage Backends for Zarr
 
-Configure Zarr to read and write arrays on Amazon S3, Google Cloud Storage, and Azure Blob Storage using fsspec, obstore, or Icechunk.
+Connects zarr-python 3 to S3, GCS and Azure Blob through fsspec, obstore or Icechunk, covering credentials, caching and request tuning.
 
-## Resources
+**Core principle:** on object storage every metadata or chunk read is an HTTP request with ~20–100 ms to first byte, so request count sets cost and speed. Consolidate metadata, keep chunk objects at 1 MB or more, raise concurrency, and let the provider's credential chain supply secrets.
 
-| Resource | Purpose |
-|----------|---------|
-| [references/patterns.md](references/patterns.md) | Full code patterns: S3, GCS, Azure, obstore, Icechunk, caching |
-| [references/examples.md](references/examples.md) | Real-world end-to-end examples (CMIP6, multi-backend pipeline) |
-| [references/common-issues.md](references/common-issues.md) | Auth failures, slow reads, timeouts, CORS, cost optimization |
+## When to Use
 
-## Installation
+Opening or writing a store at an `s3://`, `gs://`, `az://` or S3-compatible URL; choosing FsspecStore, ObjectStore or Icechunk; or a remote store that errors, crawls or costs too much.
 
-```bash
-pip install zarr[remote]          # fsspec + s3fs + gcsfs + adlfs
-pip install obstore               # Rust-based high-performance backend
-pip install icechunk              # versioned cloud storage
-```
-
-## Backend Decision Tree
-
-```
-Need cloud Zarr access?
-├── Public read-only dataset? → FsspecStore.from_url with anon=True
-├── Need versioning/transactions? → IcechunkStore
-├── Need maximum throughput? → obstore (ObjectStore)
-└── Standard authenticated access? → FsspecStore.from_url with storage_options
-    ├── AWS S3 → s3fs / obstore S3Store
-    ├── GCS   → gcsfs / obstore GCSStore
-    └── Azure → adlfs / obstore AzureStore
-```
+**When NOT to use:**
+- Choosing chunk or shard shapes: `chunking-strategy`. Rewriting to a new layout: `rechunking` (both in zarr-chunk-optimization).
+- Zarr basics, v2 vs v3, the sharding API: `zarr-fundamentals`.
+- `xr.open_zarr` / `to_zarr` options, Dask alignment: `zarr-xarray-integration`.
+- NetCDF/HDF5 to Zarr, VirtualiZarr or Kerchunk: `data-migration`.
 
 ## Quick Reference
 
-```python
-from zarr.storage import FsspecStore
-import zarr
+Install the filesystem you need (`s3fs`, `gcsfs`, `adlfs`, `obstore`, `icechunk`). `zarr[remote]` adds only fsspec and obstore.
 
-# S3 — anonymous (public data)
-store = FsspecStore.from_url("s3://my-bucket/data.zarr", storage_options={"anon": True})
+| Need | zarr-python 3 |
+|---|---|
+| Public S3 | `FsspecStore.from_url("s3://b/x.zarr", storage_options={"anon": True}, read_only=True)` |
+| Public GCS / Azure | `{"token": "anon"}` (gcsfs ignores `anon`) / `{"account_name": "acct", "anon": True}` |
+| Requester-pays S3 | `{"requester_pays": True}`, with credentials |
+| Private bucket | Env vars, `{"profile": "name"}`, IAM role, `{"token": "google_default"}`, Azure `{"account_name": "acct"}` (DefaultAzureCredential) |
+| MinIO / Ceph | `{"endpoint_url": "http://host:9000"}`, keys in `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` |
+| obstore | `zarr.storage.ObjectStore(S3Store.from_url(url, region="us-west-2"), read_only=True)` |
+| Versions, atomic commits | Icechunk: `repo.writable_session("main")`, write to `session.store`, `session.commit(msg)` |
+| Local cache | `"simplecache::s3://b/x.zarr"` with `{"s3": {"anon": True, "asynchronous": True}, "simplecache": {"cache_storage": "/tmp/zarr-cache"}}` |
+| More parallel GETs | `zarr.config.set({"async.concurrency": 64})` (default 10); s3fs also needs `{"config_kwargs": {"max_pool_connections": 64}}` |
+| Faster opens | `zarr.consolidate_metadata(store)` after writes (v2: `.zmetadata`; v3: inside the root `zarr.json`) |
 
-# S3 — authenticated (env vars, IAM role, or profile)
-store = FsspecStore.from_url("s3://my-bucket/data.zarr",
-    storage_options={"profile": "research-account"})
+Code per provider: [patterns.md](references/patterns.md). End-to-end runs: [examples.md](references/examples.md). Fixes by symptom: [common-issues.md](references/common-issues.md). Credential-free demo: `python assets/cloud-storage-demo.py`.
 
-# GCS — application default credentials
-store = FsspecStore.from_url("gs://my-bucket/data.zarr",
-    storage_options={"token": "google_default"})
+## Common Mistakes
 
-# Azure — connection string
-store = FsspecStore.from_url("az://my-container/data.zarr",
-    storage_options={"connection_string": "DefaultEndpointsProtocol=https;..."})
-
-# obstore — high-throughput S3
-from obstore.store import S3Store
-obs = S3Store.from_url("s3://my-bucket/data.zarr", config={"AWS_REGION": "us-west-2"})
-store = zarr.storage.ObjectStore(obs, read_only=True)
-
-# Icechunk — versioned S3
-from icechunk import IcechunkStore, StorageConfig
-storage = StorageConfig.s3_from_env(bucket="my-bucket", prefix="data.zarr", region="us-west-2")
-store = IcechunkStore.open_or_create(storage=storage, mode="w")
-
-# Caching — avoid repeated remote downloads
-store = FsspecStore.from_url("simplecache::s3://my-bucket/data.zarr",
-    storage_options={"s3": {"anon": True},
-                     "simplecache": {"cache_storage": "/tmp/zarr-cache"}})
-```
-
-## Verify Connection Before Proceeding
-
-Always test store connectivity before running analysis:
-
-```python
-import zarr
-from zarr.storage import FsspecStore
-from botocore.exceptions import ClientError, NoCredentialsError
-
-def open_store_safe(url: str, **storage_options):
-    try:
-        store = FsspecStore.from_url(url, storage_options=storage_options)
-        root = zarr.open_group(store=store, mode="r")
-        # Force a real read to verify credentials and connectivity
-        _ = dict(root.info)
-        return root
-    except (PermissionError, ClientError) as e:
-        raise PermissionError(f"Auth failed for {url}: {e}. "
-            "Check credentials or use anon=True for public data.") from e
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Store not found at {url}. "
-            "Verify the bucket name, prefix, and region.") from None
-    except Exception as e:
-        raise RuntimeError(f"Could not open {url}: {e}") from e
-```
-
-Common error signals:
-- `403 Forbidden` / `NoCredentialsError` → wrong or missing credentials; see [common-issues.md](references/common-issues.md)
-- `FileNotFoundError` → wrong path/prefix or bucket does not exist
-- Slow first open → no consolidated metadata; run `zarr.consolidate_metadata(store)` on v2 stores
-
-## Performance Quick Reference
-
-| Factor | Recommendation |
-|--------|----------------|
-| Chunk size | 1–10 MB per chunk for cloud (too small = too many requests) |
-| Metadata | Run `zarr.consolidate_metadata(store)` on v2 stores |
-| Concurrency | Use obstore for automatic async connection pooling |
-| Repeated reads | Use `simplecache` or `filecache` (see caching pattern above) |
-| Icechunk commit | Call `store.commit("message")` after every logical write batch |
-
-See [patterns.md](references/patterns.md) for full auth options per provider and [common-issues.md](references/common-issues.md) for slow-read and timeout diagnostics.
+| Mistake | Fix |
+|---|---|
+| Keys, SAS tokens or connection strings in code | Environment variables, profiles, instance roles, managed identity |
+| zarr-2 `FSStore` / `LRUStoreCache`; Icechunk `StorageConfig` / `IcechunkStore.open_or_create` | Removed. Use `FsspecStore`; `icechunk.Repository` + `Session` |
+| `simplecache::` with only `{"s3": {"anon": True}}` | Add `"asynchronous": True`, or reads fail with an event-loop `HTTPClientError` whenever the process already used a sync s3fs with the same options |
+| `simplecache::` on sharded arrays or changing data | Unsharded, unchanging data only: shard reads raise `OSError` and cached objects never refresh |
+| `filecache::` / `blockcache::` for Zarr on S3, GCS or Azure | Use `simplecache::`; through `FsspecStore` these re-download on every read |
+| Sharding to cut GET requests | Bigger inner chunks cut GETs. A partial-shard read is an index GET plus one ranged GET per inner chunk; sharding cuts object and PUT counts |
+| Parallel workers writing parts of one shard | Each partial write rewrites the whole shard; align write blocks to shards |

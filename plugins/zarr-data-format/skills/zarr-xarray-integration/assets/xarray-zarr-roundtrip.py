@@ -11,8 +11,8 @@ Demonstrates the core xarray-Zarr workflow:
 5. Inspect Dask/Zarr chunk alignment
 
 Requirements:
-    pip install xarray zarr numpy dask
-    # or: pixi add xarray zarr numpy dask
+    pip install xarray zarr numpy pandas dask
+    # or: pixi add xarray zarr numpy pandas dask
 
 Usage:
     python xarray-zarr-roundtrip.py
@@ -23,6 +23,7 @@ import tempfile
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import xarray as xr
 
 
@@ -42,13 +43,13 @@ def main():
             "precipitation": (["time", "lat", "lon"], rng.exponential(2.0, (90, 180, 360)).astype("float64")),
         },
         coords={
-            "time": xr.cftime_range("2024-01-01", periods=90, freq="D"),
+            "time": pd.date_range("2024-01-01", periods=90, freq="D"),
             "lat": np.linspace(-89.5, 89.5, 180),
             "lon": np.linspace(0.5, 359.5, 360),
         },
         attrs={"title": "Demo Climate Dataset", "source": "Synthetic"},
     )
-    print(f"  Dataset: {dict(ds.dims)}")
+    print(f"  Dataset: {dict(ds.sizes)}")
     print(f"  Variables: {list(ds.data_vars)}")
     print(f"  temperature dtype: {ds['temperature'].dtype}")
     print()
@@ -57,13 +58,15 @@ def main():
     print("=" * 60)
     print("2. Write to Zarr with per-variable encoding")
     print("=" * 60)
+    # encoding["chunks"] must be a tuple in the variable's dimension order;
+    # a dict raises TypeError.
     encoding = {
-        "temperature": {"chunks": {"time": 30, "lat": 90, "lon": 180}, "dtype": "float32"},
-        "precipitation": {"chunks": {"time": 30, "lat": 90, "lon": 180}, "dtype": "float32"},
+        "temperature": {"chunks": (30, 90, 180), "dtype": "float32"},
+        "precipitation": {"chunks": (30, 90, 180), "dtype": "float32"},
     }
     ds.to_zarr(store_path, mode="w", encoding=encoding)
     print(f"  Wrote to: {store_path}")
-    print(f"  Encoding: dtype=float32, chunks=(30, 90, 180)")
+    print("  Encoding: dtype=float32, chunks=(30, 90, 180)")
     print()
 
     # ── 3. Read back and verify ──
@@ -71,7 +74,7 @@ def main():
     print("3. Read back and verify roundtrip")
     print("=" * 60)
     ds_read = xr.open_zarr(store_path, chunks={})
-    print(f"  Dims: {dict(ds_read.dims)}")
+    print(f"  Dims: {dict(ds_read.sizes)}")
     print(f"  temperature dtype on disk: {ds_read['temperature'].encoding.get('dtype')}")
     print(f"  Zarr chunks: {ds_read['temperature'].encoding.get('chunks')}")
 
@@ -94,17 +97,25 @@ def main():
             "precipitation": (["time", "lat", "lon"], rng.exponential(3.0, (30, 180, 360)).astype("float32")),
         },
         coords={
-            "time": xr.cftime_range("2024-04-01", periods=30, freq="D"),
+            "time": pd.date_range("2024-03-31", periods=30, freq="D"),
             "lat": np.linspace(-89.5, 89.5, 180),
             "lon": np.linspace(0.5, 359.5, 360),
         },
     )
+    # xarray does not check these before appending: different lat/lon values
+    # silently replace the store's coordinates, and overlapping times duplicate.
+    assert ds_read.indexes["lat"].equals(ds_new.indexes["lat"])
+    assert ds_read.indexes["lon"].equals(ds_new.indexes["lon"])
+    assert set(ds_new.data_vars) == set(ds_read.data_vars)
+    assert ds_new.time.values[0] > ds_read.time.values[-1]
     ds_new.to_zarr(store_path, append_dim="time")
 
     ds_appended = xr.open_zarr(store_path)
-    print(f"  Time steps before: 90")
-    print(f"  Time steps after:  {len(ds_appended.time)}")
+    print("  Time steps before: 90")
+    print(f"  Time steps after:  {ds_appended.sizes['time']}")
     print(f"  Time range: {ds_appended.time.values[0]} to {ds_appended.time.values[-1]}")
+    assert ds_appended.sizes["time"] == 120
+    assert ds_appended.indexes["time"].is_monotonic_increasing
     print()
 
     # ── 5. Inspect chunk alignment ──
@@ -118,9 +129,11 @@ def main():
         print(f"  {var}:")
         print(f"    Zarr chunks: {zarr_chunks}")
         print(f"    Dask chunks: {dask_chunks}")
-        # Check alignment
+        # Aligned means every Dask chunk is a whole multiple of the Zarr chunk.
+        # Smaller Dask chunks are not aligned: they re-read a Zarr chunk per task,
+        # and to_zarr refuses to write them in parallel.
         if zarr_chunks != "N/A":
-            aligned = all(d % z == 0 or d < z for d, z in zip(dask_chunks, zarr_chunks))
+            aligned = all(d % z == 0 for d, z in zip(dask_chunks, zarr_chunks))
             print(f"    Aligned: {'YES' if aligned else 'NO — consider rechunking'}")
     print()
 

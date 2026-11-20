@@ -13,12 +13,13 @@ providing credentials.
 
 Requirements:
     pip install zarr numpy
-    # For cloud backends: pip install zarr[remote]
+    # For cloud backends: pip install s3fs (or gcsfs, adlfs);
+    #   zarr[remote] installs only fsspec and obstore
     # For obstore: pip install obstore
     # For Icechunk: pip install icechunk
 
-Usage:
-    python cloud-storage-demo.py
+Usage (from the skill directory):
+    python assets/cloud-storage-demo.py
 """
 
 import shutil
@@ -95,12 +96,13 @@ def main():
     print("=" * 60)
     print("4. Caching Pattern (for cloud stores)")
     print("=" * 60)
-    print("  Wrap the URL with a cache protocol:")
+    print("  Wrap the URL with simplecache (unsharded arrays; filecache and")
+    print("  blockcache do not cache through FsspecStore):")
     print()
     print("  store = FsspecStore.from_url(")
     print('      "simplecache::s3://bucket/data.zarr",')
     print("      storage_options={")
-    print('          "s3": {"anon": True},')
+    print('          "s3": {"anon": True, "asynchronous": True},')
     print('          "simplecache": {"cache_storage": "/tmp/zarr-cache"},')
     print("      },")
     print("  )")

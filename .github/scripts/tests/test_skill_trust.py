@@ -128,7 +128,8 @@ def test_cli_gate_all_accepted_passes(st, tmp_path, capsys):
         "line_content: 'curl x | sh', reason: documented}\n"
     )
     assert run_gate(st, tmp_path, accepted) == 0
-    assert SKILL in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert f"| `{SKILL}` | 0 | 1 | 0 | ✅ pass |" in out
 
 
 def test_cli_gate_blocking_fails(st, tmp_path):
@@ -152,3 +153,36 @@ def test_select_pilot_empty_stdin(st, monkeypatch, capsys):
     monkeypatch.setattr("sys.stdin", io.StringIO(""))
     assert st.main(["select-pilot"]) == 0
     assert capsys.readouterr().out == ""
+
+
+@pytest.mark.parametrize(
+    "bad", [{}, {"error": "boom"}, {"overall_status": "failed"}, {"overall_status": "passed", "results": None}]
+)
+def test_malformed_report_fails_closed(st, bad):
+    res = st.gate(bad, SKILL, [])
+    assert res.incomplete
+    assert not res.passed
+
+
+def test_critical_finding_blocks(st):
+    assert len(st.gate(report(finding(severity="critical")), SKILL, []).blocking) == 1
+
+
+def test_path_normalisation_ignores_prefix_collision(st):
+    res = st.gate(report(finding(path=f"/abs/{SKILL}-y/SKILL.md")), SKILL, [accept(st)])
+    assert len(res.blocking) == 1
+    assert len(res.stale) == 1
+
+
+def test_cli_gate_incomplete_report_fails(st, tmp_path, capsys):
+    write_report(tmp_path / "reports", SKILL, report(status="incomplete"))
+    assert run_gate(st, tmp_path) == 1
+    assert "scan incomplete" in capsys.readouterr().out
+
+
+def test_cli_gate_missing_accepted_file_fails(st, tmp_path, capsys):
+    skills = tmp_path / "skills.txt"
+    skills.write_text(f"{SKILL}\n", encoding="utf-8")
+    missing = tmp_path / "nope.yml"
+    assert st.main(["gate", "--reports", str(tmp_path), "--skills", str(skills), "--accepted", str(missing)]) == 1
+    assert "cannot load accepted findings" in capsys.readouterr().err

@@ -85,10 +85,12 @@ def relative_path(file_path: str, skill: str) -> str:
 
 
 def gate(report: dict, skill: str, acceptances: list[Acceptance]) -> GateResult:
-    result = GateResult(incomplete=report.get("overall_status") == "incomplete")
+    results = report.get("results")
+    # Fail closed: only a report that says passed/failed and carries a results list is trusted.
+    result = GateResult(incomplete=report.get("overall_status") not in ("passed", "failed") or not isinstance(results, list))
     mine = [a for a in acceptances if a.skill == skill]
     used: set[Acceptance] = set()
-    for res in report.get("results") or []:
+    for res in results if isinstance(results, list) else []:
         for f in res.get("findings") or []:
             if str(f.get("severity", "")).lower() not in BLOCKING_SEVERITIES:
                 continue
@@ -163,7 +165,12 @@ def main(argv: list[str] | None = None) -> int:
             print("\n".join(pilot))
         return 0
     skills = [s for s in (line.strip() for line in args.skills.read_text(encoding="utf-8").splitlines()) if s]
-    table, ok = summarize(args.reports, skills, load_acceptances(args.accepted))
+    try:
+        acceptances = load_acceptances(args.accepted)
+    except (yaml.YAMLError, OSError, ValueError) as exc:
+        print(f"error: cannot load accepted findings {args.accepted}: {' '.join(str(exc).split())}", file=sys.stderr)
+        return 1
+    table, ok = summarize(args.reports, skills, acceptances)
     sys.stdout.write(table)
     return 0 if ok else 1
 

@@ -30,9 +30,21 @@ pyopenssl = ">=26.4.0,<27"
 # when every caveat is a non-fatal missing reference; older revs flag it incomplete.
 [feature.ci.pypi-dependencies]
 skillevaluator = { git = "https://github.com/NVIDIA/SkillEvaluator.git", rev = "707fb9a8cbfaf6c8f766506f43bb699212234f01" }
-# OpenSSF model signing (Sigstore), used by release-sign.yml and the tamper test.
-# Not on conda-forge, so PyPI, pinned exactly. It solves alongside the other ci
-# dependencies, so it stays in `ci` rather than getting its own environment.
+# OpenSSF model signing (Sigstore), here for the tamper test in test-scripts;
+# release-sign.yml uses the smaller `signing` environment below, with the same pin.
+# Not on conda-forge, so PyPI, pinned exactly.
+model-signing = "==1.1.1"
+
+# The signing environment, the only one release-sign.yml installs: that job
+# holds `id-token: write`, so it gets just what stage/sign/pack need (skill_trust.py
+# imports yaml at load). model-signing and pyopenssl are pinned the same in `ci`
+# so test-scripts still runs the tamper test; test_skill_trust.py enforces the match.
+[feature.signing.dependencies]
+python = "3.12.*"
+pyyaml = "6.0.3.*"
+pyopenssl = ">=26.4.0,<27"
+
+[feature.signing.pypi-dependencies]
 model-signing = "==1.1.1"
 
 # SkillEvaluator's full Tier 1 `validate` shells out to SkillSpector, Semgrep
@@ -115,3 +127,4 @@ default = { features = ["okf"], solve-group = "default" }
 ci = { features = ["ci"], no-default-feature = true }
 scanners = { features = ["scanners"], no-default-feature = true }
 benchmark = { features = ["benchmark"], no-default-feature = true }
+signing = { features = ["signing"], no-default-feature = true }

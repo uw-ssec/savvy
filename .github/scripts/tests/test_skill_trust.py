@@ -1,10 +1,15 @@
 import hashlib
 import io
 import json
+import shutil
 import subprocess
+import sys
+import tarfile
+from pathlib import Path
 
 import pytest
-from conftest import SCRIPTS, _load, run_step, workflow_step
+import yaml
+from conftest import SCRIPTS, WORKFLOWS, _load, run_step, workflow_step
 
 SKILL = "plugins/ai-research-workflows/skills/researching"
 
@@ -657,8 +662,6 @@ def test_pack_requires_signature(st, release_root, tmp_path):
 
 
 def test_pack_layout(st, release_root, tmp_path):
-    import tarfile
-
     alpha = staged_skill(st, release_root, tmp_path)
     archive = st.pack(alpha, "26.11.0", tmp_path / "dist")
     assert archive == tmp_path / "dist" / "ai-research-workflows--alpha-26.11.0.tar.gz"
@@ -692,11 +695,41 @@ def test_pack_rejects_bad_versions(st, release_root, tmp_path, version):
         st.pack(alpha, version, tmp_path / "dist")
 
 
-def model_signing_cmd():
-    import shutil
-    import sys
-    from pathlib import Path
+def test_pack_rejects_symlink_added_after_staging(st, release_root, tmp_path):
+    alpha = staged_skill(st, release_root, tmp_path)
+    (alpha / "link.md").symlink_to(release_root / "plugins/other/skills/gamma/SKILL.md")
+    with pytest.raises(ValueError, match="symlink"):
+        st.pack(alpha, "26.11.0", tmp_path / "dist")
 
+
+def test_check_version_cli(st, capsys):
+    assert st.main(["check-version", "26.11.0"]) == 0
+    assert st.main(["check-version", "26.11.0-rc1"]) == 1
+    assert st.main(["check-version", "v26.11.0"]) == 1
+    assert "error" in capsys.readouterr().err
+
+
+def test_signing_env_pins_same_model_signing_as_ci():
+    import tomllib
+
+    feature = tomllib.loads((SCRIPTS.parents[1] / "pixi.toml").read_text(encoding="utf-8"))["feature"]
+    assert feature["signing"]["pypi-dependencies"]["model-signing"] == feature["ci"]["pypi-dependencies"]["model-signing"]
+    assert feature["signing"]["dependencies"]["pyopenssl"] == feature["ci"]["dependencies"]["pyopenssl"]
+
+
+def test_release_workflow_is_hardened():
+    doc = yaml.safe_load((WORKFLOWS / "release-sign.yml").read_text(encoding="utf-8"))
+    job = doc["jobs"]["sign"]
+    setup = next(step for step in job["steps"] if "setup-pixi" in step.get("uses", ""))
+    assert setup["with"]["cache"] is False
+    assert setup["with"]["environments"] == "signing"
+    assert "-e ci" not in yaml.safe_dump(job)
+    assert doc["concurrency"]["cancel-in-progress"] is False
+    steps = [step.get("name") for step in job["steps"]]
+    assert steps.index("Check version") < steps.index("Stage pilot skills")
+
+
+def model_signing_cmd():
     return shutil.which("model_signing") or str(Path(sys.executable).parent / "model_signing")
 
 

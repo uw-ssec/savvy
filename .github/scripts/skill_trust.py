@@ -32,6 +32,9 @@ pack          Write <out>/<plugin>--<skill>-<version>.tar.gz from a signed stage
               directory (it must hold skill.oms.sig). Deterministic: sorted
               members, zero mtime/uid/gid, fixed gzip header.
 
+check-version Exit 1 unless the version (no leading v) is a calendar version; the release
+              workflow runs it before signing so a bad tag leaves no public log entry.
+
 Usage:
     python skill_trust.py select-pilot < skills.txt
     python skill_trust.py list-pilot [--skills a,b]
@@ -365,10 +368,17 @@ def stage(root: Path, out: Path) -> list[Path]:
     return staged
 
 
-def pack(staged: Path, version: str, out: Path) -> Path:
-    """Write out/<staged name>-<version>.tar.gz with archive root <staged name>/ and return its path."""
+def check_version(version: str) -> None:
     if not VERSION_RE.fullmatch(version):
         raise ValueError(f"version {version!r} is not a calendar version like 26.11.0")
+
+
+def pack(staged: Path, version: str, out: Path) -> Path:
+    """Write out/<staged name>-<version>.tar.gz with archive root <staged name>/ and return its path."""
+    check_version(version)
+    for path in staged.rglob("*"):
+        if path.is_symlink() or not (path.is_file() or path.is_dir()):
+            raise ValueError(f"{path}: symlink or non-regular file in a staged skill; refusing to pack it")
     if not (staged / SIGNATURE_NAME).is_file():
         raise ValueError(f"{staged}: {SIGNATURE_NAME} is missing; sign the directory before packing")
     out.mkdir(parents=True, exist_ok=True)
@@ -418,8 +428,17 @@ def main(argv: list[str] | None = None) -> int:
     pk.add_argument("--staged", type=Path, required=True, help="directory holding the signed staged skill directories")
     pk.add_argument("--version", required=True, help="release version without the leading v, e.g. 26.11.0")
     pk.add_argument("--out", type=Path, required=True, help="directory for the archives")
+    cv = sub.add_parser("check-version")
+    cv.add_argument("version", help="release version without the leading v, e.g. 26.11.0")
     args = ap.parse_args(argv)
 
+    if args.cmd == "check-version":
+        try:
+            check_version(args.version)
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+        return 0
     if args.cmd == "stage":
         try:
             for d in stage(args.root, args.out):

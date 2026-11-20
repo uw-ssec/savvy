@@ -9,8 +9,8 @@ what CI runs against it.
 agent plugins for research software engineering and scientific computing. Each
 plugin bundles skills, and some add agents, commands, and MCP servers. Plugins
 follow the [Agent Plugins](https://agent-plugins.org/specification) v1.0.0
-format, so they install in Claude Code, GitHub Copilot, Codex, and Cursor, and
-their skills also work in Gemini CLI and OpenCode.
+format, so they install in Claude Code, GitHub Copilot, Codex, Cursor, and
+Antigravity CLI, and their skills also work in OpenCode.
 
 Two kinds of agent content live here — keep them apart:
 

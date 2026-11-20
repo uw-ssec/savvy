@@ -19,7 +19,7 @@ claude plugin marketplace add uw-ssec/savvy
 claude plugin install scientific-python-development@savvy
 ```
 
-Skills also work in GitHub Copilot (CLI and VS Code), Codex, Cursor, Gemini CLI, and OpenCode. [docs/install.md](docs/install.md) has the support matrix and install steps for each client. To try everything without installing, open a Codespace with the badge above; [docs/codespaces.md](docs/codespaces.md) covers routing Copilot through your own LiteLLM gateway.
+Skills also work in GitHub Copilot (CLI and VS Code), Codex, Cursor, Antigravity CLI, and OpenCode. [docs/install.md](docs/install.md) has the support matrix and install steps for each client. To try everything without installing, open a Codespace with the badge above; [docs/codespaces.md](docs/codespaces.md) covers routing Copilot through your own LiteLLM gateway.
 
 > [!IMPORTANT]
 > Skills are instructions, not programs, but your agent acts on them: it may run commands, edit files and use the network, within the permissions your client allows. Before installing, read [Trust and safety](docs/trust-and-safety.md) for what plugins can and can't do, how to review one, and where each client's permission controls are. To report a security problem privately, see [SECURITY.md](SECURITY.md).

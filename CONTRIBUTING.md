@@ -187,7 +187,7 @@ To test your agent:
 
 ## 📦 Plugin Manifests and Other Clients
 
-Plugins follow the [Agent Plugins](https://agent-plugins.org/specification) v1.0.0 format, so they install in Claude Code, GitHub Copilot, Codex and Cursor, and their skills also work in Gemini CLI and OpenCode (see [Installation](docs/install.md)). Each client reads different files. Most of those files are generated, so edit only the sources:
+Plugins follow the [Agent Plugins](https://agent-plugins.org/specification) v1.0.0 format, so they install in Claude Code, GitHub Copilot, Codex, Cursor and Antigravity CLI, and their skills also work in OpenCode (see [Installation](docs/install.md)). Each client reads different files. Most of those files are generated, so edit only the sources:
 
 | Edit | Don't edit (generated) |
 | --- | --- |
@@ -212,7 +212,7 @@ Some rules matter to clients other than Claude Code:
 - **MCP servers** need both files. `.mcp.json` is for Claude Code. `mcp.json` is the portable version that Codex, Copilot and Cursor read: it has the Agent Plugins `$schema`, an explicit `type` on each server, and no other top-level fields. Cursor doesn't expand `${PLUGIN_ROOT}` or `${PLUGIN_DATA}`, so avoid them in `mcp.json`.
 - **Agent `skills:`** must be a YAML list (`skills:` then `  - name`), even for one skill. Claude Code accepts a string, but Copilot CLI silently skips an agent whose `skills` is a plain string, so `check` requires a list.
 - **Skill `metadata` values** must be strings, as the [Agent Skills spec](https://agentskills.io/specification) requires. List files space-separated (`references: references/a.md references/b.md`), and quote dates (`last-verified: '2026-10-27'`), because YAML otherwise reads them as dates. `check` fails on any other type.
-- **Agents and commands** load only in Claude Code and Cursor. Put anything other clients need in a skill, and update the matrix in [docs/install.md](docs/install.md) when client support changes.
+- **Agents and commands** don't load everywhere: agents load in Claude Code, Cursor and Antigravity CLI, and commands only in Claude Code and Cursor. Put anything other clients need in a skill, and update the matrix in [docs/install.md](docs/install.md) when client support changes.
 
 ## 📚 Skill Catalog
 

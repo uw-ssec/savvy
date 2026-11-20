@@ -1,6 +1,6 @@
 ---
 name: supply-chain-dependency-security
-description: Use when reviewing a dependency update, a Dependabot or Renovate PR, or a lockfile (package-lock.json, yarn.lock, pnpm-lock.yaml, uv.lock, poetry.lock, pixi.lock, conda-lock.yml, requirements.txt); when adding a new package; when a postinstall script, `--ignore-scripts` or a `.pth` file comes up; or when judging whether a newly published version could come from a maintainer account takeover.
+description: Use when reviewing a dependency update, a Dependabot or Renovate PR, a manifest's dependency list (package.json, pyproject.toml, pixi.toml), or a lockfile (package-lock.json, yarn.lock, pnpm-lock.yaml, uv.lock, poetry.lock, pixi.lock, conda-lock.yml, requirements.txt); when adding a new package; when a postinstall script, `--ignore-scripts` or a `.pth` file comes up; or when judging whether a newly published version could come from a maintainer account takeover.
 ---
 
 # Supply Chain Dependency Security
@@ -31,7 +31,7 @@ Observed 2025–2026, verified 2026-11: major incidents were maintainer account 
    ```
 
    npm 12+: approve it first (`npm install-scripts approve <package>`, commit `package.json`).
-3. **7-day cooldown.** Nothing younger merges. Cooldown settings filter resolution, not locked versions. Age-check every version a lockfile diff adds: `npm view <package> time`, PyPI `https://pypi.org/pypi/<package>/<version>/json` (`upload_time_iso_8601`), `pixi search <package>==<version>`.
+3. **7-day cooldown.** Nothing younger merges. Cooldown settings filter resolution, not locked versions. Age-check every version a lockfile diff adds: `npm view <package> time`, PyPI `https://pypi.org/pypi/<package>/<version>/json` (`upload_time_iso_8601`), `pixi search <package>==<version>`. Security fixes: see `/supply-chain-lockfile-check`.
 4. **Check the publisher.** Compare with earlier releases (`npm view <package>@<version> _npmUser`), run `npm audit signatures`, read `npm diff --diff=<package>@<old> --diff=<package>@<new>`. A first-time publisher on an established package signals takeover: hold the version.
 5. **`.pth` files:** use the PyPI `.pth` check in `supply-chain-ecosystem-quirks`.
 6. **Findings:** class, `<package>@<version>`, advisory or campaign, install-time reach, fix.
@@ -44,7 +44,7 @@ Observed 2025–2026, verified 2026-11: major incidents were maintainer account 
 | pnpm | `pnpm install --frozen-lockfile` | `pnpm-workspace.yaml`: `minimumReleaseAge: 10080` (minutes; 10.16+) |
 | Yarn | `yarn install --immutable` with `enableScripts: false` (default from 4.14); v1: `--frozen-lockfile --ignore-scripts` | `.yarnrc.yml`: `npmMinimalAgeGate: 10080` (minutes; 4.10+) |
 | uv | `uv sync --locked` | `[tool.uv]`: `exclude-newer = "7 days"` (0.9.17+) |
-| Poetry | `poetry install` (refuses a stale lock) | `poetry config --local solver.min-release-age 7` (2.4+) |
+| Poetry | `poetry check --lock && poetry install` (fails on a missing or stale lock) | `poetry config --local solver.min-release-age 7` (2.4+) |
 | pip | `pip install --require-hashes -r requirements.txt` | `--uploaded-prior-to P7D` (26.1+) |
 | pixi | `pixi install --locked` | `[workspace]`: `exclude-newer = "7d"` (0.67+) |
 | conda-lock | `conda-lock lock --check-input-hash -p <platform>`, `git diff --exit-code conda-lock.yml`, then `conda-lock install -n <env> conda-lock.yml` | none |

@@ -9,7 +9,7 @@
 | Radar/Spider Charts for Balance Assessment | 114–163 | Multi-metric per config for visual PB assessment |
 | Memory vs Time Scatter Plots | 166–219 | Pareto frontier identification for trade-off analysis |
 | Performance Bias Visualization | 222–267 | Bar chart of bias values with classification bands |
-| Generating Plots with matplotlib/hvPlot | 270–463 | Complete code examples for all chart types |
+| Generating Plots with matplotlib/hvPlot | 270–464 | Complete code examples for all chart types |
 
 ---
 
@@ -119,7 +119,7 @@ Radar charts display multiple metrics for a single configuration on radial axes,
 
 - **Axes**: One per metric or access pattern (3–6 axes)
 - **Lines**: One polygon per configuration
-- **Scale**: Normalized 0–1 where 1 = best observed value
+- **Scale**: `1 - time / slowest time in the chart`: 0 = slowest observed, larger = faster
 
 ### When to Use
 
@@ -135,7 +135,7 @@ For access pattern comparison:
 - A perfectly balanced configuration forms a regular polygon
 
 For multi-metric comparison:
-- Axes: wall-clock time (inverted), throughput, memory (inverted), utilization, PB (inverted)
+- Axes: wall-clock time (inverted), throughput, memory (inverted), PB (inverted); not chunk utilization, which the runner does not measure
 - Normalize each axis 0–1 based on best/worst observed values
 
 ### Formatting Guidelines
@@ -258,8 +258,8 @@ A horizontal bar chart of PB values provides an immediate visual ranking of conf
 Add the best and worst pattern names next to each bar to explain what drives the bias:
 
 ```
+(100, 256, 256)  |=====| 1.26  [best: Spatial, worst: Spectral]
 (50, 512, 512)   |======| 1.35  [best: Spatial, worst: Temporal]
-(100, 256, 256)  |======| 1.42  [best: Temporal, worst: Spectral]
 (200, 128, 128)  |============| 2.64  [best: Temporal, worst: Spatial]
 (10, 1024, 1024) |===============| 3.02  [best: Spatial, worst: Temporal]
                   0    1.5   3.0
@@ -417,12 +417,13 @@ plt.savefig("benchmark_scatter.png", dpi=150)
 ```python
 import matplotlib.pyplot as plt
 
-configs = ["(50,512,512)", "(100,256,256)", "(200,128,128)", "(10,1024,1024)"]
-pb_values = [1.35, 1.42, 2.64, 3.02]
+configs = ["(100,256,256)", "(50,512,512)", "(200,128,128)", "(10,1024,1024)"]
+pb_values = [1.26, 1.35, 2.64, 3.02]
 colors = ["green" if pb < 1.5 else "orange" if pb < 3.0 else "red" for pb in pb_values]
 
 fig, ax = plt.subplots(figsize=(8, 4))
 bars = ax.barh(configs, pb_values, color=colors, height=0.5)
+ax.invert_yaxis()  # barh draws the first item at the bottom; put lowest PB on top
 
 ax.axvline(x=1.5, color="gray", linestyle="--", alpha=0.7, label="Balanced threshold")
 ax.axvline(x=3.0, color="gray", linestyle=":", alpha=0.7, label="Biased threshold")

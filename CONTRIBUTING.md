@@ -131,7 +131,7 @@ This checklist is the security part of reviewing a skill. It doesn't cover wheth
 
 Review the exact revision you're merging. If a later commit in the pull request, or a later pull request, adds a command, URL, script, tool grant or MCP server, review those items again instead of carrying the earlier sign-off forward.
 
-Automated checks help but don't replace this review. CI (currently the **Validate Plugins** workflow) flags hardcoded secrets and private keys, `rm -rf /`, `curl` to a raw IP address, `eval(` and `base64 -d`. It matches patterns and can't judge intent. SkillEvaluator's quality score, run on pull requests that change a skill, measures quality, not safety.
+Automated checks help but don't replace this review. CI (currently the **Validate Plugins** workflow) flags hardcoded secrets and private keys, `rm -rf /`, `curl` to a raw IP address, `eval(` and `base64 -d`. It matches patterns and can't judge intent. SkillEvaluator's quality score measures quality, not safety. For pilot skills (currently `ai-research-workflows`), the [security gate](#-evaluating-skills) also runs SkillEvaluator's Tier 1 `validate` with Semgrep, SkillSpector and Gitleaks, which still can't judge intent.
 
 Review the raw files, not GitHub's rendered view, which hides HTML comments. This search, run from the repository root, lists most of what to look at:
 
@@ -250,7 +250,7 @@ Every pull request adds its entry to [`CHANGELOG.md`](CHANGELOG.md) under `## [U
 
 ## 📊 Evaluating Skills
 
-On every pull request that changes a skill, **Skill quality check** runs [SkillEvaluator](https://github.com/NVIDIA/SkillEvaluator)'s keyless `quality-check` (pinned to v0.6.0) on each changed skill. It fails if a skill scores below 70, and lists every changed skill's score and grade in the job summary. It scores quality only: SkillEvaluator's full `validate` (schema, PII and security scanners) is not part of this check. To check a skill locally before pushing, using the same pinned version as CI:
+On every pull request that changes a skill, **Skill quality check** runs [SkillEvaluator](https://github.com/NVIDIA/SkillEvaluator)'s keyless `quality-check` (pinned to v0.6.0) on each changed skill. It fails if a skill scores below 70, and lists every changed skill's score and grade in the job summary. It scores quality only. To check a skill locally before pushing, using the same pinned version as CI:
 
 ```bash
 pixi run -e ci skill-quality-check plugins/<plugin>/skills/<skill>
@@ -262,6 +262,14 @@ Or, without pixi:
 uv tool install --python 3.13 "skillevaluator @ git+https://github.com/NVIDIA/SkillEvaluator.git@5320d9329c36ecc72bc94c4f58cc813d6b54224b"
 skillevaluator quality-check plugins/<plugin>/skills/<skill> --min-score 70
 ```
+
+**Security gate for pilot skills.** For skills in a pilot plugin (currently `ai-research-workflows`), the same workflow's `security-scan` job also runs SkillEvaluator's full Tier 1 `validate` (schema, PII, licence, and the Semgrep, SkillSpector and Gitleaks scanners). A high or critical finding fails the check unless it is accepted in [`.github/skill-security-accepted.yml`](.github/skill-security-accepted.yml); lower severities are reported but don't block. To run the scan locally (the first run builds Gitleaks, which needs network access):
+
+```bash
+pixi run -e ci skill-security-scan plugins/<plugin>/skills/<skill> -o <dir>
+```
+
+Each accepted finding names the skill, check, file, flagged line, a `reason`, and the `file_sha256` of the flagged file. The digest pins the acceptance to that exact file content, so any edit to an accepted file needs a new digest and a fresh review. Compute it with `shasum -a 256 <file>` (or `sha256sum <file>`). The acceptance file and `.github/scripts/skill_trust.py`, which decides what an acceptance can waive, are covered by [`CODEOWNERS`](.github/CODEOWNERS), so changes to them need maintainer review.
 
 Two manually triggered workflows measure skills (**Actions → workflow → Run workflow**). Neither runs on pull requests.
 

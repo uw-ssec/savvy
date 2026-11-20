@@ -1,2 +1,3 @@
-# Accepted security findings need maintainer review.
+# Accepted security findings, and the gate script that decides what they can waive, need maintainer review.
 /.github/skill-security-accepted.yml @uw-ssec/engineering
+/.github/scripts/skill_trust.py @uw-ssec/engineering

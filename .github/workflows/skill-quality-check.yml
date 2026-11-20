@@ -8,9 +8,12 @@ name: Skill quality check
 # (`pixi run -e ci skill-quality-check <skill>`) go through the same command
 # and the same pinned SkillEvaluator version.
 #
-# This is a quality-score gate, not full Tier 1 validation: `skillevaluator
-# validate` (schema, PII, licence and the Semgrep/SkillSpector/Gitleaks security
-# scanners) is tracked separately in #235.
+# `quality-check` is a quality-score gate only. For pilot skills (see
+# PILOT_PLUGINS in .github/scripts/skill_trust.py) the `security-scan` job also
+# runs the full Tier 1 `skillevaluator validate` (schema, PII, licence and the
+# Semgrep/SkillSpector/Gitleaks security scanners) and blocks on high or
+# critical findings unless they are accepted in
+# .github/skill-security-accepted.yml (issue #293).
 on:
   pull_request:
     paths:
@@ -18,6 +21,9 @@ on:
       - "community-plugins/*/skills/**"
       - ".github/workflows/skill-quality-check.yml"
       - ".github/scripts/skill-quality.py"
+      - ".github/scripts/skill_trust.py"
+      - ".github/skill-security-accepted.yml"
+      - ".github/skillevaluator-policy.yml"
       - "pixi.toml"
       - "pixi.lock"
 
@@ -100,5 +106,78 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: skill-quality-reports
+          path: ${{ runner.temp }}/reports/
+          if-no-files-found: ignore
+
+  security-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # `ci` runs SkillEvaluator; `scanners` holds Semgrep, SkillSpector and the
+      # Go toolchain that the skill-security-scan task uses to build Gitleaks.
+      - uses: prefix-dev/setup-pixi@ad1da6449d9e506fd127fd67ab2d054a769f6a94 # v0.11.2
+        with:
+          pixi-version: v0.82.0
+          environments: ci scanners
+          locked: true
+
+      - name: Select changed pilot skills
+        id: select
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          python3 .github/scripts/skill-quality.py select --base "$BASE_SHA" --head "$HEAD_SHA" \
+            | python3 .github/scripts/skill_trust.py select-pilot > "$RUNNER_TEMP/pilot.txt"
+          echo "count=$(grep -c . "$RUNNER_TEMP/pilot.txt" || true)" >> "$GITHUB_OUTPUT"
+          cat "$RUNNER_TEMP/pilot.txt"
+
+      - name: Run security scan
+        if: steps.select.outputs.count != '0'
+        run: |
+          # Reports go to a fresh directory outside the checkout, so a report
+          # committed in the PR can't stand in for a run that crashed.
+          rm -rf "$RUNNER_TEMP/reports" && mkdir -p "$RUNNER_TEMP/reports"
+          while IFS= read -r skill; do
+            out="$RUNNER_TEMP/reports/$(printf '%s' "$skill" | sed 's|/|__|g')"
+            echo "::group::$skill"
+            # `validate` exits non-zero when it finds anything; keep going and
+            # let the gate step decide which findings block.
+            pixi run -e ci skill-security-scan "$skill" -o "$out" || echo "scan exited non-zero for $skill"
+            echo "::endgroup::"
+          done < "$RUNNER_TEMP/pilot.txt"
+
+      - name: Gate on findings
+        run: |
+          touch "$RUNNER_TEMP/pilot.txt"
+          if ! grep -q . "$RUNNER_TEMP/pilot.txt"; then
+            echo "_no pilot skills changed_" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          set +e
+          python3 .github/scripts/skill_trust.py gate --reports "$RUNNER_TEMP/reports" \
+            --skills "$RUNNER_TEMP/pilot.txt" --accepted .github/skill-security-accepted.yml \
+            --root . > "$RUNNER_TEMP/gate.md"
+          status=$?
+          set -e
+          cat "$RUNNER_TEMP/gate.md" >> "$GITHUB_STEP_SUMMARY"
+          cat "$RUNNER_TEMP/gate.md"
+          if [ "$status" -ne 0 ]; then
+            echo "::error::Unaccepted high or critical security findings, or a missing report; see the job summary."
+          fi
+          exit "$status"
+
+      - name: Upload reports
+        if: always() && steps.select.outputs.count != '0'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: skill-security-reports
           path: ${{ runner.temp }}/reports/
           if-no-files-found: ignore

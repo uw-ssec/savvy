@@ -3,7 +3,7 @@ import io
 import json
 
 import pytest
-from conftest import _load
+from conftest import SCRIPTS, _load, run_step, workflow_step
 
 SKILL = "plugins/ai-research-workflows/skills/researching"
 
@@ -240,3 +240,35 @@ def test_cli_gate_missing_accepted_file_fails(st, tmp_path, capsys):
     missing = tmp_path / "nope.yml"
     assert st.main(["gate", "--reports", str(tmp_path), "--skills", str(skills), "--accepted", str(missing)]) == 1
     assert "cannot load accepted findings" in capsys.readouterr().err
+
+
+# The scan and gate steps of the security-scan job in skill-quality-check.yml, run as the runner would.
+
+
+def step_env(tmp_path, skills):
+    work = tmp_path / "pr"
+    (work / ".github/scripts").mkdir(parents=True)
+    (work / ".github/scripts/skill_trust.py").write_text((SCRIPTS / "skill_trust.py").read_text(encoding="utf-8"))
+    (work / ".github/skill-security-accepted.yml").write_text("[]\n", encoding="utf-8")
+    temp = tmp_path / "runner-temp"
+    temp.mkdir()
+    (temp / "pilot.txt").write_text("".join(s + "\n" for s in skills), encoding="utf-8")
+    env = {"RUNNER_TEMP": str(temp), "GITHUB_STEP_SUMMARY": str(temp / "step-summary.md")}
+    return work, temp, env
+
+
+def test_gate_step_with_no_pilot_skills_passes_and_says_so(tmp_path):
+    work, temp, env = step_env(tmp_path, [])
+    proc, _ = run_step(workflow_step("skill-quality-check.yml", "Gate on findings"), work, env)
+    assert proc.returncode == 0, proc.stderr
+    assert "_no pilot skills changed_" in (temp / "step-summary.md").read_text(encoding="utf-8")
+
+
+def test_scan_step_keeps_going_past_a_failing_scan(tmp_path):
+    work, temp, env = step_env(tmp_path, [SKILL, "plugins/ai-research-workflows/skills/other"])
+    stub = 'echo "$@" >> "$RUNNER_TEMP/calls.txt"\nexit 1\n'
+    proc, _ = run_step(workflow_step("skill-quality-check.yml", "Run security scan"), work, env, {"pixi": stub})
+    assert proc.returncode == 0, proc.stderr
+    calls = (temp / "calls.txt").read_text(encoding="utf-8").splitlines()
+    assert len(calls) == 2
+    assert all("skill-security-scan" in c for c in calls)

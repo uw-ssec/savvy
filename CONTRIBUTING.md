@@ -1,6 +1,6 @@
-# Contributing to RSE Plugins
+# Contributing to savvy
 
-Thank you for your interest in contributing to RSE Plugins! This document provides guidelines for creating and contributing custom agents for scientific software engineering tasks.
+Thank you for your interest in contributing to savvy! This document provides guidelines for creating and contributing custom agents for scientific software engineering tasks.
 
 ## 🌟 Types of Contributions
 
@@ -88,7 +88,7 @@ Good agents for scientific software should:
 
 ## 📝 Contribution Workflow
 
-1. **Fork the Repository**: Create your own fork of uw-ssec/rse-plugins
+1. **Fork the Repository**: Create your own fork of uw-ssec/savvy
 
 2. **Create a Branch**: Make a branch for your contribution
    ```bash

@@ -1,7 +1,7 @@
 # Separate workspace so the eval tooling never touches the root pixi.lock.
 # intel/dokimi is alpha with no stable release, so it is pinned to a commit.
 [workspace]
-name = "rse-plugins-dokimi-pilot"
+name = "savvy-dokimi-pilot"
 channels = ["conda-forge"]
 platforms = ["linux-64", "osx-arm64"]
 

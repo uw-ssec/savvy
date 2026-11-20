@@ -1,5 +1,5 @@
 {
-    "name": "rse-plugins",
+    "name": "savvy",
     "owner": {
         "name": "UW SSEC Team",
         "url": "https://github.com/uw-ssec"
@@ -11,14 +11,13 @@
         {
             "name": "scientific-domain-applications",
             "source": "./plugins/scientific-domain-applications",
-            "version": "0.1.0",
             "description": "Domain-specific scientific computing agents and skills for astronomy, astrophysics, and multidimensional data analysis with AstroPy and Xarray.",
             "author": {
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "astronomy",
@@ -33,20 +32,19 @@
                 "multidimensional-data",
                 "scientific-computing"
             ],
-            "category": "data-science",
+            "category": "core",
             "strict": false
         },
         {
             "name": "scientific-python-development",
             "source": "./plugins/scientific-python-development",
-            "version": "0.1.0",
             "description": "Agents and skills for Scientific Python development following community best practices. Covers packaging, testing, code quality, environment management with pixi, and documentation architecture.",
             "author": {
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "scientific-python",
@@ -62,20 +60,19 @@
                 "reproducibility",
                 "documentation"
             ],
-            "category": "development",
+            "category": "core",
             "strict": false
         },
         {
             "name": "holoviz-visualization",
             "source": "./community-plugins/holoviz-visualization",
-            "version": "0.1.0",
             "description": "Expert agents and comprehensive skills for interactive data visualization using the HoloViz ecosystem including Panel, hvPlot, HoloViews, Datashader, GeoViews, Colorcet, and Lumen.",
             "author": {
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "holoviz",
@@ -91,20 +88,19 @@
                 "interactive",
                 "geospatial"
             ],
-            "category": "data-science",
+            "category": "community",
             "strict": false
         },
         {
             "name": "ai-research-workflows",
             "source": "./plugins/ai-research-workflows",
-            "version": "0.2.0",
             "description": "Skills-first research workflows for Research Software Engineers and Researchers: research, plan, experiment, implement, validate, reproduce, harden, and handoff — interactive when you want collaboration, direct when you don't.",
             "author": {
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "ai-workflows",
@@ -118,20 +114,19 @@
                 "reproducibility",
                 "research-software"
             ],
-            "category": "development",
+            "category": "core",
             "strict": false
         },
         {
             "name": "project-management",
             "source": "./plugins/project-management",
-            "version": "0.1.0",
             "description": "Project lifecycle management for research software. Covers onboarding, documentation quality, handoff readiness, and community health file generation for open-source projects.",
             "author": {
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "MIT",
             "keywords": [
                 "project-management",
@@ -145,19 +140,18 @@
                 "markdownlint",
                 "open-source"
             ],
-            "category": "development",
+            "category": "core",
             "strict": false
         },
         {
             "name": "gaia-data-downloader",
             "source": "./community-plugins/gaia-data-downloader",
-            "version": "0.1.0",
             "description": "Generate and develop hydroclimatological data download scripts for GAIA geoscience research",
             "author": {
                 "name": "GAIA HazLab",
                 "url": "https://github.com/gaia-hazlab"
             },
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "gaia",
@@ -169,20 +163,19 @@
                 "xarray",
                 "environmental-data"
             ],
-            "category": "data-science",
+            "category": "community",
             "strict": false
         },
         {
             "name": "zarr-chunk-optimization",
             "source": "./plugins/zarr-chunk-optimization",
-            "version": "0.1.0",
             "description": "Benchmarking and optimization tools for Zarr chunking strategies on cloud object stores. Measures performance across access patterns and generates recommendations based on Nguyen et al. (2023) methodology.",
             "author": {
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "MIT",
             "keywords": [
                 "zarr",
@@ -204,14 +197,13 @@
         {
             "name": "zarr-data-format",
             "source": "./plugins/zarr-data-format",
-            "version": "0.1.0",
             "description": "Comprehensive agents and skills for working with the Zarr array storage format — creation, compression, cloud backends, xarray integration, and data migration",
             "author": {
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "zarr",
@@ -231,14 +223,13 @@
         {
             "name": "research-software-design",
             "source": "./plugins/research-software-design",
-            "version": "0.1.0",
             "description": "Agents and skills for Research-Through-Design approach to research software design",
             "author": {
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "research-through-design",
@@ -248,20 +239,19 @@
                 "scientific-literature",
                 "software-design"
             ],
-            "category": "research",
+            "category": "core",
             "strict": false
         },
         {
             "name": "uiux-design-team",
             "source": "./plugins/uiux-design-team",
-            "version": "1.0.0",
             "description": "Comprehensive UI/UX design team simulation with 10 specialized agents covering the full design lifecycle. Includes user research with personas and JTBD, information architecture, interaction design, visual design with Claude's frontend-design aesthetic guidance, motion design, design systems with token architecture and component libraries, accessibility auditing with WCAG 2.2 compliance, UX writing, responsive design, CSS architecture, frontend component patterns for React/Vue/Svelte, usability evaluation with Nielsen's heuristics, design philosophies including Gestalt principles and emotional design, design case studies, user journey mapping, A/B testing strategy, design handoff, and design review orchestration.",
             "author": {
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "proprietary",
             "keywords": [
                 "ui",
@@ -334,20 +324,19 @@
                 "theming",
                 "design-case-studies"
             ],
-            "category": "design",
+            "category": "core",
             "strict": false
         },
         {
             "name": "containerization",
             "source": "./plugins/containerization",
-            "version": "0.1.0",
             "description": "Language-agnostic containerization for research software. Covers Dockerfile best practices, Podman, Singularity/Apptainer, Docker Compose, GPU containers, devcontainers, container registries, and container security scanning.",
             "author": {
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "MIT",
             "keywords": [
                 "containerization",
@@ -368,20 +357,19 @@
                 "multi-stage-build",
                 "research-software"
             ],
-            "category": "development",
+            "category": "core",
             "strict": false
         },
         {
             "name": "supply-chain-security",
             "source": "./plugins/supply-chain-security",
-            "version": "0.2.0",
             "description": "Supply-chain security plugin for research software. 2 agents (lead expert + incident responder), 5 commands (audit, incident, lockfile-check, pin-actions, harden-workflow), 6 skills covering hardened CI/CD, dependency security, threat awareness, SBOM/provenance, incident response, and ecosystem-specific quirks (npm, PyPI, conda/pixi, cargo, Go). Covers 2025-2026 campaigns: Shai-Hulud, TeamPCP, axios, LiteLLM .pth persistence.",
             "author": {
                 "name": "SSEC Engineering Team",
                 "url": "https://escience.washington.edu/software-engineering/ssec/"
             },
-            "homepage": "https://github.com/uw-ssec/rse-plugins",
-            "repository": "https://github.com/uw-ssec/rse-plugins",
+            "homepage": "https://github.com/uw-ssec/savvy",
+            "repository": "https://github.com/uw-ssec/savvy",
             "license": "BSD-3-Clause",
             "keywords": [
                 "supply-chain-security",

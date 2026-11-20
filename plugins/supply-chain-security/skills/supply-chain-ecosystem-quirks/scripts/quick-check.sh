@@ -96,29 +96,102 @@ logical() {
     }
     END { out() }' "$@" 2>/dev/null
 }
-# Logical commands whose text (not file name, not a YAML step name) matches the ERE.
+# Split each logical command into single commands at &&, ||, ;, and | outside
+# shell quotes and ${{ }} expressions; each keeps its logical command's start line.
+# A YAML-quoted scalar is unquoted first. YAML step names are left whole.
+commands() {
+  logical "$@" | awk '
+    function emit() { sub(/^[ \t]+/, "", piece); sub(/[ \t]+$/, "", piece); if (piece != "") print head piece; piece = "" }
+    {
+      match($0, /^[^:]*:[0-9]+:/); head = substr($0, 1, RLENGTH); c = substr($0, RLENGTH + 1)
+      if (c ~ /^(-[ \t]+)?name:/) { print; next }
+      match(c, /^(-[ \t]+)?([A-Za-z_][A-Za-z0-9_-]*:[ \t]+)?/); key = substr(c, 1, RLENGTH); c = substr(c, RLENGTH + 1)
+      q = substr(c, 1, 1)
+      if (key != "" && (q == "\"" || q == "\047") && length(c) > 1 && substr(c, length(c)) == q) c = substr(c, 2, length(c) - 2)
+      c = key c; piece = ""; q = ""; n = length(c)
+      for (i = 1; i <= n; i++) {
+        ch = substr(c, i, 1)
+        if (q == "\047") { if (ch == q) q = ""; piece = piece ch; continue }
+        if (ch == "\\") { piece = piece substr(c, i, 2); i++; continue }
+        if (q == "\"") { if (ch == q) q = ""; piece = piece ch; continue }
+        if (substr(c, i, 3) == "${{" && (j = index(substr(c, i), "}}")) > 0) { piece = piece substr(c, i, j + 1); i += j; continue }
+        if (ch == "\"" || ch == "\047") q = ch
+        else if (ch == ";" || ch == "|" || substr(c, i, 2) == "&&") { emit(); if (substr(c, i, 2) ~ /^(&&|[|][|])$/) i++; continue }
+        piece = piece ch
+      }
+      emit()
+    }'
+}
+# Single commands whose text (not file name, not a YAML step name) matches the ERE.
 # Usage: scan ERE file...
 scan() {
   local re=$1
   shift
-  logical "$@" | RE=$re awk '{ c = $0; sub(/^[^:]*:[0-9]+:/, "", c)
+  commands "$@" | RE=$re awk '{ c = $0; sub(/^[^:]*:[0-9]+:/, "", c)
     if (c !~ /^(-[ \t]+)?name:/ && c ~ ENVIRON["RE"]) print }'
 }
 loc() { printf '%s' "${1%%:*}:$(printf '%s' "$1" | cut -d: -f2)"; } # file:line from scan
 text() { local t=${1#*:}; printf '%s' "${t#*:}"; }                   # command text from scan
-# Boolean setting NAME written as NAME=v, NAME: v or NAME v (any case); prints true, false or nothing.
-#   bool_setting last NAME TEXT   the last value in TEXT
-#   bool_setting any NAME         from stdin: false if any value is false, else true if any is true
-bool_setting() {
-  local vals
-  if [ "$1" = any ]; then vals=$(cat); else vals=$3; fi
-  vals=$(printf '%s\n' "$vals" | grep -oiE -- "$2([[:space:]]*[=:][[:space:]]*|[[:space:]]+)[\"']?(true|false)" |
-    sed 's/.*[^[:alpha:]]//' | tr '[:upper:]' '[:lower:]')
-  [ -n "$vals" ] || return 0
-  if [ "$1" = last ]; then printf '%s\n' "$vals" | tail -1
-  elif printf '%s\n' "$vals" | grep -qx false; then echo false
-  else echo true
-  fi
+# One npm install command's own ignore-scripts settings, as "FLAG|PREFIX", each
+# true, false or empty (any case, quotes ignored).
+#   FLAG    the last of --ignore-scripts[=true|false], --ignore-scripts true|false and
+#           --no-ignore-scripts among its arguments, read left to right as npm does
+#   PREFIX  a command-local npm_config_ignore_scripts=true|false before npm
+npm_script_flags() {
+  printf '%s\n' "$1" | awk '{
+    t = tolower($0); gsub(/["\047]/, "", t)
+    if (!match(t, /(^|[^[:alnum:]_.-])npm[[:space:]]+(ci|install|i)([[:space:]]|$)/)) exit
+    pre = substr(t, 1, RSTART); n = split(substr(t, RSTART + RLENGTH), a, /[[:space:]]+/)
+    flag = ""; pfx = ""
+    for (i = 1; i <= n; i++) {
+      if (a[i] == "--no-ignore-scripts") flag = "false"
+      else if (a[i] ~ /^--ignore-scripts=(true|false)$/) flag = substr(a[i], 18)
+      else if (a[i] == "--ignore-scripts") { if (a[i + 1] ~ /^(true|false)$/) flag = a[++i]; else flag = "true" }
+    }
+    m = split(pre, w, /[[:space:]]+/)
+    for (i = 1; i <= m; i++) if (w[i] ~ /^npm_config_ignore_scripts=(true|false)$/) pfx = substr(w[i], 27)
+    print flag "|" pfx }'
+}
+# npm_config_ignore_scripts from the YAML env: or variables: mapping nearest to
+# line $2 of file $1 (step over job over workflow), as "true:N" or "false:N"
+# where N is the line that sets it; nothing if no such mapping covers the line.
+yaml_npm_env() {
+  awk -v at="$2" '
+    function ind(s) { match(s, /^[ \t]*/); return RLENGTH }
+    function kind(s,   i) { i = ind(s); if (substr(s, i + 1, 2) ~ /^-[ \t]/) return i + 1 + ind(substr(s, i + 2)); return i }
+    { sub(/\r$/, ""); t[NR] = $0; skip[NR] = ($0 ~ /^[ \t]*(#.*)?$/) }
+    END {
+      best = -1
+      for (s = 1; s <= NR; s++) {
+        low = tolower(t[s])
+        if (skip[s] || low !~ /^[ \t]*["\047]?npm_config_ignore_scripts["\047]?[ \t]*:[ \t]*["\047]?(true|false)["\047]?[ \t]*(#.*)?$/) continue
+        k = ind(t[s])
+        for (p = s - 1; p >= 1 && (skip[p] || ind(t[p]) >= k); p--) ;
+        if (p < 1 || t[p] !~ /^[ \t]*(-[ \t]+)?(env|variables)[ \t]*:[ \t]*(#.*)?$/) continue
+        pk = kind(t[p]); a = p
+        if (pk == ind(t[p])) { # walk back to the first key of the mapping that holds env:
+          for (a = p - 1; a >= 1 && (skip[a] || ind(t[a]) >= pk); a--) ;
+          if (a < 1 || kind(t[a]) != pk) a++
+        }
+        for (b = p + 1; b <= NR && (skip[b] || ind(t[b]) >= pk); b++) ;
+        if (a <= at && at < b && pk >= best) { best = pk; v = (low ~ /true/) ? "true" : "false"; n = s }
+      }
+      if (best >= 0) print v ":" n
+    }' "$1" 2>/dev/null
+}
+# Other npm_config_ignore_scripts settings in file $1 (export, a $GITHUB_ENV write,
+# a bare assignment): not a YAML key and not one command's prefix, so their reach
+# is not worked out. Prints "file:line:true|false" for each.
+npm_env_unscoped() {
+  commands "$1" | awk '{
+    c = $0; sub(/^[^:]*:[0-9]+:/, "", c); h = substr($0, 1, length($0) - length(c))
+    l = tolower(c); gsub(/["\047]/, "", l)
+    if (!match(l, /npm_config_ignore_scripts[ \t]*[=:][ \t]*(true|false)/)) next
+    v = (substr(l, RSTART, RLENGTH) ~ /true$/) ? "true" : "false"
+    if (l ~ /^(-[ \t]+)?npm_config_ignore_scripts[ \t]*:/) next
+    sub(/^(-[ \t]+)?([a-z_][a-z0-9_-]*:[ \t]+)?/, "", l)
+    if (l ~ /^(env[ \t]+)?([a-z_][a-z0-9_]*=[^ \t]*[ \t]+)*npm_config_ignore_scripts=[^ \t]*[ \t]+([a-z_][a-z0-9_]*=[^ \t]*[ \t]+)*[^ \t=]/) next
+    print h v }'
 }
 present() { # print the trigger files that exist
   local f out=""
@@ -157,27 +230,36 @@ npm_checks() {
   fi
 
   # Lifecycle scripts: judge each CI install by its effective ignore-scripts value.
-  # npm precedence: command line, then npm_config_ignore_scripts, then .npmrc.
-  local npmrc env cli f found=no
+  # npm precedence: command line, then npm_config_ignore_scripts, then .npmrc. The
+  # variable counts only as a prefix of that command or from a YAML env:/variables:
+  # mapping over it; a setting whose reach is unknown turns the verdict into a WARN.
+  local npmrc cli pre yaml eff other f found=no
   npmrc=$(awk -F= 'tolower($1) ~ /^[ \t]*ignore-scripts[ \t]*$/ { v = tolower($2); gsub(/[ \t"\047]/, "", v); last = v }
     END { print last }' .npmrc 2>/dev/null)
   while IFS= read -r line; do
     found=yes
     f=${line%%:*}
-    cli=$(bool_setting last '--ignore-scripts' "$(text "$line")")
-    if [ -z "$cli" ]; then
-      case " $(text "$line") " in
-        *" --no-ignore-scripts "*) cli=false ;;
-        *" --ignore-scripts "*) cli=true ;;
-      esac
-    fi
-    env=$(logical "$f" | bool_setting any 'npm_config_ignore_scripts')
+    IFS='|' read -r cli pre <<< "$(npm_script_flags "$(text "$line")")"
     if [ "$cli" = false ]; then
       say npm FAIL "lifecycle scripts re-enabled on the command line at $(loc "$line")"
-    elif [ -z "$cli" ] && [ "$env" = false ]; then
-      say npm FAIL "npm_config_ignore_scripts=false in $f re-enables lifecycle scripts at $(loc "$line")"
-    elif [ -z "$cli" ] && [ -z "$env" ] && [ "$npmrc" != true ]; then
-      say npm FAIL "dependency lifecycle scripts run at $(loc "$line"): add --ignore-scripts there or ignore-scripts=true to .npmrc"
+    elif [ -z "$cli" ] && [ "$pre" = false ]; then
+      say npm FAIL "npm_config_ignore_scripts=false on the command re-enables lifecycle scripts at $(loc "$line")"
+    elif [ -z "$cli$pre" ]; then
+      yaml=$(yaml_npm_env "$f" "$(printf '%s' "$line" | cut -d: -f2)")
+      eff=${yaml%%:*}; [ -n "$yaml" ] || eff=$npmrc
+      [ "$eff" = true ] || eff=false
+      other=$(npm_env_unscoped "$f" | grep -v ":$eff\$" | head -1)
+      if [ -n "$other" ] && [ "$eff" = true ]; then
+        say npm WARN "cannot confirm lifecycle scripts are off at $(loc "$line"): npm_config_ignore_scripts=false at $(loc "$other") may reach it"
+      elif [ -n "$other" ]; then
+        say npm WARN "cannot confirm lifecycle scripts are off at $(loc "$line"): npm_config_ignore_scripts=true at $(loc "$other") may not reach it; add --ignore-scripts there"
+      elif [ "$eff" = true ]; then
+        :
+      elif [ -n "$yaml" ]; then
+        say npm FAIL "npm_config_ignore_scripts=false at $f:${yaml#*:} re-enables lifecycle scripts at $(loc "$line")"
+      else
+        say npm FAIL "dependency lifecycle scripts run at $(loc "$line"): add --ignore-scripts there or ignore-scripts=true to .npmrc"
+      fi
     fi
   done < <(scan "$installs_re" "${ci_files[@]}")
   if [ $found = no ] && [ "$npmrc" != true ]; then

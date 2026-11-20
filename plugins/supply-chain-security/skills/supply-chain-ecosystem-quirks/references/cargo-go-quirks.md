@@ -56,7 +56,7 @@ Commit `Cargo.lock`. Since 2023 Cargo recommends it for libraries too, and `carg
 grep -rnE 'cargo (\+[^ ]+ )?(build|test|run)' .github/workflows/ | grep -vE -- '--locked|--frozen'
 ```
 
-Any `cargo build`, `test` or `run` without `--locked` or `--frozen` in CI is a finding: it permits silent dependency upgrades. `scripts/quick-check.sh` reports these as FAIL, including for a `Cargo.toml` in a subdirectory.
+Any `cargo build`, `test` or `run` without `--locked` or `--frozen` in CI is a finding: it permits silent dependency upgrades. `scripts/quick-check.sh` reports these as FAIL, including for a `Cargo.toml` in a subdirectory. It judges each command of a chain on its own, so `cargo build && cargo test --locked` FAILs; the line-based grep above misses that.
 
 ## Go //go:generate Directives
 

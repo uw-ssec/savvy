@@ -16,9 +16,12 @@ Commands for the five audit steps in `SKILL.md`. Run them from the repository ro
 # Committed lockfiles
 git ls-files | grep -E '(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|poetry\.lock|uv\.lock|pixi\.lock|conda-lock\.yml|Cargo\.lock|go\.sum)$'
 
-# Every dependency install in CI; judge each line against the table below
-grep -rnE --include='*.yml' --include='*.yaml' '(npm (ci|install|i)|pnpm (install|i)|yarn( install)?|pip3? install|uv (sync|pip install)|poetry install|pixi install|cargo (build|install))([[:space:]]|$)' .github/
+# Every dependency install in CI and in local composite actions; judge each line against the table below
+git grep --untracked -nE '(npm (ci|install|i)|pnpm (install|i)|pip3? install|uv (sync|pip install)|poetry install|pixi install|cargo (build|install))([[:space:]]|$)|yarn( install)?([[:space:]]+-|[[:space:]]*([;&|)]|$))' \
+  -- '.github/*.yml' '.github/*.yaml' 'action.yml' '*/action.yml' 'action.yaml' '*/action.yaml'
 ```
+
+The CI greps here and in Step 3 read the same files as the Step 2 scan, so an install inside a local composite action (`./actions/build/action.yml`) is listed too. Bare `yarn` counts as an install only when nothing but flags follows it, so `yarn build` and `yarn test` are not listed.
 
 | Tool | PASS | FAIL |
 |---|---|---|
@@ -71,15 +74,18 @@ jq '.scripts // {} | with_entries(select(.key | test("^((pre|post)?(install|prep
 # Dependencies with install scripts (package-lock.json v2 and v3 record hasInstallScript)
 jq -r '.packages | to_entries[] | select(.key != "" and .value.hasInstallScript) | .key' package-lock.json
 
-# Every npm install in CI
-grep -rnE --include='*.yml' --include='*.yaml' '(^|[^[:alnum:]])npm (ci|install|i)([[:space:]]|$)' .github/
-# Anything in CI that turns scripts back on (--no-ignore-scripts, --ignore-scripts=false, npm_config_ignore_scripts)
-grep -rniE --include='*.yml' --include='*.yaml' "no-ignore-scripts|ignore[-_]scripts([[:space:]]*[=:][[:space:]]*|[[:space:]]+)[\"']?false" .github/
+# Every npm install in CI and in local composite actions
+git grep --untracked -nE '(^|[^[:alnum:]])npm (ci|install|i)([[:space:]]|$)' -- '.github/*.yml' '.github/*.yaml' 'action.yml' '*/action.yml' 'action.yaml' '*/action.yaml'
+# Anything there that turns scripts back on (--no-ignore-scripts, --ignore-scripts=false, npm_config_ignore_scripts)
+git grep --untracked -niE "no-ignore-scripts|ignore[-_]scripts([[:space:]]*[=:][[:space:]]*|[[:space:]]+)[\"']?false" \
+  -- '.github/*.yml' '.github/*.yaml' 'action.yml' '*/action.yml' 'action.yaml' '*/action.yaml'
 # The repo-wide setting
 grep -nE '^ignore-scripts[[:space:]]*=' .npmrc
 ```
 
 PASS when scripts are off for every listed install after overrides, and someone has reviewed each listed script. Scripts are off when the command passes a bare `--ignore-scripts`, or when `.npmrc` sets `ignore-scripts=true` and nothing from the second grep applies to that install. `--no-ignore-scripts`, `--ignore-scripts=false`, `--ignore-scripts false` and `npm_config_ignore_scripts=false` (any case) all override `.npmrc`; a bare `--ignore-scripts` flag beats the environment variable (checked with npm 11.20.0).
+
+These checks cover npm only. Report each Yarn or pnpm install from Step 1 as UNKNOWN for this step, not PASS: install scripts may run (Yarn 1.22.22 ran a `file:` dependency's `postinstall` on `yarn install`). Their script-off settings are in `supply-chain-dependency-security`.
 
 For `.pth` files, use the PyPI `.pth` check in `supply-chain-ecosystem-quirks`.
 

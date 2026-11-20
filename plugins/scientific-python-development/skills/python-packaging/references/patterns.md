@@ -176,14 +176,14 @@ pip install twine
 # Test on TestPyPI first (always!)
 twine upload --repository testpypi dist/*
 
-# Install and test from TestPyPI
-pip install --index-url https://test.pypi.org/simple/ my-sci-package
+# Install and test from TestPyPI (install its dependencies from PyPI first)
+pip install --no-deps --index-url https://test.pypi.org/simple/ <my-sci-package>
 
 # If everything works, publish to PyPI
 twine upload dist/*
 ```
 
-**Using API tokens (recommended):**
+**Using API tokens (manual uploads only; publish from CI with Trusted Publishing):**
 
 Create `~/.pypirc`:
 ```ini

@@ -67,8 +67,7 @@ scientific-python-development/
 │   │   │   ├── pyproject-full-featured.toml
 │   │   │   ├── pyproject-minimal.toml
 │   │   │   ├── README-template.md
-│   │   │   └── sphinx-conf.py
-│   │   ├── scripts/
+│   │   │   ├── sphinx-conf.py
 │   │   │   └── cli-example.py
 │   │   └── references/
 │   │       ├── COMMON_ISSUES.md
@@ -331,7 +330,7 @@ The agent follows these guardrails:
 - assets/pyproject-minimal.toml: Minimal pyproject.toml template for simple packages
 - assets/README-template.md: Package README template following best practices
 - assets/sphinx-conf.py: Sphinx documentation configuration template
-- scripts/cli-example.py: Example CLI application using argparse
+- assets/cli-example.py: Example CLI application using Click
 - references/COMMON_ISSUES.md: Troubleshooting guide for packaging problems
 - references/DOCSTRINGS.md: NumPy-style docstring guide and examples
 - references/METADATA.md: Comprehensive guide to pyproject.toml metadata fields

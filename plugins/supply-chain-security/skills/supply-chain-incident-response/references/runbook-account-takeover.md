@@ -6,10 +6,11 @@ An attacker compromises a package maintainer's credentials (phishing, leaked tok
 
 ## Scope Determination
 
-Search every lockfile and manifest for the package name. `-A3` prints the lines after each hit, where most lockfiles record the resolved version. The leading `*` also matches lockfiles in subdirectories.
+Search every lockfile and manifest for the package name, on every branch. Pull-request CI installs from the PR branch's lockfile, so a bad version bumped on an unmerged branch counts. `git grep` alone reads only the checkout, and `git log` without `--all` follows only the current branch. `-A3` prints the lines after each hit, where most lockfiles record the resolved version. The leading `*` also matches lockfiles in subdirectories. Each hit starts with the branch it is on.
 
 ```bash
-git grep -nwF -A3 '<pkg>' -- '*package-lock.json' '*yarn.lock' '*pnpm-lock.yaml' \
+git fetch --all
+git grep -nwF -A3 '<pkg>' $(git for-each-ref --format='%(refname)' refs/remotes) -- '*package-lock.json' '*yarn.lock' '*pnpm-lock.yaml' \
   '*uv.lock' '*poetry.lock' '*pixi.lock' '*conda-lock.yml' '*Cargo.lock' '*go.sum' \
   '*package.json' '*pyproject.toml' '*requirements*.txt' '*environment*.yml' '*pixi.toml' '*Cargo.toml' '*go.mod'
 ```
@@ -24,15 +25,15 @@ Where each lockfile records the version:
 - `pixi.lock`: in the package URL, `<pkg>-<version>-…`.
 - `go.sum`: on the same line, `<module> v<version>`.
 
-Then find when the bad version entered and left. Search with `-G` for the version, dots escaped. `-S` counts occurrences, so it misses any commit that leaves the count unchanged: a bump searched by package name, or `<pkg>` moving to the bad version while another package moves off it. `-G` also lists commits where only other packages have that version, so confirm each hit with `git show <hash> -- <lockfile>` and read `<pkg>`'s lines.
+Then find when, and on which branch, the bad version entered and left (`%S` names the branch). Search with `-G` for the version, dots escaped. `-S` counts occurrences, so it misses any commit that leaves the count unchanged: a bump searched by package name, or `<pkg>` moving to the bad version while another package moves off it. `-G` also lists commits where only other packages have that version, so confirm each hit with `git show <hash> -- <lockfile>` and read `<pkg>`'s lines.
 
 ```bash
 # <bad-version> with dots escaped, e.g. 1\.2\.4
-git log -G'<bad-version>' --format='%h %cI %s' -- '*package-lock.json' '*yarn.lock' '*pnpm-lock.yaml' \
+git log --all --source -G'<bad-version>' --format='%h %cI %S %s' -- '*package-lock.json' '*yarn.lock' '*pnpm-lock.yaml' \
   '*uv.lock' '*poetry.lock' '*pixi.lock' '*conda-lock.yml' '*Cargo.lock' '*go.sum'
 ```
 
-Record every `file:line` hit. No hit in any lockfile = PASS for the lockfile check.
+Record every `ref:file:line` hit. No hit in any lockfile = PASS for the lockfile check.
 
 ## CI Cache Nuke
 

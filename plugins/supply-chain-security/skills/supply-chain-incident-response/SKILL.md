@@ -16,17 +16,20 @@ An advisory, CVE, GHSA or campaign names a dependency or Action you use. Before 
 
 ## Quick Reference: 4-Point Check
 
-Set the **exposure window** first: when the bad version was installable, in UTC. Get the affected range (GHSA: `-f ghsa_id=<GHSA-ID>`):
+Set the **exposure window** first: when the bad version was installable, in UTC. Get the affected range. Takeovers are filed as `type=malware`, usually without a CVE, and a search without `type` returns only reviewed advisories:
 
 ```bash
-gh api -X GET /advisories -f cve_id=<CVE-ID> --jq '.[] | {ghsa_id, affected: [.vulnerabilities[] | {pkg: .package.name, range: .vulnerable_version_range}]}'
+A='{ghsa_id, type, affected: [.vulnerabilities[] | {pkg: .package.name, range: .vulnerable_version_range}]}'
+gh api /advisories/<GHSA-ID> --jq "$A"
+# No GHSA ID: search by package (or -f cve_id=<CVE-ID>), once per type
+for t in reviewed malware; do gh api -X GET /advisories -f type=$t -f ecosystem=<npm|pip|...> -f affects=<pkg> --jq ".[] | $A"; done
 ```
 
 `<lockfiles>` means `'*package-lock.json' '*yarn.lock' '*pnpm-lock.yaml' '*uv.lock' '*poetry.lock' '*pixi.lock' '*conda-lock.yml' '*Cargo.lock' '*go.sum'` (`*` also matches nested lockfiles).
 
 | Check | Command | Evidence |
 |---|---|---|
-| 1 Lockfile | `git grep -nwF -A3 '<pkg>' -- <lockfiles>`, then `git log -G'<bad-version>' --format='%h %cI %s' -- <lockfiles>` | `file:line`; when the bad version entered |
+| 1 Lockfile | `git fetch --all`, `git grep -nwF -A3 '<pkg>' $(git for-each-ref --format='%(refname)' refs/remotes) -- <lockfiles>`, then `git log --all --source -G'<bad-version>' --format='%h %cI %S %s' -- <lockfiles>` | `ref:file:line`; when and on which branch the bad version entered (PR CI installs from the PR branch) |
 | 2 CI cache | `gh cache list --sort created_at --order desc --limit 1000 --json id,key,createdAt` | ids with `createdAt` at or after the window start |
 | 3 Secrets | `gh secret list`, `gh secret list --env <env>`, `grep -rnw 'secrets' .github/workflows/` | every secret the affected jobs could read (`secrets: inherit` passes all) |
 | 4 Persistence | the runbook below | artifacts found, or "none" with the commands run |

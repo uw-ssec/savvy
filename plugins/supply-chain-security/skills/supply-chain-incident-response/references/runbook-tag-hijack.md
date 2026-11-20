@@ -26,7 +26,14 @@ grep -rhoE "uses:[[:space:]]*[\"']?[^[:space:]#\"'.][^[:space:]#\"']*@[^[:space:
     done
 ```
 
-Compare each `FLOATING` SHA against the SHA recorded in the last successful workflow run (see Workflow Run Forensics below). Mismatch or `UNRESOLVED` = potential hijack, treat as EXPOSED until proven otherwise. See `/supply-chain-pin-actions` for the SHA-pinning fix.
+Compare each `FLOATING` SHA against the commit that actually ran. Each job's "Set up job" log records it; check runs inside the window and the last one before it (find them with Workflow Run Forensics below). Logs are kept only for the repository's retention period (90 days by default).
+
+```bash
+gh run view <run-id> --log | grep 'Download action repository'
+# Download action repository 'actions/checkout@v4' (SHA:<sha>)
+```
+
+Mismatch or `UNRESOLVED` = potential hijack, treat as EXPOSED until proven otherwise. See `/supply-chain-pin-actions` for the SHA-pinning fix.
 
 ## Workflow Run Forensics
 

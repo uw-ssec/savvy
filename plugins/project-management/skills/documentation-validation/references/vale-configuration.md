@@ -504,7 +504,7 @@ This sentence is allowed to be passive.
 | Editor | Plugin |
 |--------|--------|
 | VS Code | [Vale VSCode](https://marketplace.visualstudio.com/items?itemName=ChrisChinchilla.vale-vscode) |
-| Neovim | [null-ls](https://github.com/jose-elias-alvarez/null-ls.nvim) or [nvim-lint](https://github.com/mfussenegger/nvim-lint) |
+| Neovim | [none-ls](https://github.com/nvimtools/none-ls.nvim) or [nvim-lint](https://github.com/mfussenegger/nvim-lint) |
 | Sublime Text | [SublimeLinter-vale](https://github.com/SublimeLinter/SublimeLinter-vale) |
 | Emacs | [flycheck-vale](https://github.com/abingham/flycheck-vale) |
 
@@ -644,7 +644,7 @@ checked, ensure:
 
 - [Vale Documentation](https://vale.sh/docs/) — Official docs and tutorials
 - [Vale GitHub](https://github.com/errata-ai/vale) — Source and releases
-- [Vale Studio](https://vale.sh/studio/) — Browser-based rule testing
+- [Vale Studio](https://studio.vale.sh/) — Browser-based rule testing
 - [proselint](https://github.com/errata-ai/proselint) — Style package based on expert writing advice
 - [write-good](https://github.com/errata-ai/write-good) — Style package for readability
 - [Google Developer Style](https://github.com/errata-ai/Google) — Google's documentation style

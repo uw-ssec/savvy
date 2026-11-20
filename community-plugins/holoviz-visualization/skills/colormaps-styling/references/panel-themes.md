@@ -697,7 +697,7 @@ template = FastListTemplate(
 ## References
 
 - [Panel Templates](https://panel.holoviz.org/user_guide/Templates.html)
-- [Panel Styling](https://panel.holoviz.org/user_guide/Styling.html)
+- [Panel Styling](https://panel.holoviz.org/how_to/styling/index.html)
 - [Material Design](https://material.io/design)
 - [Bootstrap](https://getbootstrap.com/)
 - [Fast Design System](https://www.fast.design/)

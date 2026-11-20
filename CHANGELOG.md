@@ -40,11 +40,19 @@ First tagged release. Plugin versions move to this release for every plugin belo
 
 - Initial tagged release.
 
+#### Fixed
+
+- Fixed broken HoloViz, Panel, Lumen, hvPlot, and Param documentation links in the README and the `colormaps-styling`, `lumen-ai`, `lumen-dashboards`, and `parameterization` skills, refs #249.
+
 ### project-management
 
 #### Added
 
 - Initial tagged release.
+
+#### Fixed
+
+- Fixed broken links in the `community-health-files` and `documentation-validation` skill references, refs #249.
 
 ### research-software-design
 
@@ -58,11 +66,19 @@ First tagged release. Plugin versions move to this release for every plugin belo
 
 - Initial tagged release.
 
+#### Fixed
+
+- Fixed broken rioxarray and Geocube documentation links in the README, refs #249.
+
 ### scientific-python-development
 
 #### Added
 
 - Initial tagged release.
+
+#### Fixed
+
+- Fixed broken links in the `scientific-documentation` skill references, refs #249.
 
 ### supply-chain-security
 
@@ -74,9 +90,13 @@ First tagged release. Plugin versions move to this release for every plugin belo
 
 - `supply-chain-dependency-security`: the description lists triggers only and leaves reported compromises to `supply-chain-incident-response`. CI install commands now fail on a stale lockfile (`pixi install --locked`, `uv sync --locked`, and a `--check-input-hash` step for conda-lock), and Yarn disables install scripts explicitly. The 7-day cooldown gains a resolver setting per tool and a publish-time check for versions a lockfile diff adds. The skill now has When to Use, Quick Reference, rationalization, red-flag and Common Mistakes sections.
 - `supply-chain-hardened-ci-cd`: the description lists only when to use the skill, and the body is restructured around a quick reference, rationalizations and red flags. Every example action is pinned to a commit SHA, including the PyPI publish action that was on `@release/v1`. The OIDC example, which wasn't valid YAML, is now a complete build/publish workflow in `references/hardening-patterns.md`, where the publish job runs no project code: PyPI builds with `PIP_ONLY_BINARY=:all:`, and npm packs the tarball in the build job and publishes it with `--ignore-scripts`.
+- `supply-chain-threat-awareness`: the description lists triggers only, and the audit commands moved to `references/audit-commands.md`. Each campaign now has the dates it was observed and primary sources; Shai-Hulud is described as a self-propagating worm with a second wave in November 2025, and TeamPCP as running from March to April 2026.
 
 #### Fixed
 
+- `supply-chain-threat-awareness` and `/supply-chain-audit`: the action-pinning scan flags every mutable `uses:` ref, including `.yaml` files, local composite actions anywhere in the repository, untracked files, flow-style and quoted-key YAML, `docker://` tags and SHA-prefixed branches.
+- `supply-chain-threat-awareness`: cooldown is measured as each version's age when the change adopting it was merged, locked installs require `--locked`, the lifecycle-script query lists all eight hooks npm runs for the project on install, and the LiteLLM check no longer runs `pip show` in the suspect environment.
+- Fixed broken links in the `supply-chain-ecosystem-quirks` skill references, refs #249.
 - `supply-chain-incident-response`: the description is now trigger-only, and commands that did nothing or reported a false PASS are replaced: the advisory lookup, lockfile grep and history, `gh cache` listing and deletion by id, `find -newermt`, the postinstall query and the tag-hijack audit loop. Recovery re-enables the disabled workflows and starts a fresh run from the fixed commit. The npm rotation creates a granular, package-scoped token with an expiry (npm 11.6.3 or later, or npmjs.com for older clients).
 - `/supply-chain-incident` is now user-invoked only (`disable-model-invocation: true`), so incident prompts load `supply-chain-incident-response` instead of the command, and its paths to the rotation guide and report template now go through the skill.
 
@@ -105,6 +125,7 @@ First tagged release. Plugin versions move to this release for every plugin belo
 - `chunking-strategy`: the description is now trigger-only ("Use when ...").
 - `performance-reporting` now reads the JSON that `benchmark_runner.py` actually writes, with a tested loader, and stops reporting TTFB and chunk utilization, which the runner never measures.
 - `performance-reporting` drops the weighted pattern-bias score, which rated equal times as unbalanced, and corrects the example numbers, table sorting and ranking rules to match `chunking-strategy`.
+- Fixed the broken DOI and title for the Nguyen et al. (2023) paper cited in the README, refs #249.
 
 ### zarr-data-format
 
@@ -139,3 +160,7 @@ First tagged release. Plugin versions move to this release for every plugin belo
 
 - The README is shorter and points to the [skill catalog](docs/catalog.md) and the other docs instead of listing every plugin, skill, and agent itself.
 - [docs/install.md](docs/install.md) and [docs/trust-and-safety.md](docs/trust-and-safety.md) cover Antigravity CLI instead of Gemini CLI, which Google retired for most users in June 2026. Each plugin README's note on client support now says which parts Antigravity CLI loads.
+
+#### Fixed
+
+- Removed the `lychee.toml` link-check exclusions for the links fixed in #249 and the `softwareheritage.org` TLS workaround; `vizier.cds.unistra.fr` stays excluded, with the reason noted, as do the README's Zenodo DOI badge links until the first release is archived.

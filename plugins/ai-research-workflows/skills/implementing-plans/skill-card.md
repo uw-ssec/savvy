@@ -39,7 +39,10 @@ Capability declarations (`metadata` in `SKILL.md`) and what each implies:
 Accepted security findings: none for this skill in `.github/skill-security-accepted.yml`.
 
 Risk: executing a plan that is wrong, stale or unsafe changes the codebase and runs its commands.
-Mitigation: the skill requires a critical review of the plan before any code is written. It requires a stop and a mismatch report when the code differs from the plan, and it forbids starting on `main` or `master` without explicit user consent.
+Mitigation: the skill requires the agent to review the plan critically before any code is written. This review is the agent's own; if it finds nothing to raise, the agent proceeds, so it is not a human gate. It requires a stop and a mismatch report when the code differs from the plan, and it forbids starting on `main` or `master` without explicit user consent.
+
+Risk: when resuming a plan, the skill says to "Trust that completed work is done" and to re-verify earlier phases only if tests fail, files are missing or something looks inconsistent. A stale or wrong checkmark is therefore built on without being checked.
+Mitigation: the skill's conditions for re-verifying (failing tests, missing files, inconsistencies) are the only safeguard. Check the plan's existing checkmarks against the code before resuming work that depends on them.
 
 Risk: automated checks pass while manual criteria are untested.
 Mitigation: the skill requires a pause for human verification after each phase (except consecutive phases the user explicitly requested) and forbids checking off manual items the user has not confirmed.

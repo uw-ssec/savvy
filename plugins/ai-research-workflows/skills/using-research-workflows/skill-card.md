@@ -4,7 +4,7 @@ Format follows NVIDIA's Skill Card template (NVIDIA/Trustworthy-AI). Sections no
 
 ## Description
 
-A routing skill for the `ai-research-workflows` plugin. It tells the agent to pick and invoke the matching workflow skill (researching, planning, experimenting, implementing, validating, reproducing, hardening, handing off) before acting on a research-software task, and explains the Collaborative and Direct interaction modes and the document naming scheme. It is written instructions plus one reference document and ships no code.
+A routing skill for the `ai-research-workflows` plugin. It tells the agent to pick and invoke the matching workflow skill (researching, planning, iterating on plans, experimenting, implementing, validating, reproducing, hardening, handing off) before acting on a research-software task, and explains the Collaborative and Direct interaction modes and the document naming scheme. It is written instructions plus one reference document and ships no code.
 
 ## Owner
 
@@ -39,10 +39,10 @@ Capability declarations (`metadata` in `SKILL.md`) and what each implies:
 Accepted security findings: none for this skill in `.github/skill-security-accepted.yml`.
 
 Risk: the skill is written in strongly directive language. It says that if there is a 1% chance a workflow skill applies the agent must invoke it, and it ranks itself above the client's default system prompt (below the user's explicit instructions). This can make an agent run more skills, and more steps, than a small task needs.
-Mitigation: the skill states that user instructions come first, that the aim is the minimal matching skill and not the whole chain, and that "just do it" selects Direct mode rather than disabling the workflow. Users who do not want the compulsion should not install this skill.
+Mitigation: the skill ranks the user's explicit instructions highest, and a clear "Don't plan, just write it" wins. That is narrow: a directive such as "fix the loader", "just add X" or "don't overthink it" states what to do and does not authorize skipping the workflow, and "just do it" selects Direct mode rather than disabling it. The aim is the minimal matching skill, not the whole chain. The skill also ranks itself above the client's default system prompt, and nothing in it mitigates that; operator or system-prompt policy that conflicts with it is declared lower priority. Users who do not want the compulsion or that precedence should not install this skill.
 
 Risk: because it routes to other skills, what actually runs depends on those skills.
-Mitigation: each routed skill has its own capability declarations and skill card; review those too.
+Mitigation: the nine sibling skills in this plugin each have their own capability declarations and skill card; review those too. The deferral targets outside this plugin (the `scientific-python-development` skills, `project-management:community-health-files`, the `/project-handoff` command and an external `deep-research` skill) have no skill card or capability declarations in this pilot, so review them separately.
 
 ## Output
 

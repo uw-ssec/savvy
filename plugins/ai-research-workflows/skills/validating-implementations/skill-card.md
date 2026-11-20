@@ -31,17 +31,20 @@ Requires API key or external credential: No. Credential type: none. The skill de
 Capability declarations (`metadata` in `SKILL.md`) and what each implies:
 
 - `capability-network: none`. The skill does not direct any network access. Verification commands taken from a plan may still use the network.
-- `capability-shell: runs-commands`. The skill directs the agent to run `git log`, `git diff --stat`, and every command in the plan's "Automated Verification" section (for example `make test`, `pytest`, `mypy`, `npm run lint`). It runs whatever the plan lists, with the user's permissions.
+- `capability-shell: runs-commands`. The skill directs the agent to run `git log`, `git diff --stat`, and every command in the plan's "Automated Verification" section (for example `make test`, `pytest`, `mypy`, `npm run lint`). It runs whatever the plan lists, with the user's permissions. It also runs a baseline test command that does not come from the plan (`make test`, `pytest tests/ -v` or `npm test`), and for research code it directs the agent to re-run result-producing code to confirm that reported numbers reproduce.
 - `capability-file: write`. The skill directs the agent to write `docs/rse/specs/validation-<slug>.md`, overwriting a previous validation of the same plan, and to read the plan and the code.
 - `capability-environment: none`. No environment variables are read.
 - `capability-mcp: none`. No MCP tools are used.
 
 Accepted security findings, from `.github/skill-security-accepted.yml`:
 
-- `Anti-Refusal Statement (AR2)` (high), in `SKILL.md`. This is a false positive. The scanner matched the guidance for reviewing in a fresh session, which says to note deviations "without judging them". That asks the reviewer to report deviations as observable facts and not speculate about intent. It does not ask the agent to suppress warnings or refusals. The nearby line about having no memory of implementation decisions describes a fresh session. The acceptance is pinned to the SHA-256 of `SKILL.md`, so any edit to that file requires a new review.
+- `Anti-Refusal Statement (AR2)` (high), in `SKILL.md`. This is a false positive. The accepted-findings file attributes the match to the guidance for reviewing in a fresh session, which says to note deviations "without judging them". That asks the reviewer to report deviations as observable facts and not speculate about intent. It does not ask the agent to suppress warnings or refusals. The nearby line about having no memory of implementation decisions describes a fresh session. The acceptance is pinned to the SHA-256 of `SKILL.md`, so any edit to that file requires a new review.
 
 Risk: running the plan's verification commands executes whatever the plan says, so a malicious or mistaken plan is run.
-Mitigation: read the plan before validation. The skill itself does not vet the commands.
+Mitigation: read the plan before validation. The skill itself does not vet the commands, and that review does not reach the baseline test run or the re-run of research code, which are not in the plan.
+
+Risk: re-running result-producing research code can mean long, costly training or analysis runs, and can overwrite the output artifacts or reported results being checked.
+Mitigation: none in the skill. Back up the original outputs, or point the re-run at a separate output location, before validation.
 
 Risk: a verdict based on someone else's report or on plan checkmarks.
 Mitigation: the skill's Iron Law is that no verdict is given without fresh output the agent produced itself. Checkmarks and teammates' reports count as claims, manual items are never marked done without user confirmation, and the report separates automated from manual results.

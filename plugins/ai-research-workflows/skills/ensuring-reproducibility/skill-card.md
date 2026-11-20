@@ -39,7 +39,13 @@ Capability declarations (`metadata` in `SKILL.md`) and what each implies:
 Accepted security findings: none for this skill in `.github/skill-security-accepted.yml`.
 
 Risk: re-running recorded commands can be slow or costly (long jobs, GPUs) and downloads and installs third-party packages.
-Mitigation: the skill allows a minimal reproduction (smaller subset, fewer steps, one seed). Review the commands before they are run.
+Mitigation: the skill allows a minimal reproduction (smaller subset, fewer steps, one seed). The skill leans Direct and has no pause before the re-run, and it says that lack of time is never a reason to skip the reproduction, so the agent may start compute without asking. Review the recorded commands beforehand, or ask the agent to confirm before it runs them.
+
+Risk: the record is written to a committed path (`docs/rse/specs/`) and the skill has the agent capture config file contents, data URLs and exact commands, so tokens in URLs, secrets in config files or values from the environment can end up in version control.
+Mitigation: the skill has no secret filter. Review the record for credentials before committing it, and keep credentials out of recorded URLs and commands.
+
+Risk: the skill re-runs the exact recorded commands and does not say to redirect their outputs, so a re-run in the same checkout can overwrite the original checkpoint or result being reproduced.
+Mitigation: none in the skill. Copy the original outputs aside, or reproduce into a separate output directory, before the re-run.
 
 Risk: a provenance record can look complete without having been verified.
 Mitigation: the skill states that an unreproduced record is a hypothesis. It permits deferral only when a fresh run is technically impossible, never for lack of time, and requires any tolerance to be documented.

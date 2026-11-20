@@ -44,6 +44,9 @@ Mitigation: the skill requires the agent to surface uncommitted or unpushed work
 Risk: the handoff is a file in a repository path (`docs/rse/specs/`) that the surrounding workflow treats as committed and version-controlled. Conversation content the agent copies into it, including anything sensitive that appeared in the session, can end up in version control. The skill does not instruct the agent to filter secrets.
 Mitigation: review the handoff before committing it.
 
+Risk: the handoff is an instruction carrier. The next session is told to "Read the handoff document ... and resume the work described within", and the skill feeds earlier handoffs and legacy `.agents/` files into the new one, so stale, mistaken or planted content in those files propagates into a session that acts on it.
+Mitigation: none in the skill. A person should read the handoff, and any earlier handoff it draws on, before the next session is told to act on it.
+
 ## Output
 
 **Output Type(s):** Files (Markdown), plus a short summary presented in the conversation.

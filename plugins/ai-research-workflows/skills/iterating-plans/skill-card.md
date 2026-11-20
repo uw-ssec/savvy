@@ -39,7 +39,7 @@ Capability declarations (`metadata` in `SKILL.md`) and what each implies:
 Accepted security findings: none for this skill in `.github/skill-security-accepted.yml`.
 
 Risk: edits to a plan can break its internal consistency (phase numbering, cross-references, the automated versus manual verification split) or silently invalidate its reproducibility or numerical-correctness criteria.
-Mitigation: the skill requires a consistency scan after editing and a re-check of the research criteria when the approach changes. It requires user confirmation before any edit and forbids leaving open questions in the plan.
+Mitigation: the skill requires a consistency scan after editing and a re-check of the research criteria when the approach changes. It requires the agent to present the proposed changes and get the user's confirmation before writing to the plan file, and the skill states no exemption from that confirmation. It also forbids leaving open questions in the plan.
 
 Risk: an agent rewrites more of the plan than was asked.
 Mitigation: the skill specifies surgical edits and lists whole-plan rewrites as a bad edit. Review the diff of the plan.
@@ -56,7 +56,7 @@ Released with the `ai-research-workflows` plugin; see its `plugin.json` version.
 
 ## Ethics
 
-The plan may later be executed by an agent with the user's permissions, so an altered plan changes what the agent will do. The skill therefore asks the user to confirm changes before they are written and to raise conflicts rather than hiding them. Developers should confirm the skill fits their team's policies before adoption.
+The plan may later be executed by an agent with the user's permissions, so an altered plan changes what the agent will do. The skill therefore always asks the user to confirm proposed changes before they are written and to raise conflicts rather than hiding them. Developers should confirm the skill fits their team's policies before adoption.
 
 ## Reference(s)
 

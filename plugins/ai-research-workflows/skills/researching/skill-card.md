@@ -39,7 +39,10 @@ Capability declarations (`metadata` in `SKILL.md`) and what each implies:
 Accepted security findings: none for this skill in `.github/skill-security-accepted.yml`.
 
 Risk: fetched web pages are untrusted text and can contain misleading claims or instructions aimed at the agent. The skill does not tell the agent to treat fetched content as untrusted.
-Mitigation: the skill requires a primary-source citation for every external claim, labels secondary sources as such, and requires at least one search for contradicting evidence. A person reviews the research document before planning starts. Users should treat any instruction found in fetched content as data.
+Mitigation: none in the skill for injected instructions. The primary-source citation rule, the labelling of secondary sources and the search for contradicting evidence address the quality of sources, not injection. Users should treat any instruction found in fetched content as data. The document is not reviewed by a person before planning in every mode: in Collaborative mode the skill waits for the user's review, but in Direct mode it presents the document, notes that it is ready for review and proceeds.
+
+Risk: when both passes are in scope, the agent reads private code and then writes web search queries (`references/prior-art-research.md`), so internal identifiers, architecture details or unpublished research topics can leave the machine as query text.
+Mitigation: none in the skill. Scope the request to the internal pass only, or tell the agent to generalise its queries, when the codebase or topic is confidential.
 
 Risk: the findings can be wrong or go stale, which then misleads the plan built on them.
 Mitigation: every code finding must cite `file:line`, the commit SHA and date are recorded, and the skill has the agent present findings and offer the document for user review before moving on.

@@ -5,7 +5,7 @@ description: >-
   prototype comparison is needed before committing to a design. Triggers: should
   I use X or Y, compare approaches, benchmark, which is faster or simpler.
 metadata:
-  capability-network: none
+  capability-network: read
   capability-shell: runs-commands
   capability-file: write
   capability-environment: none

@@ -24,13 +24,13 @@ Not applicable. The skill is plain instructions with no service component. It ca
 
 ## Credentials
 
-Requires API key or external credential: No. Credential type: none. The skill declares `capability-environment: none`. A prototype the agent writes may itself need credentials; the skill does not provide them.
+Requires API key or external credential: No. Credential type: none. The skill declares `capability-environment: none`. A prototype the agent writes may itself need credentials, and installing a library from a private package index may need an index token; the skill provides none.
 
 ## Risks and Mitigations
 
 Capability declarations (`metadata` in `SKILL.md`) and what each implies:
 
-- `capability-network: none`. The skill does not direct any network access. Prototype code the agent writes could still use the network.
+- `capability-network: read`. The skill has the agent build and run every approach it compares (the Iron Law), which for a library comparison means fetching and installing the packages under test. The skill does not name a package manager or an index. Prototype code the agent writes could also use the network.
 - `capability-shell: runs-commands`. The skill directs the agent to create a branch or scratch directory (`git checkout -b experiment-<slug>` or `.experiments/<slug>`) and to run prototypes, benchmarks and tests (for example `python benchmark.py`, `pytest`). It runs code that the agent has just written, with the user's permissions.
 - `capability-file: write`. The skill directs the agent to write prototype code in the isolated branch or directory and to write `docs/rse/specs/experiment-<slug>.md`.
 - `capability-environment: none`. No environment variables are read.
@@ -38,8 +38,11 @@ Capability declarations (`metadata` in `SKILL.md`) and what each implies:
 
 Accepted security findings: none for this skill in `.github/skill-security-accepted.yml`.
 
-Risk: the agent executes freshly written, unreviewed code and can leave a stray branch or scratch directory behind.
-Mitigation: the skill isolates prototypes on a temporary branch or in a scratch directory and requires their location to be documented. Review the code before running anything that touches real data or systems.
+Risk: the agent executes freshly written, unreviewed code and can leave a stray branch or scratch directory behind. Putting prototype source in a temporary branch or scratch directory separates the files, but it does not limit execution: the code still runs with the user's permissions against the real filesystem and network.
+Mitigation: none in the skill for execution itself. The skill requires the location of the code to be documented, which helps cleanup. Review the code before running anything that touches real data or systems, or run it in a sandbox or container.
+
+Risk: package installation. Comparing libraries means installing packages chosen by the agent, by name and version, into the user's environment, which is a supply-chain and environment-mutation risk (a mistyped or malicious package, a changed global environment). The skill does not require an isolated environment, and `git checkout -b` also moves the user's HEAD.
+Mitigation: the skill requires the environment to be held constant across approaches and the conditions to be captured per `ai-research-workflows:ensuring-reproducibility`, so the packages and versions installed are recorded in the experiment document. Check that list, install into a throwaway virtual environment, container or the scratch directory, and commit or stash uncommitted work before the branch is created.
 
 Risk: a comparison that looks measured but is not, for example one approach run and the other estimated, or a single noisy timing.
 Mitigation: the skill's rule is that every compared approach must be built and run. An approach that could not be built is labelled an unverified assumption. Benchmarks are run several times, with variance reported, seeds fixed and inputs held constant.

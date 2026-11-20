@@ -56,7 +56,7 @@ Released with the `ai-research-workflows` plugin; see its `plugin.json` version.
 
 ## Ethics
 
-A plan records decisions that affect later work, so the skill asks that design options and trade-offs be shown to the user and that scope boundaries ("What We're NOT Doing") be stated, rather than decided silently. For numerical research code, it points to `hardening-research-code` so that planned tests check against known results. Developers should confirm the skill fits their team's policies before adoption.
+A plan records decisions that affect later work, so in Collaborative mode (the default lean) the skill asks that design options and trade-offs be shown to the user, and in Direct mode nothing is shown before the plan is written. It also asks that scope boundaries ("What We're NOT Doing") be stated, rather than decided silently. For numerical research code, it points to `hardening-research-code` so that planned tests check against known results. Developers should confirm the skill fits their team's policies before adoption.
 
 ## Reference(s)
 

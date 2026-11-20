@@ -41,6 +41,9 @@ Accepted security findings: none for this skill in `.github/skill-security-accep
 Risk: tests that pin the current output can lock in a wrong result and make it look verified.
 Mitigation: the skill forbids calling pinned output a verified baseline until it is checked against an independent reference or invariant. Otherwise the baseline must be labelled `UNVERIFIED`.
 
+Risk: the "independent reference" (an analytic limit, a synthetic case, an invariant) is usually derived by the same agent that writes the tests. If that derivation is wrong, the skill's own rule then lets the baseline be called verified.
+Mitigation: the skill requires a reference to be independent of the code under test, but it does not require a person to check it. Have a person review the stated correctness criterion and its derivation before a baseline is relied on.
+
 Risk: a tolerance chosen to make a test pass hides a bug.
 Mitigation: the skill says to derive tolerances from the numerics, to document the justification, and never to tune them to the result.
 
@@ -50,7 +53,7 @@ Mitigation: the skill's workflow says to restore the original after seeing the t
 ## Output
 
 **Output Type(s):** Code (tests), Files (reference data, tolerance notes).
-**Output Format:** test files and versioned reference data in the user's repository, in the project's own test framework.
+**Output Format:** test files and versioned reference data in the user's repository.
 **Other Properties:** each test states its correctness criterion; each baseline is verified or labelled `UNVERIFIED`.
 
 ## Version

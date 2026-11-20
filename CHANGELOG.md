@@ -88,6 +88,14 @@ First tagged release. Plugin versions move to this release for every plugin belo
 
 - Initial tagged release.
 
+#### Changed
+
+- `zarr-fundamentals`: the description now says only when to use the skill, and no longer covers the cloud, codec, migration and xarray topics that belong to sibling skills.
+
+#### Fixed
+
+- `zarr-fundamentals`: examples and advice now match zarr-python 3. The sharding example no longer swaps chunks and shards, `resize` takes a tuple, the removed synchronizers give way to a one-writer-per-chunk (or shard) rule, and the quickstart script runs without `rich` and removes its temp directory.
+
 ### Repository
 
 #### Added

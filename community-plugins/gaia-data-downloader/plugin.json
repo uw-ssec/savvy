@@ -7,7 +7,7 @@
         "name": "GAIA HazLab",
         "url": "https://github.com/gaia-hazlab"
     },
-    "repository": "https://github.com/uw-ssec/rse-plugins",
+    "repository": "https://github.com/uw-ssec/savvy",
     "license": "BSD-3-Clause",
     "keywords": [
         "gaia",

@@ -42,16 +42,16 @@ Replace `scientific-python-development` in the examples below with any plugin fr
 
 ```bash
 claude plugin marketplace add uw-ssec/savvy
-claude plugin install scientific-python-development@rse-plugins
+claude plugin install scientific-python-development@savvy
 ```
 
-Inside Claude Code, the same commands are `/plugin marketplace add uw-ssec/savvy` and `/plugin install scientific-python-development@rse-plugins`. Claude Code reads `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`, and loads skills, agents, commands and MCP servers. The marketplace is named `rse-plugins`, which is why plugin names end in `@rse-plugins`.
+Inside Claude Code, the same commands are `/plugin marketplace add uw-ssec/savvy` and `/plugin install scientific-python-development@savvy`. Claude Code reads `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`, and loads skills, agents, commands and MCP servers. The marketplace is named `savvy`, which is why plugin names end in `@savvy`.
 
 ### GitHub Copilot CLI
 
 ```bash
 copilot plugin marketplace add uw-ssec/savvy
-copilot plugin install scientific-python-development@rse-plugins
+copilot plugin install scientific-python-development@savvy
 ```
 
 Copilot reads the root `plugin.json` and the marketplace in `.claude-plugin/marketplace.json`, and loads each plugin's skills and MCP servers. It doesn't load our agents or commands yet: those are written for Claude Code, and Copilot-format versions for Copilot CLI and VS Code are tracked in [#240](https://github.com/uw-ssec/savvy/issues/240). The [Codespace](../README.md#github-codespaces) installs every plugin this way.
@@ -72,7 +72,7 @@ Then install plugins from the marketplace. See [Configure plugin marketplaces](h
 
 ```bash
 codex plugin marketplace add uw-ssec/savvy
-codex plugin add scientific-python-development@rse-plugins
+codex plugin add scientific-python-development@savvy
 ```
 
 Codex reads `.agents/plugins/marketplace.json` and loads skills and MCP servers. It doesn't load agents or commands.

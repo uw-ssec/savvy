@@ -88,7 +88,7 @@ Temporal access retrieves a full time series at a single spatial location or sma
 ds["temperature"].sel(lat=51.5, lon=-0.1, method="nearest")
 
 # Monthly mean precipitation at a point
-ds["precip"].sel(lat=35.0, lon=-106.0, method="nearest").resample(time="1M").mean()
+ds["precip"].sel(lat=35.0, lon=-106.0, method="nearest").resample(time="1MS").mean()
 ```
 
 **Oceanography:**
@@ -198,7 +198,7 @@ ds["temperature"].sel(
     lat=slice(30, 50),
     lon=slice(-100, -80),
     time=slice("2010", "2020")
-).mean(dim=["lat", "lon"]).resample(time="1M").mean()
+).mean(dim=["lat", "lon"]).resample(time="1MS").mean()
 ```
 
 **Remote Sensing:**
@@ -232,7 +232,7 @@ You are dealing with a diagonal pattern when:
 ### Optimization Strategies
 
 - Use chunk sizes that balance across the involved dimensions rather than maximizing one.
-- Consider sharding (Zarr v3) with outer shards aligned to the dominant dimension and inner chunks balanced.
+- With sharding (Zarr v3), the inner chunk is what a read fetches, so make the inner chunk balanced. Size the shard only to keep the object count manageable.
 - For regularly repeated diagonal patterns, precompute and cache the result.
 
 ---
@@ -248,7 +248,7 @@ Quantify how often each pattern occurs. Methods include:
 1. **Log analysis.** If the data is served through a web API or object storage with access logging, parse logs to count requests by access shape.
 2. **User interviews.** Ask each user or user group to estimate how many times per day/week they execute each type of query. Use the questionnaire in `assets/workflow-questionnaire.md`.
 3. **Code review.** Scan analysis scripts and notebooks for `.sel()`, `.isel()`, `.mean()`, and `.groupby()` calls. Categorize each by pattern type.
-4. **Dask dashboard.** Monitor task graphs during typical workloads. Spatial access produces wide, shallow graphs; temporal access produces narrow, deep graphs.
+4. **Dask task graphs.** Check which chunk indices the load tasks touch. Spatial reads vary the spatial indices at one time index; temporal reads vary the time index at one spatial index. Graph shape alone is a weak signal. See `workflow-mapping.md`, Dask Task Graph Analysis.
 
 ### Profiling Approaches
 
@@ -263,14 +263,11 @@ spatial_time = time.time() - start
 
 # Time temporal access
 start = time.time()
-ds["var"].sel(lat=45.0, lon=-90.0).load()
+ds["var"].sel(lat=45.0, lon=-90.0, method="nearest").load()
 temporal_time = time.time() - start
 ```
 
-**Automated profiling with cachey or zarr diagnostics:**
-- Count the number of chunks read per operation.
-- Measure bytes read vs. bytes used (read amplification).
-- High read amplification indicates chunk misalignment with the access pattern.
+**Chunk counting:** compute the chunks each operation touches and its read amplification (bytes fetched ÷ bytes used) from the index ranges and the chunk shape. A runnable helper is in `workflow-mapping.md`, Profiling Chunk Access. High read amplification means the chunks don't match the access pattern.
 
 ### Building a Pattern Profile
 
@@ -298,14 +295,13 @@ If one pattern is far more frequent, optimize for it and accept slower performan
 **2. Compromise chunking.**
 Choose a balanced chunk shape like `(100, 64, 64)` that is acceptable for both patterns. Neither will be optimal, but neither will be catastrophically slow. This works when patterns are roughly equally weighted.
 
-**3. Sharding (Zarr v3).**
-Use shards aligned with the dominant pattern and inner chunks aligned with the secondary pattern. For example, shards of `(1, 512, 512)` with inner chunks of `(1, 64, 64)` optimize for spatial access while keeping inner chunk boundaries useful for partial spatial reads.
+**3. Sharding (Zarr v3), alongside option 1 or 2.**
+Sharding packs many inner chunks into one stored object (the shard). A read fetches only the inner chunks it needs, so the inner chunk shape sets the read granularity and the conflict trade-off is the same as without sharding. What sharding adds is the ability to use small inner chunks (e.g., a `(100, 64, 64)` compromise) without millions of small objects in the store. Writes must cover whole shards.
 
 **4. Dual-store approach.**
-Maintain two copies of the dataset chunked differently. Route queries to the appropriate store based on detected access pattern. This doubles storage cost but eliminates the conflict entirely.
+Maintain two copies of the dataset chunked differently (create the second with the `rechunking` skill). Route queries to the appropriate store based on detected access pattern. This doubles storage cost but eliminates the conflict entirely.
 
-**5. Virtual references (Kerchunk / VirtualiZarr).**
-Store data once with one physical chunk layout. Create virtual reference files that present the data as if it were chunked differently. Useful when one pattern is read-heavy and the other is analysis-heavy.
+Virtual references (Kerchunk / VirtualiZarr) are not an option here. They index the chunks that already exist, so a virtual dataset has the same chunk layout as the files it points to.
 
 ### Decision Framework
 
@@ -313,7 +309,7 @@ Store data once with one physical chunk layout. Create virtual reference files t
 Is one pattern >3x more frequent than all others?
   YES → Optimize for dominant pattern, accept penalty on others.
   NO  → Are patterns roughly equal (within 2x)?
-    YES → Use compromise chunking or sharding.
+    YES → Use compromise chunking (add sharding if the inner chunks are small).
     NO  → Consider dual-store if storage budget allows.
 ```
 

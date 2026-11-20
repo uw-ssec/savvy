@@ -29,7 +29,7 @@ Use it when a chosen chunk or shard shape must be applied to a real store, or wh
 |-----------|------|
 | Single Zarr array | `python scripts/rechunk.py` or `zarr.from_array(new_path, data=src, chunks=...)` |
 | Sharded Zarr v3 target | `zarr.from_array(..., chunks=inner, shards=outer)` or xarray encoding `{"chunks", "shards"}`. The script cannot set shards. |
-| Zarr group or xarray Dataset | `ds.chunk(...).to_zarr(new_path, zarr_format=<source format>)` with stale encoding removed. Group whose arrays lack dimension names: `zarr.from_array` per array. The script rejects groups. |
+| Flat Zarr group or xarray Dataset | `ds.chunk(...).to_zarr(new_path, zarr_format=<source format>)` with stale encoding removed. Subgroups or no dimension names: `zarr.from_array` per array. The script rejects groups. |
 | Larger-than-memory transpose, e.g. `(1, Y, X)` to `(T, 1, 1)` | dask on a `distributed` cluster (`method="p2p"`), or `rechunker` under zarr-python 2 |
 
 Code for each route, sharding rules and memory planning: [rechunking-strategies.md](references/rechunking-strategies.md).

@@ -5,11 +5,11 @@
 | Section | Lines | Description |
 |---------|-------|-------------|
 | Pre-Rechunk Validation | 16–113 | Checks to perform before starting a rechunking operation |
-| Post-Rechunk Validation | 114–190 | Verifying that the rechunked output matches the source |
-| Sample-First Strategy | 191–273 | Rechunking a subset before committing to the full dataset |
-| Rollback Patterns | 274–342 | Path swap, backup strategies, and recovery procedures |
-| Data Integrity Checks | 343–397 | Checksum comparison, sampled validation, NaN handling |
-| Common Failure Modes | 398–480 | OOM during rechunk, interrupted writes, and corrupted chunks |
+| Post-Rechunk Validation | 114–195 | Verifying that the rechunked output matches the source |
+| Sample-First Strategy | 196–277 | Rechunking a subset before committing to the full dataset |
+| Rollback Patterns | 278–353 | Path swap, backup strategies, and recovery procedures |
+| Data Integrity Checks | 354–408 | Checksum comparison, sampled validation, NaN handling |
+| Common Failure Modes | 409–491 | OOM during rechunk, interrupted writes, and corrupted chunks |
 
 ---
 
@@ -33,7 +33,7 @@ print(f"Dtype: {source.dtype}")
 print(f"Compressors: {source.compressors}")
 ```
 
-`Array.compressor` raises on Zarr v3 arrays under zarr-python 3; use `compressors`. If the source is a Zarr group, `scripts/rechunk.py` rejects it: verify each array independently and use the xarray route in rechunking-strategies.md.
+`Array.compressor` raises on Zarr v3 arrays under zarr-python 3; use `compressors`. If the source is a Zarr group, `scripts/rechunk.py` rejects it: verify each array independently and use the xarray or array-by-array route in rechunking-strategies.md.
 
 ### 2. Disk Space
 
@@ -130,8 +130,8 @@ These checks catch gross errors (wrong dimensions, truncated data) but do not ve
 #### Dtype Verification
 
 ```python
-source = zarr.open("/data/source.zarr", "r")
-output = zarr.open("/data/output.zarr", "r")
+source = zarr.open("/data/source.zarr", mode="r")
+output = zarr.open("/data/output.zarr", mode="r")
 
 assert source.dtype == output.dtype, \
     f"Dtype mismatch: source={source.dtype}, output={output.dtype}"
@@ -155,7 +155,12 @@ Rechunking must be bit-exact, so compare values exactly. Iterate over the **outp
 import itertools
 import numpy as np
 
-EQUAL_NAN = np.issubdtype(source.dtype, np.inexact)  # NaN == NaN for float data
+def values_equal(a, b):
+    """Exact comparison where NaN == NaN for float and complex data."""
+    if np.iscomplexobj(a) or np.iscomplexobj(b):
+        # equal_nan=True on complex data ignores the other component of a NaN
+        return values_equal(a.real, b.real) and values_equal(a.imag, b.imag)
+    return np.array_equal(a, b, equal_nan=np.issubdtype(a.dtype, np.inexact))
 
 
 def iter_blocks(arr):
@@ -178,15 +183,15 @@ def random_blocks(arr, k, seed=0):
 
 # Full check: every output block
 for sl in iter_blocks(output):
-    assert np.array_equal(source[sl], output[sl], equal_nan=EQUAL_NAN), f"Mismatch in {sl}"
+    assert values_equal(source[sl], output[sl]), f"Mismatch in {sl}"
 
 # Very large stores: a sample of whole blocks checks far more values per read
 # than single random elements
 for sl in random_blocks(output, k=50):
-    assert np.array_equal(source[sl], output[sl], equal_nan=EQUAL_NAN), f"Mismatch in {sl}"
+    assert values_equal(source[sl], output[sl]), f"Mismatch in {sl}"
 ```
 
-Without `equal_nan=True`, `np.array_equal` reports identical float data with NaN fill values as a mismatch. Keep it off for integer and string data; `equal_nan=True` raises on strings.
+Without `equal_nan=True`, `np.array_equal` reports identical float data with NaN fill values as a mismatch. Keep it off for integer and string data; `equal_nan=True` raises on strings. On complex data it treats `nan+1j` and `nan+999j` as equal, so `values_equal` compares the real and imaginary parts separately.
 
 ## Sample-First Strategy
 
@@ -232,14 +237,13 @@ python scripts/rechunk.py \
 ### Validating the Sample
 
 ```python
-source_sample = zarr.open("/tmp/rechunk_sample.zarr", "r")
-output_sample = zarr.open("/tmp/rechunk_sample_output.zarr", "r")
+source_sample = zarr.open("/tmp/rechunk_sample.zarr", mode="r")
+output_sample = zarr.open("/tmp/rechunk_sample_output.zarr", mode="r")
 
 # Full comparison is feasible for small samples
 assert source_sample.shape == output_sample.shape
 assert source_sample.dtype == output_sample.dtype
-assert np.array_equal(source_sample[:], output_sample[:],
-                      equal_nan=np.issubdtype(source_sample.dtype, np.inexact))
+assert values_equal(source_sample[:], output_sample[:])  # from Value Comparison above
 print("Sample validation passed")
 ```
 
@@ -481,7 +485,7 @@ if errors:
 **Recovery:** Copy attributes from the source to the output manually:
 
 ```python
-source = zarr.open("/data/source.zarr", "r")
-output = zarr.open("/data/output.zarr", "r+")
+source = zarr.open("/data/source.zarr", mode="r")
+output = zarr.open("/data/output.zarr", mode="r+")
 output.attrs.update(source.attrs)
 ```

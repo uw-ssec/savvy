@@ -8,9 +8,9 @@
 | Chunk-at-a-Time Processing | 62–98 | The script's fallback copy, its memory profile and limits |
 | Intermediate Storage Patterns | 99–149 | Temporary stores used by the rechunker library |
 | Parallel Rechunking with rechunker | 150–198 | Running rechunker on a Dask cluster (zarr-python 2 only) |
-| Rechunking Under zarr-python 3 | 199–256 | `zarr.from_array`, xarray `to_zarr`, dask `tasks` vs `p2p`, sharding, Kerchunk limits |
-| Cost Estimation Formula | 257–303 | Time estimation based on Nguyen et al. (2023) findings |
-| Monitoring Progress | 304–372 | Progress logs, ETA calculation, and memory tracking during rechunking |
+| Rechunking Under zarr-python 3 | 199–290 | `zarr.from_array`, xarray `to_zarr`, dask `tasks` vs `p2p`, sharding, Kerchunk limits |
+| Cost Estimation Formula | 291–337 | Time estimation based on Nguyen et al. (2023) findings |
+| Monitoring Progress | 338–406 | Progress logs, ETA calculation, and memory tracking during rechunking |
 
 ---
 
@@ -219,9 +219,9 @@ with zarr.config.set({"async.concurrency": 4}):  # caps regions copied at once
 
 By default `from_array` keeps the source's Zarr format and codecs. In zarr-python 3.1 it drops the fill value and attributes despite its docstring, so pass both as above. It copies one output shard (or chunk, when unsharded) per task, so no two tasks write the same shard. Peak memory is about `async.concurrency × (output shard bytes + decoded source chunks that overlap it)`. Pass `shards` explicitly: the default `"keep"` reuses the source's shard shape, which may not fit the new chunks.
 
-### Zarr Group or xarray Dataset: `.chunk()` + `to_zarr`
+### Flat Zarr Group or xarray Dataset: `.chunk()` + `to_zarr`
 
-This route needs dimension names on every array: `dimension_names` in v3 metadata, or the `_ARRAY_DIMENSIONS` attribute in v2. xarray writes them, but arrays made with `Group.create_array()` usually lack them, and `xr.open_zarr` then raises `KeyError` before rechunking starts. For those groups, use the array-by-array route below.
+`xr.open_zarr` opens one group as one Dataset and skips its subgroups, so this route rewrites only that group's arrays. It also needs dimension names on every array: `dimension_names` in v3 metadata, or the `_ARRAY_DIMENSIONS` attribute in v2. xarray writes them, but arrays made with `Group.create_array()` usually lack them, and `xr.open_zarr` then raises `KeyError` before rechunking starts. For a store with subgroups, or arrays without dimension names, use the array-by-array route below.
 
 ```python
 import xarray as xr
@@ -238,7 +238,7 @@ ds.to_zarr("/data/rechunked.zarr", mode="w-", zarr_format=source_format)
 
 Without the `encoding` cleanup, xarray reuses the source chunk shape or raises an error that the encoded chunks would overlap several dask chunks. Pass `zarr_format`: a v2 source keeps v2 `numcodecs` compressors in its encoding, and the zarr-python 3 default of v3 rejects them (`Expected a BytesBytesCodec`). To migrate formats as well, drop `compressors` and `filters` from the encoding too, or replace them with v3 codecs. To write a sharded v3 store, pass `encoding={"var": {"chunks": inner, "shards": outer}}` and make the dask chunks whole multiples of `outer`. xarray rejects dask chunks that straddle shards, because concurrent partial-shard writes corrupt data.
 
-### Zarr Group Without Dimension Names: Array by Array
+### Nested Groups or Arrays Without Dimension Names: Array by Array
 
 ```python
 import zarr

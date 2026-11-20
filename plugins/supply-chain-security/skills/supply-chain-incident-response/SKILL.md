@@ -22,7 +22,7 @@ Set the **exposure window** first: when the bad version was installable, in UTC.
 A='{ghsa_id, type, affected: [.vulnerabilities[] | {pkg: .package.name, range: .vulnerable_version_range}]}'
 gh api /advisories/<GHSA-ID> --jq "$A"
 # No GHSA ID: search by package (or -f cve_id=<CVE-ID>), once per type
-for t in reviewed malware; do gh api -X GET /advisories -f type=$t -f ecosystem=<npm|pip|...> -f affects=<pkg> --jq ".[] | $A"; done
+for t in reviewed malware; do gh api --paginate -X GET /advisories -f type=$t -f ecosystem=<npm|pip|...> -f affects=<pkg> --jq ".[] | $A"; done
 ```
 
 `<lockfiles>` means `'*package-lock.json' '*yarn.lock' '*pnpm-lock.yaml' '*uv.lock' '*poetry.lock' '*pixi.lock' '*conda-lock.yml' '*Cargo.lock' '*go.sum'` (`*` also matches nested lockfiles).

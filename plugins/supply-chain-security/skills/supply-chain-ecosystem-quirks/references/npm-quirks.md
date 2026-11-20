@@ -2,17 +2,17 @@
 
 ## Threat Relevance
 
-npm's install-time script execution is the single most-exploited supply-chain vector in the JavaScript ecosystem. The Shai-Hulud worm propagates via `postinstall` scripts; the `ua-parser-js`, `coa`, and `rc` compromises all executed payloads at `npm install` time before any project code ran. Yarn classic shares this default; only `pnpm` (since v7) and `yarn berry` (Plug'n'Play mode) ship safer defaults. Lockfile discipline, registry-proxy config, and provenance attestations are the other config knobs that decide whether the general "pin and scan" advice from `supply-chain-dependency-security` actually holds for a Node project.
+npm's install-time script execution is the single most-exploited supply-chain vector in the JavaScript ecosystem. The Shai-Hulud worm propagates via `postinstall` scripts; the `ua-parser-js`, `coa`, and `rc` compromises all executed payloads at `npm install` time before any project code ran. Whether dependency scripts run by default now depends on the package manager and its version (below). Lockfile discipline, registry-proxy config, and provenance attestations are the other config knobs that decide whether the general "pin and scan" advice from `supply-chain-dependency-security` actually holds for a Node project.
 
 ## Install-Time Script Execution
 
-Every `npm install` runs `preinstall`, `install`, and `postinstall` scripts from every dependency, transitively. This is the Shai-Hulud landing zone.
+npm 11 and older run `preinstall`, `install`, and `postinstall` scripts from every dependency, transitively. This is the Shai-Hulud landing zone. npm 12 (July 2026) blocks dependency install scripts unless `package.json` approves them under `allowScripts` (`npm install-scripts approve <package>`). The install still exits 0 and lists the skipped packages. CI often runs an older npm (conda-forge's Node 26 ships npm 11.20.0), so set one of these regardless of version.
 
 Disable globally via `.npmrc`:
 
 ```bash
 echo "ignore-scripts=true" >> .npmrc
-grep -q 'ignore-scripts=true' .npmrc && echo "PASS: scripts disabled"
+grep -qE '^\s*ignore-scripts\s*=\s*true' .npmrc && echo "PASS: scripts disabled"
 ```
 
 Or per-command in CI:
@@ -21,21 +21,21 @@ Or per-command in CI:
 npm ci --ignore-scripts
 ```
 
-`pnpm` v7+ disables lifecycle scripts for non-allowlisted packages by default — see `pnpm.onlyBuiltDependencies` in `package.json`. `yarn berry` (v2+) with PnP mode does not run install scripts unless explicitly enabled via `enableScripts: true` in `.yarnrc.yml`. Call this out when recommending a package manager: switching from npm to pnpm reduces this attack surface without code changes.
+Either one passes. `scripts/quick-check.sh` judges each CI install by its effective value. It splits chains at `&&`, `||`, `;` and `|`, so a later command's flag can't cover an earlier install. It follows npm's order: the install's own flags, read left to right so the last one wins; then `npm_config_ignore_scripts`; then `.npmrc`. The variable counts only as a prefix of that install (`npm_config_ignore_scripts=true npm ci`) or from the YAML `env:` or `variables:` block nearest to it (step, then job, then workflow); a setting in another job or step doesn't count. If it is set some other way, such as `export` or a `$GITHUB_ENV` write, the script can't tell which installs it reaches, so it WARNs instead of deciding. `--ignore-scripts=false`, `--ignore-scripts false`, `--no-ignore-scripts` or `npm_config_ignore_scripts=false` (any case) re-enable scripts despite `.npmrc` (verified on npm 11.20.0); a bare `--ignore-scripts` still wins over the variable. Comments don't count. On npm 12, `ignore-scripts=true` in `.npmrc` overrides `allowScripts`: `npm rebuild <package>` reports success but runs nothing. To build one reviewed package, run `npm rebuild <package> --ignore-scripts=false`.
 
 ## .npmrc Knobs That Affect Security
 
 Audit `.npmrc` (project root and `~/.npmrc`) for these settings. Each line below is the desired state plus the verifying command.
 
-- `package-lock=true` — always commit the lockfile.
-  `grep -q 'package-lock=true' .npmrc || echo "WARN: package-lock not pinned"`
-- `audit-level=high` or `critical` — fail `npm audit` on real issues only.
+- `package-lock` defaults to `true`; flag an explicit `package-lock=false`.
+  `grep -qE '^\s*package-lock\s*=\s*false' .npmrc && echo "FAIL: lockfile disabled"`
+- `audit-level=high` or `critical`: fail `npm audit` on real issues only.
   `grep -E 'audit-level=(high|critical)' .npmrc`
-- `fund=false` — suppresses funding-prompt noise that hides real warnings.
+- `fund=false`: suppresses funding-prompt noise that hides real warnings.
   `grep -q 'fund=false' .npmrc`
-- `save-exact=true` — defaults installs to exact versions instead of `^x.y.z` ranges.
+- `save-exact=true`: defaults installs to exact versions instead of `^x.y.z` ranges.
   `grep -q 'save-exact=true' .npmrc`
-- `engine-strict=true` — refuses installs on the wrong Node version.
+- `engine-strict=true`: refuses installs on the wrong Node version.
   `grep -q 'engine-strict=true' .npmrc`
 
 ## npm ci vs npm install
@@ -48,11 +48,11 @@ npm install        # BAD: rewrites package-lock.json, defeats pin discipline
 npm ci             # GOOD: respects the lockfile, fails if lock is out of sync
 ```
 
-Verify CI uses `npm ci`: `grep -rE 'npm (install|ci)' .github/workflows/ | grep -v 'npm ci'`.
+Verify CI uses `npm ci`: `grep -rnE '(^|[^[:alnum:]])npm (install|i)( |$)' .github/workflows/`.
 
 ## npm Provenance Attestations
 
-`npm publish --provenance` (npm v9.5+) generates a Sigstore attestation tied to the GitHub Actions workflow that built the package. The attestation is uploaded to the public Sigstore Rekor log and displayed on the npm registry page.
+`npm publish --provenance` (npm 9.5.0+) generates a Sigstore attestation tied to the GitHub Actions workflow that built the package. The attestation is uploaded to the public Sigstore Rekor log and displayed on the npm registry page.
 
 ```bash
 # In a publish job with permissions: id-token: write
@@ -67,21 +67,34 @@ npm audit signatures
 
 Cross-link: see `supply-chain-sbom-provenance` for the full Sigstore/SLSA story and `references/sigstore-cookbook.md` in that skill for the `permissions:` block.
 
-## pnpm and Yarn Berry Specifics
+## pnpm and Yarn Specifics
 
-`pnpm` uses a content-addressable store with symlinks — no flat `node_modules/`, and each package only sees its direct deps. This kills the implicit-dependency attack class (a transitive can't be `require()`'d unless declared). Lifecycle scripts gated by `pnpm.onlyBuiltDependencies` in `package.json`:
+`pnpm` uses a content-addressable store with symlinks: no flat `node_modules/`, and each package only sees its direct deps. This kills the implicit-dependency attack class (a transitive can't be `require()`'d unless declared).
 
-```json
-{ "pnpm": { "onlyBuiltDependencies": ["esbuild", "sharp"] } }
+pnpm lifecycle scripts by version:
+
+- pnpm 10.0.0 (January 2025) stopped running dependency lifecycle scripts by default. The allowlist was `pnpm.onlyBuiltDependencies` in `package.json`.
+- pnpm 11.0.0 (April 2026) removed `onlyBuiltDependencies` and no longer reads the `pnpm` field in `package.json`. Approvals live in `allowBuilds` in `pnpm-workspace.yaml`, written by `pnpm approve-builds <package>`. An unapproved build script fails the install with `ERR_PNPM_IGNORED_BUILDS` (tested on pnpm 12.21.0).
+
+```yaml
+# pnpm-workspace.yaml
+allowBuilds:
+  esbuild: true
 ```
 
-`yarn berry` (v2+) PnP mode replaces `node_modules/` with a `.pnp.cjs` resolver file. No filesystem dependency tree means no install scripts can write to it. Switch via `yarn set version berry && yarn config set nodeLinker pnp`.
+Yarn scripts by version:
 
-Both options reduce install-time-script attack surface versus npm classic — recommend either when the project is willing to migrate.
+- Yarn 4.14.0 (April 2026) made `enableScripts: false` the default in `.yarnrc.yml`, so third-party `postinstall` scripts are skipped. Workspace scripts still run.
+- Yarn 2 to 4.13 run dependency scripts unless `enableScripts: false` is set.
+- Yarn classic (1.x) runs them unless `--ignore-scripts` is passed.
+
+Both pnpm and current Yarn reduce install-time-script attack surface versus npm 11 and older. Recommend either when the project is willing to migrate.
 
 ## References
 
-- npm docs: <https://docs.npmjs.com/cli/v10/configuring-npm/npmrc>
+- npm config: <https://docs.npmjs.com/cli/v10/configuring-npm/npmrc>
 - npm provenance: <https://docs.npmjs.com/generating-provenance-statements>
-- pnpm onlyBuiltDependencies: <https://pnpm.io/package_json#pnpmonlybuiltdependencies>
+- pnpm build settings (`allowBuilds`): <https://pnpm.io/settings>
+- pnpm 11 release notes: <https://pnpm.io/blog/releases/11.0>
+- Yarn `enableScripts`: <https://yarnpkg.com/configuration/yarnrc#enableScripts>
 - Shai-Hulud writeup: cross-link to `supply-chain-threat-awareness`

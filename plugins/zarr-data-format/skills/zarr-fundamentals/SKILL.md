@@ -1,123 +1,91 @@
 ---
 name: zarr-fundamentals
-description: Work with the Zarr array storage format for chunked, compressed, N-dimensional arrays. Covers array creation, hierarchical groups, metadata/attributes, advanced indexing modes, data types, thread/process safety, sharding, and Zarr v2 vs v3 differences. Use when the user asks about Zarr arrays, .zarr files, zarr-python, zarr stores, chunked array storage, or cloud-optimized scientific array storage.
+description: Use when creating, opening, indexing or organizing Zarr arrays and groups with zarr-python (.zarr stores, zarr.json or .zarray metadata), setting attributes, fill values, dimension names or shards, choosing between Zarr format v2 and v3, porting zarr 2 code that breaks on zarr 3 (FSStore, ProcessSynchronizer, len(), .compressor), or when parallel writes to one Zarr array lose data.
 metadata:
   references: references/patterns.md references/examples.md references/common-issues.md
 ---
 
 # Zarr Fundamentals
 
-Zarr-Python 3 API for chunked, compressed, N-dimensional array storage in both v2 and v3 formats.
+Creates, opens, indexes and organizes chunked N-dimensional Zarr arrays and groups with the zarr-python 3 API, in Zarr format v3 (the default) or v2.
 
-**Docs**: https://zarr.readthedocs.io/ | **Spec**: https://zarr-specs.readthedocs.io/ | **numcodecs**: https://numcodecs.readthedocs.io/
+**Core principle:** zarr reads, decodes and writes whole chunks. In a sharded array the inner chunk is the read unit and the shard is the stored object, so every write rewrites its whole shard. Match chunks to reads, and give each parallel writer whole chunks (whole shards when sharded).
+
+**Docs**: https://zarr.readthedocs.io/ | **Spec**: https://zarr-specs.readthedocs.io/
+
+## When to Use
+
+- Creating or opening arrays and groups; attributes, fill values, dimension names, sharding
+- Indexing beyond slices: `oindex`, `vindex`, `blocks`
+- Choosing format v2 or v3, or reading v2 stores with zarr-python 3
+- zarr 2 code failing on zarr 3 with `AttributeError` or `TypeError`
+- Parallel writes leaving fill values or stale data in the array
+
+**When NOT to use:**
+- S3, GCS, Azure, fsspec, obstore or Icechunk: **cloud-storage-backends**
+- Choosing compressors or filters, Blosc threading: **compression-codecs**
+- HDF5 or NetCDF to Zarr, VirtualiZarr, kerchunk: **data-migration**
+- xarray or Dask (`to_zarr`, `open_zarr`, `append_dim`, region writes): **zarr-xarray-integration**
+- Picking chunk shapes by benchmark, or rechunking: the **zarr-chunk-optimization** plugin
+
+## Quick Reference
+
+Install `zarr` (pip or pixi); numcodecs comes with it. There is no `zarr[extra]`.
+
+```python
+import numpy as np
+import zarr
+
+z = zarr.create_array("data.zarr", shape=(2000, 2000), chunks=(500, 500), dtype="float32",
+                      fill_value=np.nan, dimension_names=("y", "x"), attributes={"units": "K"})
+z[:500, :] = 1.0                       # covers 4 whole chunks
+z = zarr.open_array("data.zarr", mode="r")
+
+root = zarr.open_group("experiment.zarr", mode="w")
+temp = root.create_group("observations").create_array(
+    "temperature", shape=(365, 180, 360), chunks=(30, 90, 180), dtype="float32")
+root.attrs["project"] = "Climate Study"
+print(root.tree())                     # needs the optional `rich` package
+```
+
+- **Modes:** `r` read-only and `r+` read-write (both need an existing node), `w-` create (fails if anything exists), `a` open or create, `w` replace (deletes existing data and attributes). Store classes take `read_only=True`, not `mode`.
+- **Sharding (v3 only):** `chunks=` is the inner chunk, `shards=` a multiple of it.
+- **Chunk size:** at least 1 MB uncompressed. Size for access patterns with **zarr-chunk-optimization**.
+- **Fill value:** defaults to 0. Use `np.nan` for floats when 0 is valid data.
+- **Consolidated metadata:** `zarr.consolidate_metadata(path)` lets a group open in one read. Re-run it after adding nodes.
+- **Indexing:** `z.oindex[rows, cols]` takes the outer product, `z.vindex[rows, cols]` takes point pairs (or a mask shaped like `z`), and `z.blocks[i, j]` takes one chunk (one shard when sharded).
+
+**Format v2 vs v3.** zarr-python 3 reads and writes both, with async I/O for both:
+
+| | v2 | v3 |
+|---|---|---|
+| Metadata | `.zarray`, `.zgroup`, `.zattrs` | One `zarr.json` per node |
+| Default chunk keys | `0.0` | `c/0/0` |
+| Default compressor (zarr-python 3.1.5) | `zarr.create_array`: Zstd; `Group.create_array` / xarray: Blosc lz4 | Zstd |
+| `shards=`, `dimension_names=` | `ValueError` | Supported |
+| Consolidated metadata | `.zmetadata` | Inside root `zarr.json` (zarr-python extension, warns) |
+
+Default to v3. Fixed-length `U`/`S` and structured dtypes raise `UnstableSpecificationWarning` in v3: other readers may fail.
+
+**Parallel writes:** concurrent reads are safe, and so are writers that each cover whole, distinct chunks (shards when sharded), in threads or processes. Two writers in one chunk or shard each rewrite the whole object, so the later one erases the other's values. zarr-python 3 has no synchronizers.
+
+## Common Mistakes
+
+| Mistake | Fix |
+|---------|-----|
+| `FSStore`, `DirectoryStore`, `LRUStoreCache`: `AttributeError` | `FsspecStore.from_url(...)`, `LocalStore` or a path string |
+| `zarr.ProcessSynchronizer`: `AttributeError`; `synchronizer=` does nothing but warn | Partition writes on chunk or shard boundaries |
+| `create_array(compressor=...)`, or `z.compressor` on v3: `TypeError` | `compressors=`, `z.compressors` |
+| `len(z)`; `z.resize(200, 10)`: `TypeError` | `z.shape[0]`; `z.resize((200, 10))` |
+| `chunks=` larger than `shards=`: `ValueError` | `shards` is a multiple of `chunks` |
+| `z["field"]` on a structured array: `TypeError` | Read records first: `z[0:1000]["field"]` |
+| `mode="w"` to edit an existing store | `mode="r+"` or `"a"` |
 
 ## Resources
 
-| Resource | Purpose |
-|----------|---------|
-| [references/patterns.md](references/patterns.md) | Patterns: hierarchical stores, remote access, appending, advanced indexing, sharding, concurrency |
-| [references/examples.md](references/examples.md) | Full working examples with real-world datasets |
-| [references/common-issues.md](references/common-issues.md) | v2/v3 confusion, metadata persistence, memory errors, concurrency bugs |
-| [assets/zarr-quickstart.py](assets/zarr-quickstart.py) | Runnable quickstart demo |
-
-## Installation
-
-```bash
-pixi add zarr numpy numcodecs   # pixi
-pip install zarr[extra]          # pip (includes numcodecs + optional deps)
-pip install zarr[remote]         # adds cloud backends (s3fs, gcsfs, adlfs)
-```
-
-## Core Operations
-
-```python
-import zarr
-import numpy as np
-
-# Create (v3 default)
-z = zarr.create_array("data.zarr", shape=(10000, 10000), chunks=(1000, 1000), dtype="float32")
-z[:] = np.random.randn(10000, 10000).astype("float32")
-
-# Open existing (read-only)
-z = zarr.open_array("data.zarr", mode="r")
-subset = z[0:100, 0:100]
-
-# Groups
-root = zarr.open_group("experiment.zarr", mode="w")
-obs = root.create_group("observations")
-arr = obs.create_array("temperature", shape=(365, 180, 360), chunks=(30, 90, 180), dtype="float32")
-root.attrs["project"] = "Climate Study 2025"
-arr.attrs["units"] = "Celsius"
-print(root.tree())
-```
-
-## I/O Modes
-
-| Mode | Description |
-|------|-------------|
-| `'r'` | Read-only (error if not found) |
-| `'r+'` | Read/write (must exist) |
-| `'w'` | Write (overwrite if exists) |
-| `'w-'` | Create (error if exists — safe default for new stores) |
-| `'a'` | Append (create or open) |
-
-## Zarr v2 vs v3
-
-| Feature | v2 | v3 |
-|---------|----|----|
-| Metadata file | `.zarray` / `.zgroup` / `.zattrs` | `zarr.json` (single file) |
-| Default compressor | Blosc | Zstd |
-| Sharding | No | Yes |
-| Async I/O | No | Yes (native asyncio) |
-| Chunk key format | `0.0.0` (dot-separated) | `c/0/0/0` (path) |
-| Codec system | Single compressor + filters | Composable pipeline |
-
-Default to v3 for new projects. Use `zarr_format=2` only for backward compatibility.
-
-## Indexing Modes
-
-| Mode | Syntax | Returns |
-|------|--------|---------|
-| Basic slicing | `z[0:100, 0:100]` | Contiguous subarray |
-| Coordinate | `z.vindex[rows, cols]` | Values at (row, col) pairs |
-| Mask | `z.vindex[bool_mask]` | 1D array of True-masked values |
-| Orthogonal | `z.oindex[rows, cols]` | Cartesian product (rows × cols) |
-| Block | `z.blocks[0, 0]` | Entire chunk blocks by index |
-
-## Thread and Process Safety
-
-- Reads: thread-safe without synchronization.
-- Writes to **non-overlapping chunks**: safe concurrently.
-- Writes to the **same chunk**: use `ThreadSynchronizer` (v2) or partition work so chunks don't overlap.
-- Blosc + multiprocessing: always set `blosc.use_threads = False` before forking to prevent silent data corruption.
-- v3 async concurrency: `zarr.config.set({"async.concurrency": 64})`.
-
-**Safe concurrent write workflow:**
-```python
-from numcodecs import blosc
-blosc.use_threads = False  # set before any forked workers start
-
-# Partition by non-overlapping index ranges, then write concurrently
-# e.g. worker 0 writes z[0:500, :], worker 1 writes z[500:1000, :]
-```
-
-## Sharding (v3 Only)
-
-Reduces cloud object count by grouping multiple inner chunks into larger shard files.
-
-```python
-z = zarr.create_array("sharded.zarr", shape=(10000, 10000),
-                      chunks=(2500, 2500), shards=(500, 500), dtype="float32")
-# 100 GB @ 1 MB inner chunks: 100,000 objects without sharding → ~100 with sharding
-```
-
-## Best Practices
-
-| Area | Guidance |
-|------|----------|
-| Chunk size | 1–10 MB for cloud, 100 KB–1 MB for local |
-| Fill value | Use `np.nan` for floats when 0 is a valid data value |
-| Precision | Prefer float32 over float64 when sufficient (2× storage savings) |
-| Metadata | Set `units`, `long_name`; follow CF Conventions for scientific data |
-| Cloud | Use sharding (v3) + `zarr.consolidate_metadata()` for v2 |
-| Safety | Use `mode="r"` for reads; `mode="w-"` to prevent accidental overwrites |
+| Resource | Load when |
+|----------|-----------|
+| [references/patterns.md](references/patterns.md) | Hierarchies, appending, indexing, sharding, parallel writes |
+| [references/examples.md](references/examples.md) | CF-style dataset, multi-instrument store, structured dtypes |
+| [references/common-issues.md](references/common-issues.md) | Format confusion, lost attributes, OOM, lost writes |
+| `python assets/zarr-quickstart.py` | Runnable demo in a temporary directory |

@@ -1,203 +1,202 @@
 # Real-World Examples
 
+Each example builds its own input locally so it runs offline. Tested with zarr-python 3.1, xarray 2026.9, Dask 2026.8 and pandas 3.1. Example 4 also needs `netCDF4` (or `h5netcdf`).
+
 ## Contents
 
 | Section | Lines | Description |
 |---------|-------|-------------|
-| Example 1: Processing CMIP6 Climate Data from Cloud Zarr | 14–105 | Read cloud-hosted CMIP6 data, compute regional means with Dask |
-| Example 2: Building a Time Series with Incremental Appends | 106–195 | Simulate a daily ingestion pipeline that grows a Zarr store |
-| Example 3: Parallel Analysis Pipeline with Dask and Zarr | 196–300 | Distributed computation writing results to Zarr with region writes |
-| Example 4: Converting NetCDF Files to a Single Zarr Store | 301–390 | Combine a directory of NetCDF files into one consolidated Zarr store |
+| Example 1: Regional Means from an ERA5-Style Store | 16–63 | Lazy reads, area weights, descending latitude, monthly means |
+| Example 2: Building a Time Series with Incremental Appends | 67–130 | Daily ingestion that grows one Zarr store |
+| Example 3: Climatology and Anomalies with Dask | 134–182 | Out-of-core groupby, rechunked before writing |
+| Example 4: Converting NetCDF Files to a Single Zarr Store | 186–246 | Combine monthly NetCDF files into one store |
 
 ---
 
-## Example 1: Processing CMIP6 Climate Data from Cloud Zarr
+## Example 1: Regional Means from an ERA5-Style Store
 
-**Dataset description:** CMIP6 historical sea surface temperature (tos) from the GFDL-ESM4 model, stored as Zarr on AWS S3 as part of the Pangeo CMIP6 cloud collection.
+**Dataset description:** Daily 2 m temperature on a 1° grid laid out like ERA5: latitude runs from 90 to -90 and longitude from 0 to 359. Here a local store stands in for the cloud copy.
 
-**Problem:** You need to compute the global annual mean SST time series from 1850 to 2014 without downloading the entire dataset (~50 GB). The analysis should use Dask for parallel computation.
+**Problem:** Compute the global, area-weighted monthly mean and a tropical-band mean without loading the whole dataset, then save the result.
 
 **Code:**
 
 ```python
-import xarray as xr
 import numpy as np
+import pandas as pd
+import xarray as xr
 
-# ── Open the cloud-hosted Zarr store ──
-ds = xr.open_zarr(
-    "s3://cmip6-pds/CMIP6/CMIP/NOAA-GFDL/GFDL-ESM4/historical/r1i1p1f1/Omon/tos/gn/v20190726/",
-    storage_options={"anon": True},
-    consolidated=True,
-    chunks={"time": 120},
-)
-print(ds)
+# ── Stand-in for the remote store ──
+times = pd.date_range("2023-01-01", periods=365, freq="D")
+lat = np.linspace(90, -90, 181)
+lon = np.arange(0.0, 360.0)
+t2m = 288 - 30 * np.abs(np.sin(np.deg2rad(lat)))[None, :, None] + np.random.randn(365, 181, 360)
+xr.Dataset(
+    {"t2m": (("time", "latitude", "longitude"), t2m.astype("float32"))},
+    coords={"time": times, "latitude": lat, "longitude": lon},
+).to_zarr("era5_t2m.zarr", mode="w", encoding={"t2m": {"chunks": (31, 181, 360)}})
 
-# ── Inspect the data (lazy — no download yet) ──
-tos = ds["tos"]
-print(f"Shape: {tos.shape}")
-print(f"Dask chunks: {tos.data.chunksize}")
-print(f"Size: {tos.nbytes / 1e9:.1f} GB")
+# ── Open lazily ──
+# Remote: xr.open_zarr("s3://<bucket>/era5_t2m.zarr", storage_options={"anon": True})  # needs s3fs
+ds = xr.open_zarr("era5_t2m.zarr")
+t2m = ds["t2m"]
+print(f"Dask chunks: {t2m.data.chunksize}, size: {t2m.nbytes / 1e6:.0f} MB")
 
-# ── Compute area-weighted global mean ──
-# Use cosine of latitude as a simple area weight
-weights = np.cos(np.deg2rad(ds.lat))
-weights = weights / weights.sum()
+# ── Area-weighted global mean ──
+weights = np.cos(np.deg2rad(ds.latitude))
+global_mean = t2m.weighted(weights).mean(dim=["latitude", "longitude"])
 
-# Weighted mean over lat/lon (still lazy)
-global_mean = tos.weighted(weights).mean(dim=["lat", "lon"])
+# ── Tropical band: latitude is descending, so slice from north to south ──
+assert t2m.sel(latitude=slice(-23.5, 23.5)).size == 0  # wrong order: empty, no error
+tropics = t2m.sel(latitude=slice(23.5, -23.5))
+tropical_mean = tropics.weighted(weights.sel(latitude=tropics.latitude)).mean(dim=["latitude", "longitude"])
 
-# Resample to annual means
-annual_mean = global_mean.resample(time="YE").mean()
+# ── Monthly means ("MS" or "ME"; pandas 3 rejects "1M") ──
+monthly = xr.Dataset({
+    "global_t2m": global_mean.resample(time="MS").mean(),
+    "tropical_t2m": tropical_mean.resample(time="MS").mean(),
+}).compute()
+print(monthly.sizes["time"])  # 12
+print(bool((monthly.tropical_t2m > monthly.global_t2m).all()))  # True
 
-# ── Trigger computation (downloads only needed chunks) ──
-result = annual_mean.compute()
-print(f"Annual means shape: {result.shape}")
-print(f"First 5 years: {result.values[:5]}")
-
-# ── Save result locally ──
-result.to_dataset(name="tos_global_annual_mean").to_zarr("cmip6_annual_sst.zarr")
-print("Saved annual SST means to cmip6_annual_sst.zarr")
+monthly.to_zarr("era5_monthly_means.zarr", mode="w")
 ```
 
 ---
 
 ## Example 2: Building a Time Series with Incremental Appends
 
-**Dataset description:** A synthetic weather station network producing hourly temperature and humidity readings. New data arrives daily and is appended to a growing Zarr store.
+**Dataset description:** A synthetic weather station network producing hourly temperature and humidity readings. Each day's batch is appended to one Zarr store.
 
-**Problem:** Build an operational data pipeline that appends daily batches to an existing Zarr store, handling the initial creation and subsequent appends with the same code path.
+**Problem:** Append daily batches with one code path, without the silent failures xarray allows: shifted time units, changed station lists, or overlapping days.
 
 **Code:**
 
 ```python
-import xarray as xr
-import numpy as np
 from pathlib import Path
 
-# ── Configuration ──
+import numpy as np
+import pandas as pd
+import xarray as xr
+
 store_path = "station_timeseries.zarr"
 n_stations = 100
 hours_per_day = 24
 rng = np.random.default_rng(42)
+# An object array writes variable-length strings. A plain list becomes fixed-width "<U8",
+# which Zarr v3 writes with an UnstableSpecificationWarning.
+stations = np.array([f"STN-{i:04d}" for i in range(n_stations)], dtype=object)
 
-# ── Helper: create one day of data ──
-def generate_daily_data(date_str, n_stations):
-    times = xr.cftime_range(date_str, periods=hours_per_day, freq="h")
-    ds = xr.Dataset(
+
+def generate_daily_data(date_str):
+    shape = (hours_per_day, n_stations)
+    return xr.Dataset(
         {
-            "temperature": (["time", "station"], rng.normal(20.0, 5.0, (hours_per_day, n_stations)).astype("float32")),
-            "humidity": (["time", "station"], rng.uniform(30.0, 95.0, (hours_per_day, n_stations)).astype("float32")),
+            "temperature": (["time", "station"], rng.normal(20.0, 5.0, shape).astype("float32")),
+            "humidity": (["time", "station"], rng.uniform(30.0, 95.0, shape).astype("float32")),
         },
         coords={
-            "time": times,
-            "station": [f"STN-{i:04d}" for i in range(n_stations)],
+            "time": pd.date_range(date_str, periods=hours_per_day, freq="h"),
+            "station": stations,
         },
         attrs={"source": "Weather Station Network", "frequency": "hourly"},
     )
-    return ds
 
-# ── Ingest pipeline ──
+
+# Set on the first write; appends reuse the store's encoding.
 encoding = {
-    "temperature": {"chunks": {"time": 24, "station": 100}, "dtype": "float32"},
-    "humidity": {"chunks": {"time": 24, "station": 100}, "dtype": "float32"},
+    "temperature": {"chunks": (24, 100), "dtype": "float32"},
+    "humidity": {"chunks": (24, 100), "dtype": "float32"},
+    "time": {"units": "seconds since 1970-01-01", "dtype": "int64"},
 }
 
-dates = ["2024-06-01", "2024-06-02", "2024-06-03", "2024-06-04", "2024-06-05"]
-
-for i, date in enumerate(dates):
-    ds_day = generate_daily_data(date, n_stations)
-
-    if i == 0:
-        # First day: create the store
+for date in ["2024-06-01", "2024-06-02", "2024-06-03", "2024-06-04", "2024-06-05"]:
+    ds_day = generate_daily_data(date)
+    if not Path(store_path).exists():
         ds_day.to_zarr(store_path, mode="w", encoding=encoding)
         print(f"Created store with {date}")
-    else:
-        # Subsequent days: append
-        ds_day.to_zarr(store_path, append_dim="time")
-        print(f"Appended {date}")
+        continue
+    existing = xr.open_zarr(store_path)
+    assert existing.indexes["station"].equals(ds_day.indexes["station"]), "station list changed"
+    assert ds_day.time.values[0] > existing.time.values[-1], f"{date} already ingested"
+    ds_day.to_zarr(store_path, append_dim="time")
+    print(f"Appended {date}")
 
-# ── Verify the complete dataset ──
 ds_all = xr.open_zarr(store_path)
-print(f"\nFinal dataset:")
-print(f"  Time steps: {len(ds_all.time)} (expected {len(dates) * 24})")
-print(f"  Stations: {len(ds_all.station)}")
-print(f"  Time range: {ds_all.time.values[0]} to {ds_all.time.values[-1]}")
-print(f"  Mean temperature: {ds_all['temperature'].mean().compute().values:.1f}°C")
+print(f"Time steps: {ds_all.sizes['time']} (expected {5 * 24})")
+print(f"Time range: {ds_all.time.values[0]} to {ds_all.time.values[-1]}")
+print(f"Mean temperature: {float(ds_all['temperature'].mean()):.1f}°C")
+assert ds_all.indexes["time"].is_monotonic_increasing and ds_all.indexes["time"].is_unique
 ```
 
 ---
 
-## Example 3: Parallel Analysis Pipeline with Dask and Zarr
+## Example 3: Climatology and Anomalies with Dask
 
-**Dataset description:** A large global ocean temperature dataset (365 days × 720 lat × 1440 lon) stored in Zarr. The analysis computes monthly climatology and anomalies using Dask for parallelism.
+**Dataset description:** A global ocean temperature dataset (365 days × 720 lat × 1440 lon, about 1.5 GB as float32) stored in Zarr.
 
-**Problem:** Process a dataset that does not fit in memory by using Dask for lazy computation and writing results back to Zarr with region writes for parallel output.
+**Problem:** Compute a monthly climatology and daily anomalies lazily with Dask and write both back to Zarr. The groupby subtraction returns Dask chunks one time step long, so rechunk before writing or `to_zarr` raises the overlap error.
 
 **Code:**
 
 ```python
-import xarray as xr
+import dask.array as da
 import numpy as np
-import dask
+import pandas as pd
+import xarray as xr
 
-# ── Create a synthetic large dataset ──
+# ── Create a synthetic source store ──
 n_time, n_lat, n_lon = 365, 720, 1440
 ds = xr.Dataset(
-    {
-        "sst": (["time", "lat", "lon"],
-                dask.array.random.random((n_time, n_lat, n_lon), chunks=(30, 180, 360)).astype("float32")),
-    },
+    {"sst": (["time", "lat", "lon"],
+             da.random.random((n_time, n_lat, n_lon), chunks=(30, 180, 360)).astype("float32"))},
     coords={
-        "time": xr.cftime_range("2024-01-01", periods=n_time, freq="D"),
+        "time": pd.date_range("2024-01-01", periods=n_time, freq="D"),
         "lat": np.linspace(-89.875, 89.875, n_lat),
         "lon": np.linspace(0.125, 359.875, n_lon),
     },
 )
-# Write the source dataset
-encoding = {"sst": {"chunks": {"time": 30, "lat": 180, "lon": 360}}}
-ds.to_zarr("ocean_sst_source.zarr", mode="w", encoding=encoding)
+ds.to_zarr("ocean_sst_source.zarr", mode="w", encoding={"sst": {"chunks": (30, 180, 360)}})
 
-# ── Open with aligned Dask chunks ──
-ds = xr.open_zarr("ocean_sst_source.zarr", chunks={})
+# ── Open with Dask chunks equal to the Zarr chunks ──
+ds = xr.open_zarr("ocean_sst_source.zarr")
 
-# ── Compute monthly climatology (lazy) ──
+# ── Climatology and anomalies (lazy) ──
 climatology = ds["sst"].groupby("time.month").mean(dim="time")
-print(f"Climatology shape: {climatology.shape}")  # (12, 720, 1440)
-
-# ── Compute anomalies (lazy) ──
 anomalies = ds["sst"].groupby("time.month") - climatology
-print(f"Anomalies shape: {anomalies.shape}")  # (365, 720, 1440)
+print(f"Climatology shape: {climatology.shape}")  # (12, 720, 1440)
+print(f"Anomaly Dask chunks along time: {anomalies.chunks[0][:3]}...")  # (1, 1, 1)...
 
-# ── Write climatology (small, can compute directly) ──
-clim_ds = climatology.to_dataset(name="sst_climatology")
-clim_ds.to_zarr("ocean_sst_climatology.zarr", mode="w")
-print("Wrote climatology")
+# ── Write climatology (small) ──
+climatology.to_dataset(name="sst_climatology").to_zarr("ocean_sst_climatology.zarr", mode="w")
 
-# ── Write anomalies (large, use Dask-aware to_zarr) ──
-anom_ds = anomalies.to_dataset(name="sst_anomaly")
-encoding_anom = {"sst_anomaly": {"chunks": {"time": 30, "lat": 180, "lon": 360}}}
-anom_ds.to_zarr("ocean_sst_anomalies.zarr", mode="w", encoding=encoding_anom)
-print("Wrote anomalies")
+# ── Write anomalies: rechunk to the target layout first ──
+anom_ds = anomalies.to_dataset(name="sst_anomaly").chunk({"time": 30, "lat": 180, "lon": 360})
+anom_ds.to_zarr("ocean_sst_anomalies.zarr", mode="w",
+                encoding={"sst_anomaly": {"chunks": (30, 180, 360)}})
 
 # ── Verify ──
 ds_anom = xr.open_zarr("ocean_sst_anomalies.zarr")
-print(f"Anomaly mean (should be ~0): {ds_anom['sst_anomaly'].mean().compute().values:.6f}")
+print(f"Zarr chunks: {ds_anom['sst_anomaly'].encoding['chunks']}")  # (30, 180, 360)
+print(f"Anomaly mean (should be ~0): {float(ds_anom['sst_anomaly'].mean()):.6f}")
 ```
 
 ---
 
 ## Example 4: Converting NetCDF Files to a Single Zarr Store
 
-**Dataset description:** A directory of monthly NetCDF4 files from a climate model output, each containing one month of daily data for temperature, precipitation, and wind speed.
+**Dataset description:** Twelve monthly NetCDF4 files of daily temperature and precipitation from a climate model.
 
-**Problem:** Combine 12 monthly NetCDF files into a single consolidated Zarr store with optimized chunks for both time-series and spatial access patterns.
+**Problem:** Combine them into one Zarr store with uniform 30-day chunks. `open_mfdataset` makes one Dask chunk per file (31, 29, 31, ... days), which does not line up with 30-day Zarr chunks, so rechunk before writing. For large archives or virtual references, see the `data-migration` skill.
 
 **Code:**
 
 ```python
-import xarray as xr
-import numpy as np
 from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import xarray as xr
 
 # ── Create synthetic monthly NetCDF files ──
 output_dir = Path("monthly_netcdf")
@@ -213,7 +212,7 @@ for month, n_days in enumerate(days_per_month, start=1):
             "precipitation": (["time", "lat", "lon"], rng.exponential(2.0, (n_days, 180, 360)).astype("float32")),
         },
         coords={
-            "time": xr.cftime_range(f"2024-{month:02d}-01", periods=n_days, freq="D"),
+            "time": pd.date_range(f"2024-{month:02d}-01", periods=n_days, freq="D"),
             "lat": np.linspace(-89.5, 89.5, 180),
             "lon": np.linspace(0.5, 359.5, 360),
         },
@@ -222,27 +221,26 @@ for month, n_days in enumerate(days_per_month, start=1):
     ds.to_netcdf(output_dir / f"2024-{month:02d}.nc")
 print(f"Created {len(days_per_month)} NetCDF files")
 
-# ── Combine into a single Zarr store ──
-# open_mfdataset lazily concatenates all files
+# ── Combine lazily: one Dask chunk per file along time ──
 ds_combined = xr.open_mfdataset(
     sorted(output_dir.glob("*.nc")),
     combine="nested",
     concat_dim="time",
     chunks={"time": 31, "lat": 90, "lon": 180},
 )
-print(f"Combined shape: time={len(ds_combined.time)}, lat={len(ds_combined.lat)}, lon={len(ds_combined.lon)}")
+print(f"Dask chunks along time: {ds_combined['temperature'].chunks[0][:3]}...")  # (31, 29, 31)...
 
-# ── Write to Zarr with optimized encoding ──
+# ── Rechunk to the Zarr layout, then write ──
+ds_combined = ds_combined.chunk({"time": 30, "lat": 90, "lon": 180})
 encoding = {
-    "temperature": {"chunks": {"time": 30, "lat": 90, "lon": 180}, "dtype": "float32"},
-    "precipitation": {"chunks": {"time": 30, "lat": 90, "lon": 180}, "dtype": "float32"},
+    "temperature": {"chunks": (30, 90, 180), "dtype": "float32"},
+    "precipitation": {"chunks": (30, 90, 180), "dtype": "float32"},
 }
 ds_combined.to_zarr("annual_combined.zarr", mode="w", encoding=encoding, consolidated=True)
-print("Wrote combined Zarr store")
 
 # ── Verify ──
 ds_zarr = xr.open_zarr("annual_combined.zarr", consolidated=True)
-print(f"Zarr store: {len(ds_zarr.time)} time steps")
-print(f"  temperature range: [{ds_zarr['temperature'].min().compute().values:.1f}, {ds_zarr['temperature'].max().compute().values:.1f}]")
-print(f"  variables: {list(ds_zarr.data_vars)}")
+print(f"Zarr store: {ds_zarr.sizes['time']} time steps")  # 366
+print(f"Zarr chunks: {ds_zarr['temperature'].encoding['chunks']}")  # (30, 90, 180)
+print(f"Variables: {list(ds_zarr.data_vars)}")
 ```

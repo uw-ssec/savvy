@@ -55,6 +55,12 @@ jobs:
           # directory, and relative links in any doc that point at nothing.
           pixi run plugins-check
 
+      - name: Check pilot skill trust evidence
+        run: |
+          # Fails when a pilot skill lacks valid capability declarations, a
+          # complete skill card, or a well-formed eval task set.
+          pixi run -e ci trust-check
+
       - name: Check the skill catalog
         run: |
           # Fails when a skill or plugin has no entry in docs/catalog.yml, or when

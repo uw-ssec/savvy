@@ -4,6 +4,12 @@ description: >-
   Use when an implementation is (claimed) complete and must be checked against
   its plan before shipping. Triggers: validate the implementation, verify it
   matches the plan, is the implementation correct, check before PR.
+metadata:
+  capability-network: none
+  capability-shell: runs-commands
+  capability-file: write
+  capability-environment: none
+  capability-mcp: none
 ---
 
 # Validating Implementations

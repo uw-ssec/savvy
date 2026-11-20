@@ -4,6 +4,12 @@ description: >-
   Use when work context must transfer to another session or person. Triggers:
   create a handoff, hand off this work, summarize context for the next session,
   prepare a handoff.
+metadata:
+  capability-network: none
+  capability-shell: runs-commands
+  capability-file: write
+  capability-environment: none
+  capability-mcp: none
 ---
 
 # Creating Handoffs

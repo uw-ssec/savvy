@@ -1,0 +1,98 @@
+name: Sign Release Skills
+
+# Signs each trust-pilot skill (issue #293) with Sigstore keyless signing when a
+# release is published, and attaches one signed archive per skill to the release.
+# The signing identity is this workflow at the release tag, so verifying a
+# download proves it came from this workflow in this repository, unchanged since
+# signing. Signing is the last write into a staged directory: anything written
+# afterwards would make verification fail.
+#
+# `--no-ignore-git-paths` on both sign and verify: model_signing otherwise skips
+# a top-level .git*, .github and .gitignore in the signed directory, which would
+# leave those files outside the signature.
+on:
+  release:
+    types: [published]
+
+permissions: {}
+
+concurrency:
+  group: release-sign-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write # upload release assets
+      id-token: write # Sigstore keyless signing (ambient GitHub OIDC token)
+    steps:
+      # A release event checks out the tagged commit (GITHUB_SHA).
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: prefix-dev/setup-pixi@ad1da6449d9e506fd127fd67ab2d054a769f6a94 # v0.11.2
+        with:
+          pixi-version: v0.82.0
+          environments: signing
+          locked: true
+          # The only job with id-token: write must not restore a cache other workflows can write.
+          cache: false
+
+      # Before any signing, so a bad or prerelease tag leaves no public Rekor entry.
+      - name: Check version
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          pixi run -e signing python .github/scripts/skill_trust.py check-version "${TAG#v}"
+
+      - name: Stage pilot skills
+        run: |
+          pixi run -e signing python .github/scripts/skill_trust.py stage --out "$RUNNER_TEMP/staged"
+
+      - name: Sign staged skills
+        run: |
+          for dir in "$RUNNER_TEMP"/staged/*/; do
+            dir="${dir%/}"
+            pixi run -e signing model_signing sign sigstore "$dir" \
+              --signature "$dir/skill.oms.sig" \
+              --no-ignore-git-paths \
+              --use_ambient_credentials
+          done
+
+      - name: Pack signed skills
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          pixi run -e signing python .github/scripts/skill_trust.py pack \
+            --staged "$RUNNER_TEMP/staged" --version "${TAG#v}" --out "$RUNNER_TEMP/dist"
+
+      # A broken signature fails the release job before anything is uploaded.
+      - name: Verify archives
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          identity="https://github.com/${REPO}/.github/workflows/release-sign.yml@refs/tags/${TAG}"
+          for archive in "$RUNNER_TEMP"/dist/*.tar.gz; do
+            check="$(mktemp -d "$RUNNER_TEMP/verify.XXXXXX")"
+            tar -xzf "$archive" -C "$check"
+            for dir in "$check"/*/; do
+              dir="${dir%/}"
+              pixi run -e signing model_signing verify sigstore "$dir" \
+                --signature "$dir/skill.oms.sig" \
+                --identity "$identity" \
+                --identity_provider "https://token.actions.githubusercontent.com" \
+                --no-ignore-git-paths
+            done
+          done
+
+      - name: Upload archives to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh release upload "$TAG" "$RUNNER_TEMP"/dist/*.tar.gz --clobber --repo "$REPO"

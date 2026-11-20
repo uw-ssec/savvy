@@ -1,0 +1,228 @@
+name: Benchmark Skills
+
+# Manual Tier 3 benchmark of the trust-pilot skills (issue #293). Reported, never
+# gating: a failed or missing benchmark only shows up in the job summary. The
+# `run` job holds the LiteLLM secrets and has read-only access; the `publish` job
+# can push but never sees the secrets, so the agent-run code can't reach a write
+# token. `publish` commits each skill's BENCHMARK.md to `benchmarks/<run_id>-<run_attempt>` and
+# prints a compare link; a person opens the PR.
+#
+# Provider settings for SkillEvaluator's claude-code agent through the LiteLLM
+# proxy. DERIVED FROM SOURCE, NOT YET VERIFIED with
+# `skillevaluator doctor -a claude-code --verify-models` (maintainer hand-off:
+# run that with a real key before the first dispatch).
+#   SKILL_EVAL_LLM_PROVIDER=anthropic       provider_config.py:549 (_selected_provider)
+#   ANTHROPIC_API_KEY=<LITELLM_API_KEY>     provider_config.py:586 (required for anthropic)
+#   ANTHROPIC_BASE_URL=<LITELLM_PROXY_URL>  provider_config.py:777-779; a trailing /v1 is
+#                                           stripped (:826-827), /v1/messages is rejected
+#   SKILL_EVAL_LLM_MODEL=<model>            provider_config.py:551 (judge/chat model)
+#   --model <model>                         agent model (validate --model)
+# The anthropic provider is the one whose default agent is claude-code and whose
+# credential is passed to the agent container (child_environment, :246-256). The
+# OpenAI-compatible route in evals/dokimi-pilot/README.md (OPENAI_BASE_URL=<gateway>/v1)
+# is the alternative if the proxy does not serve /v1/messages for the chosen alias.
+# Tier 3 needs Docker (ubuntu-latest has it) and Harbor, which the `benchmark` pixi
+# environment installs through SkillEvaluator's `tier3` extra. The pilot skills need
+# an existing evals/ dataset (the task runs with --no-autopilot).
+on:
+  workflow_dispatch:
+    inputs:
+      skills:
+        description: Comma-separated pilot skill directories (empty = all pilot skills)
+        required: false
+        type: string
+        default: ''
+      model:
+        description: LiteLLM model id for the claude-code agent and the judge
+        required: false
+        type: string
+        default: ssec-claude-sonnet-5-5
+      attempts:
+        description: Attempts per eval case (pass@k)
+        required: false
+        type: string
+        default: '3'
+
+permissions: {}
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    permissions:
+      contents: read
+    outputs:
+      skills: ${{ steps.select.outputs.skills }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: prefix-dev/setup-pixi@ad1da6449d9e506fd127fd67ab2d054a769f6a94 # v0.11.2
+        with:
+          pixi-version: v0.82.0
+          environments: ci benchmark
+          locked: true
+
+      - name: Validate inputs and select skills
+        id: select
+        env:
+          SKILLS_INPUT: ${{ inputs.skills }}
+          MODEL: ${{ inputs.model }}
+          ATTEMPTS: ${{ inputs.attempts }}
+        run: |
+          if ! [[ "$ATTEMPTS" =~ ^[1-9][0-9]?$ ]]; then
+            echo "::error::attempts must be a number from 1 to 99"
+            exit 1
+          fi
+          if ! [[ "$MODEL" =~ ^[A-Za-z0-9][A-Za-z0-9._:/-]*$ ]]; then
+            echo "::error::model must be a plain model id"
+            exit 1
+          fi
+          # Each entry must be an existing pilot skill directory; anything else fails here.
+          pixi run -e ci python .github/scripts/skill_trust.py list-pilot --skills "$SKILLS_INPUT" > "$RUNNER_TEMP/skills.txt"
+          if ! [ -s "$RUNNER_TEMP/skills.txt" ]; then
+            echo "::error::no pilot skills selected"
+            exit 1
+          fi
+          echo "skills=$(paste -sd, "$RUNNER_TEMP/skills.txt")" >> "$GITHUB_OUTPUT"
+          cat "$RUNNER_TEMP/skills.txt"
+
+      - name: Run benchmarks
+        env:
+          MODEL: ${{ inputs.model }}
+          ATTEMPTS: ${{ inputs.attempts }}
+          SKILL_EVAL_LLM_PROVIDER: anthropic
+          SKILL_EVAL_LLM_MODEL: ${{ inputs.model }}
+          ANTHROPIC_API_KEY: ${{ secrets.LITELLM_API_KEY }}
+          ANTHROPIC_BASE_URL: ${{ secrets.LITELLM_PROXY_URL }}
+        run: |
+          # Reports and Harbor results stay outside the checkout. Keep going past a
+          # failed skill: benchmarks are advisory.
+          mkdir -p "$RUNNER_TEMP/reports" "$RUNNER_TEMP/results"
+          : > "$RUNNER_TEMP/failed.txt"
+          while IFS= read -r skill; do
+            name="${skill//\//__}"
+            echo "::group::$skill"
+            if ! pixi run -e benchmark skill-benchmark "$skill" \
+              -o "$RUNNER_TEMP/reports/$name" \
+              --results-dir "$RUNNER_TEMP/results/$name" \
+              --model "$MODEL" \
+              --n-attempts "$ATTEMPTS"; then
+              echo "::warning::benchmark failed for $skill"
+              echo "$skill" >> "$RUNNER_TEMP/failed.txt"
+            fi
+            echo "::endgroup::"
+          done < "$RUNNER_TEMP/skills.txt"
+
+      - name: Summary
+        if: ${{ !cancelled() }}
+        env:
+          MODEL: ${{ inputs.model }}
+          ATTEMPTS: ${{ inputs.attempts }}
+        run: |
+          {
+            echo "### Skill benchmark (reported, not gating)"
+            echo ""
+            echo "Model \`$MODEL\`, $ATTEMPTS attempt(s) per case."
+            echo ""
+            if [ ! -e "$RUNNER_TEMP/failed.txt" ]; then
+              echo "The run did not complete (it stopped before any benchmark ran)."
+            elif [ -s "$RUNNER_TEMP/failed.txt" ]; then
+              echo "Benchmark failed for:"
+              sed 's/^/- `/; s/$/`/' "$RUNNER_TEMP/failed.txt"
+            else
+              echo "No skill failed to run."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Reports are uploaded and later committed, so refuse any that contain the key.
+      - name: Check reports for the API key
+        id: keycheck
+        if: ${{ always() }}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.LITELLM_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::API key is empty; cannot check the reports for it"
+            exit 1
+          fi
+          if [ -d "$RUNNER_TEMP/reports" ] && grep -rqF -- "$ANTHROPIC_API_KEY" "$RUNNER_TEMP/reports"; then
+            echo "::error::API key found in benchmark output"
+            exit 1
+          fi
+
+      # always(): a timeout still uploads the partial reports, unless the key check failed.
+      - name: Upload reports
+        if: ${{ always() && steps.keycheck.outcome != 'failure' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: skill-benchmarks-${{ github.run_id }}
+          path: ${{ runner.temp }}/reports/
+          if-no-files-found: warn
+          retention-days: 14
+
+  publish:
+    needs: run
+    if: ${{ needs.run.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: prefix-dev/setup-pixi@ad1da6449d9e506fd127fd67ab2d054a769f6a94 # v0.11.2
+        with:
+          pixi-version: v0.82.0
+          environments: ci
+          locked: true
+
+      - name: Download reports
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: skill-benchmarks-${{ github.run_id }}
+          path: ${{ runner.temp }}/reports
+
+      - name: Commit and push benchmarks
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          SKILLS: ${{ needs.run.outputs.skills }}
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          # collect-benchmarks lists a skill without a report as missing; that is not an error.
+          pixi run -e ci python .github/scripts/skill_trust.py collect-benchmarks \
+            --reports "$RUNNER_TEMP/reports" --root . --skills "$SKILLS" > "$RUNNER_TEMP/collect.txt"
+          cat "$RUNNER_TEMP/collect.txt"
+
+          # Stage only BENCHMARK.md files; `git add -A` could sweep in stray output.
+          sed -n 's/^updated: //p' "$RUNNER_TEMP/collect.txt" | while IFS= read -r skill; do
+            git add -- "$skill/BENCHMARK.md"
+          done
+          if git diff --cached --quiet; then
+            echo "No BENCHMARK.md changed; nothing to commit." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          BRANCH="benchmarks/${RUN_ID}-${RUN_ATTEMPT}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git commit -m "docs(benchmarks): update skill benchmarks from run ${RUN_ID}"
+          # An explicit token URL: the checkout kept no credentials.
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "HEAD:refs/heads/${BRANCH}"
+
+          {
+            echo "### Benchmarks pushed"
+            echo ""
+            echo "Open a pull request: https://github.com/${REPO}/compare/${BASE}...${BRANCH}?expand=1"
+            echo ""
+            echo '```'
+            cat "$RUNNER_TEMP/collect.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

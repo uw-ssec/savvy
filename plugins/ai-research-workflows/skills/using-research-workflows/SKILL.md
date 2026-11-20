@@ -7,6 +7,12 @@ description: >-
   check" or before editing. Triggers:
   research workflow, which skill should I use, where do I start, guide me through
   the workflow, structured development.
+metadata:
+  capability-network: none
+  capability-shell: none
+  capability-file: write
+  capability-environment: none
+  capability-mcp: none
 ---
 
 # Using Research Workflows
@@ -155,7 +161,7 @@ them rather than re-implementing their guidance here.
 | Concern | Defer to |
 |---|---|
 | Environments (pixi) | `scientific-python-development:pixi-package-manager` |
-| Environments (uv) | commit `uv.lock`, install with `uv sync --frozen` (no dedicated skill here) |
+| Environments (uv) | the project's own uv setup and `uv.lock` (no dedicated skill here) |
 | Tests | `scientific-python-development:python-testing` |
 | Packaging | `scientific-python-development:python-packaging` |
 | Documentation | `scientific-python-development:scientific-documentation` |

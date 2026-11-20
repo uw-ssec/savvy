@@ -8,6 +8,12 @@ description: >-
   research the codebase, research how X works before changing it, what tools or
   libraries exist for X, prior art on X, has this been done before, survey
   approaches to X.
+metadata:
+  capability-network: read
+  capability-shell: runs-commands
+  capability-file: write
+  capability-environment: none
+  capability-mcp: none
 ---
 
 # Researching

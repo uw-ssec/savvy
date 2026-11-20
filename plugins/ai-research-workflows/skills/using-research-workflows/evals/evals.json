@@ -1,0 +1,111 @@
+{
+  "skill_name": "using-research-workflows",
+  "evals": [
+    {
+      "id": "using-research-workflows-001",
+      "prompt": "I'm starting a new task on our research codebase and I don't know where to start. Can you guide me through the research workflow and tell me which skill I should use first? The task is to add a new regularization term to our training loop.",
+      "expected_output": "A recommended ordered sequence of workflow steps for adding a regularization term to the training loop, beginning with understanding the existing training code, then planning, then implementation, then validation. The first concrete step is identified and begun (or proposed) before any code edits are made.",
+      "assertions": [
+        "The agent's final response lays out an ordered sequence of steps for adding the regularization term, with understanding the existing training loop coming before any code modification",
+        "The agent names a specific first step or skill to start with rather than only listing every available option",
+        "The agent made no edits to the training loop code before establishing that understanding or planning step",
+        "The agent's response places validation or verification of the change after implementation",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+      ],
+      "expected_skill": "using-research-workflows",
+      "expected_script": null
+    },
+    {
+      "id": "using-research-workflows-002",
+      "prompt": "Our data loader is dropping the last partial batch and it's messing with our eval numbers. Just fix the loader, don't overthink it, it's probably a one-liner.",
+      "expected_output": "The data loader's batch-dropping behavior is investigated by first reading and understanding the relevant loader code and its usage, then a fix is made or proposed that retains the final partial batch, with a note on how to verify that eval numbers are affected correctly. The fix is grounded in what the code actually does rather than assumed.",
+      "assertions": [
+        "The agent named or invoked a research-workflow skill (researching, optionally followed by planning-implementations) before making any edit, and did not skip skill use because the user said 'don't overthink it'",
+        "The agent inspected the data loader code and identified where the last partial batch is dropped before making any edit",
+        "The fix the agent made or proposed addresses the partial-batch drop (for example a drop_last setting or equivalent)",
+        "The agent's final response includes a way to verify the fix, such as checking batch counts or re-running the eval",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+      ],
+      "expected_skill": "using-research-workflows",
+      "expected_script": null
+    },
+    {
+      "id": "using-research-workflows-003",
+      "prompt": "I just inherited this repo from a colleague who left. It implements some graph neural network for molecule property prediction. My PI wants me to reproduce the headline result from their paper and then figure out if we can improve on it. How does the training pipeline work and where should I even begin?",
+      "expected_output": "The agent routes this exploratory request to the right skills and either explains the repository's training pipeline from the code (entry points, data handling, model, training loop, evaluation) or proposes the sub-questions it would trace and asks for a quick OK. It proposes a staged plan: first reproduce the paper's headline result with recorded configuration and seeds, then explore improvements, and identifies a concrete starting point.",
+      "assertions": [
+        "The agent named or invoked researching for the pipeline question and ensuring-reproducibility for the reproduction stage",
+        "The agent explored the repository context and either described the training pipeline's main components based on what it found, or proposed the sub-questions it would trace and asked for an OK",
+        "The agent's final response proposes reproducing the headline result as a distinct stage before attempting any improvements",
+        "The agent's response mentions recording or controlling configuration, seeds, or environment details for reproducibility",
+        "The agent identifies a concrete first action for the user rather than only giving general advice",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+      ],
+      "expected_skill": "using-research-workflows",
+      "expected_script": null
+    },
+    {
+      "id": "using-research-workflows-004",
+      "prompt": "Our eval accuracy differs by about 1.5 points between runs and I need to reproduce the number in the paper. Where do I start?",
+      "expected_output": "The agent routes to the reproducibility-related workflow step and names it, rather than jumping straight to code edits.",
+      "assertions": [
+        "The agent named a specific workflow skill or step to start with (for example ensuring-reproducibility)",
+        "The agent did not edit training or evaluation code before establishing a reproducibility record or baseline",
+        "The agent's response mentions controlling or recording seeds, environment or data version",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+      ],
+      "expected_skill": "using-research-workflows",
+      "expected_script": null
+    },
+    {
+      "id": "using-research-workflows-005",
+      "prompt": "I've built the caching layer from docs/rse/specs/plan-add-caching.md and it seems to work. What's the right next step before I open a PR?",
+      "expected_output": "The agent points to validating the implementation against the plan as the next step, naming the validation skill.",
+      "assertions": [
+        "The agent named validating-implementations (or validating the implementation against the plan) as the next step",
+        "The agent did not declare the work ready for a PR without validation",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+      ],
+      "expected_skill": "using-research-workflows",
+      "expected_script": null
+    },
+    {
+      "id": "using-research-workflows-neg-001",
+      "prompt": "Write me a Dockerfile for a small Flask web app that serves a health-check endpoint.",
+      "expected_output": "A Dockerfile and a short explanation. This is a plain engineering request outside the research-software workflow.",
+      "assertions": [
+        "The agent produced a Dockerfile for a Flask app with a health-check endpoint",
+        "The agent did not start a research, planning or experiment workflow or write documents under docs/rse/specs/",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+      ],
+      "expected_skill": null,
+      "expected_script": null
+    },
+    {
+      "id": "using-research-workflows-neg-002",
+      "prompt": "Draft a short, polite email to my co-author asking whether we can move our paper submission deadline back by a week.",
+      "expected_output": "A short, polite email draft to the co-author asking about moving the submission deadline back by a week. It is a plain writing request, not a research-software task.",
+      "assertions": [
+        "The agent's response is an email draft that asks the co-author about moving the paper submission deadline back by a week",
+        "The agent answered directly without initiating any research-software workflow, planning, or code-reading steps, and wrote no documents under docs/rse/specs/",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+      ],
+      "expected_skill": null,
+      "expected_script": null
+    }
+  ],
+  "generation": {
+    "mode": "llm",
+    "grounding": "skill",
+    "inputs": [
+      {
+        "kind": "skill_md",
+        "path": "SKILL.md",
+        "sha256": "16af29459e5487fb988cb8aa70b431e784397f1933ff476375e1ddc8fe5312e1"
+      }
+    ],
+    "generated_at": "2026-11-20T20:45:33.160879+00:00",
+    "review_state": "unreviewed",
+    "needs_review_count": 0
+  }
+}

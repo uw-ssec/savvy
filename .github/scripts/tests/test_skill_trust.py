@@ -265,7 +265,7 @@ def step_env(tmp_path, skills):
 
 def test_gate_step_with_no_pilot_skills_passes_and_says_so(tmp_path):
     work, temp, env = step_env(tmp_path, [])
-    proc, _ = run_step(workflow_step("skill-quality-check.yml", "Gate on findings"), work, env)
+    proc, _ = run_step(workflow_step("skill-quality-check.yml", "Gate on findings"), work, env, {"pixi": "exit 99\n"})
     assert proc.returncode == 0, proc.stderr
     assert "_no pilot skills changed_" in (temp / "step-summary.md").read_text(encoding="utf-8")
 
@@ -284,8 +284,70 @@ def test_select_step_fails_when_skill_selection_crashes(tmp_path):
     work, temp, env = step_env(tmp_path, [])
     (work / ".github/scripts/skill-quality.py").write_text("import sys\nsys.exit(3)\n", encoding="utf-8")
     env = {**env, "BASE_SHA": "a", "HEAD_SHA": "b"}
-    proc, _ = run_step(workflow_step("skill-quality-check.yml", "Select changed pilot skills"), work, env)
+    proc, _ = run_step(workflow_step("skill-quality-check.yml", "Select changed pilot skills"), work, env, {"pixi": "cat\n"})
     assert proc.returncode != 0
+
+
+ALL_PILOT = ["plugins/ai-research-workflows/skills/alpha", "plugins/ai-research-workflows/skills/beta"]
+# Stub pixi: `list-pilot` prints every pilot skill, `select-pilot` passes stdin through.
+SELECT_PIXI = (
+    'echo "$@" >> "$RUNNER_TEMP/calls.txt"\n'
+    'case "$*" in\n'
+    f'  *list-pilot*) printf "%s\\n" {" ".join(ALL_PILOT)} ;;\n'
+    "  *select-pilot*) cat ;;\n"
+    "esac\n"
+)
+
+
+def select_repo(tmp_path, changed_path):
+    work, temp, env = step_env(tmp_path, [])
+    (work / ".github/scripts/skill-quality.py").write_text(
+        'print("plugins/ai-research-workflows/skills/alpha")\n', encoding="utf-8"
+    )
+    _git(work, "init", "-q", "-b", "main")
+    _git(work, "config", "user.email", "t@example.com")
+    _git(work, "config", "user.name", "t")
+    _git(work, "config", "commit.gpgsign", "false")
+    _git(work, "add", "-f", ".github")
+    _git(work, "commit", "-q", "-m", "base")
+    base = _git(work, "rev-parse", "HEAD")
+    target = work / changed_path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text("changed\n", encoding="utf-8")
+    _git(work, "add", "-f", changed_path)
+    _git(work, "commit", "-q", "-m", "change")
+    return work, temp, {**env, "BASE_SHA": base, "HEAD_SHA": _git(work, "rev-parse", "HEAD")}
+
+
+@pytest.mark.parametrize("path", [
+    ".github/scripts/skill_trust.py",
+    ".github/skill-security-accepted.yml",
+    ".github/skillevaluator-policy.yml",
+    ".github/workflows/skill-quality-check.yml",
+    "pixi.toml",
+    "pixi.lock",
+])
+def test_select_step_rescans_every_pilot_skill_when_a_gate_input_changes(tmp_path, path):
+    work, temp, env = select_repo(tmp_path, path)
+    proc, outputs = run_step(workflow_step("skill-quality-check.yml", "Select changed pilot skills"), work, env, {"pixi": SELECT_PIXI})
+    assert proc.returncode == 0, proc.stderr
+    assert (temp / "pilot.txt").read_text(encoding="utf-8").splitlines() == ALL_PILOT
+    assert outputs["count"] == "2"
+
+
+def test_select_step_keeps_changed_only_selection_otherwise(tmp_path):
+    work, temp, env = select_repo(tmp_path, "docs/unrelated.md")
+    proc, outputs = run_step(workflow_step("skill-quality-check.yml", "Select changed pilot skills"), work, env, {"pixi": SELECT_PIXI})
+    assert proc.returncode == 0, proc.stderr
+    assert (temp / "pilot.txt").read_text(encoding="utf-8").splitlines() == ["plugins/ai-research-workflows/skills/alpha"]
+    assert outputs["count"] == "1"
+
+
+def test_security_scan_steps_run_the_script_in_the_pixi_env():
+    for name in ("Select changed pilot skills", "Gate on findings"):
+        script = workflow_step("skill-quality-check.yml", name)
+        assert "python3 .github/scripts/skill_trust.py" not in script
+        assert "pixi run -e ci python .github/scripts/skill_trust.py" in script
 
 
 GOOD_CAPS = {
@@ -579,6 +641,11 @@ def test_evidence_plus_real_change_counts(st, grepo):
     assert st.changed_plugins(grepo, base) == ["plugins/p"]
 
 
+def test_changed_plugins_handles_non_ascii_paths(st, grepo):
+    base = _commit(grepo, {"plugins/p/skills/a/références/été.md": "x\n"})
+    assert st.changed_plugins(grepo, base) == ["plugins/p"]
+
+
 def test_changed_plugins_sorted_across_both_roots_and_ignores_non_plugin_paths(st, grepo):
     base = _commit(grepo, {
         "community-plugins/c/skills/a/SKILL.md": "y\n",
@@ -697,6 +764,41 @@ def test_benchmark_select_step_rejects_bad_inputs(tmp_path, env):
     proc, _ = run_select(tmp_path, **env)
     assert proc.returncode == 1
     assert "::error::" in proc.stdout
+
+
+def key_check(tmp_path, report_text, key="sk-secret-123"):
+    reports = tmp_path / "reports"
+    reports.mkdir()
+    (reports / "BENCHMARK.md").write_text(report_text, encoding="utf-8")
+    script = workflow_step("benchmark-skills.yml", "Check reports for the API key")
+    proc, _ = run_step(script, tmp_path, {"RUNNER_TEMP": str(tmp_path), "ANTHROPIC_API_KEY": key})
+    return proc
+
+
+def test_benchmark_key_check_passes_clean_reports(tmp_path):
+    assert key_check(tmp_path, "all good\n").returncode == 0
+
+
+def test_benchmark_key_check_fails_when_key_is_in_a_report_and_never_echoes_it(tmp_path):
+    proc = key_check(tmp_path, "leaked sk-secret-123 here\n")
+    assert proc.returncode != 0
+    assert "API key found" in proc.stdout
+    assert "sk-secret-123" not in proc.stdout + proc.stderr
+
+
+def test_benchmark_key_check_fails_on_empty_key(tmp_path):
+    assert key_check(tmp_path, "anything\n", key="").returncode != 0
+
+
+def test_benchmark_upload_and_publish_conditions():
+    doc = yaml.safe_load((WORKFLOWS / "benchmark-skills.yml").read_text(encoding="utf-8"))
+    steps = {step.get("name"): step for step in doc["jobs"]["run"]["steps"]}
+    names = [step.get("name") for step in doc["jobs"]["run"]["steps"]]
+    assert names.index("Check reports for the API key") < names.index("Upload reports")
+    assert "always()" in steps["Upload reports"]["if"]
+    assert "cancelled" not in steps["Upload reports"]["if"]
+    assert "keycheck" in steps["Upload reports"]["if"]
+    assert doc["jobs"]["publish"]["if"] == "${{ needs.run.result == 'success' }}"
 
 
 # --- release staging and packing ---------------------------------------------
@@ -858,3 +960,32 @@ def test_signature_detects_tamper(st, release_root, tmp_path):
     (alpha / "extra.md").unlink()
     (alpha / ".gitignore").write_text("changed\n", encoding="utf-8")
     assert verify().returncode != 0, "edited dotfile must fail (not ignored)"
+
+
+def test_stage_sign_pack_end_to_end_through_the_cli(st, release_root, tmp_path):
+    pytest.importorskip("model_signing")
+    ec = pytest.importorskip("cryptography.hazmat.primitives.asymmetric.ec")
+    ser = pytest.importorskip("cryptography.hazmat.primitives.serialization")
+    key = ec.generate_private_key(ec.SECP256R1())
+    private = tmp_path / "priv.pem"
+    private.write_bytes(key.private_bytes(ser.Encoding.PEM, ser.PrivateFormat.PKCS8, ser.NoEncryption()))
+
+    staged = tmp_path / "staged"
+    assert st.main(["stage", "--root", str(release_root), "--out", str(staged)]) == 0
+    dirs = sorted(p for p in staged.iterdir() if p.is_dir())
+    assert [p.name for p in dirs] == ["ai-research-workflows--alpha", "ai-research-workflows--beta"]
+    for d in dirs:
+        signed = subprocess.run(
+            [model_signing_cmd(), "sign", "key", str(d), "--signature", str(d / "skill.oms.sig"),
+             "--no-ignore-git-paths", "--private_key", str(private)],
+            capture_output=True, text=True,
+        )
+        assert signed.returncode == 0, signed.stderr
+    dist = tmp_path / "dist"
+    assert st.main(["pack", "--staged", str(staged), "--version", "26.11.0", "--out", str(dist)]) == 0
+    assert sorted(p.name for p in dist.iterdir()) == [
+        "ai-research-workflows--alpha-26.11.0.tar.gz",
+        "ai-research-workflows--beta-26.11.0.tar.gz",
+    ]
+    with tarfile.open(dist / "ai-research-workflows--alpha-26.11.0.tar.gz") as tar:
+        assert "ai-research-workflows--alpha/skill.oms.sig" in tar.getnames()

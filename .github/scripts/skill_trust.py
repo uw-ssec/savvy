@@ -389,11 +389,16 @@ def is_evidence(relpath: str) -> bool:
 def changed_plugins(root: Path, since: str) -> list[str]:
     """Plugin dirs with a changed path outside the evidence patterns since `since`."""
     out = subprocess.run(
-        ["git", "diff", "--name-only", "--no-renames", f"{since}..HEAD"], cwd=root, check=True, capture_output=True, text=True
+        ["git", "diff", "--name-only", "-z", "--no-renames", f"{since}..HEAD"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
     ).stdout
     changed: set[str] = set()
-    for line in out.splitlines():
-        parts = line.strip().split("/", 2)
+    for path in out.split("\0"):
+        parts = path.split("/", 2)
         if len(parts) == 3 and parts[0] in PLUGIN_ROOTS and not is_evidence(parts[2]):
             changed.add(f"{parts[0]}/{parts[1]}")
     return sorted(changed)

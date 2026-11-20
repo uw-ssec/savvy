@@ -136,8 +136,22 @@ jobs:
         run: |
           # A failed `select` must fail the step, not read as "no pilot skills".
           set -o pipefail
-          python3 .github/scripts/skill-quality.py select --base "$BASE_SHA" --head "$HEAD_SHA" \
-            | python3 .github/scripts/skill_trust.py select-pilot > "$RUNNER_TEMP/pilot.txt"
+          # Anything that decides what the scan flags or what it can waive
+          # re-scans every pilot skill, not only the ones this PR changed.
+          gate_inputs=".github/scripts/skill_trust.py
+          .github/skill-security-accepted.yml
+          .github/skillevaluator-policy.yml
+          .github/workflows/skill-quality-check.yml
+          pixi.toml
+          pixi.lock"
+          changed="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")"
+          if printf '%s\n' "$changed" | grep -qxF -f <(printf '%s\n' "$gate_inputs"); then
+            echo "A gate input changed; scanning every pilot skill."
+            pixi run -e ci python .github/scripts/skill_trust.py list-pilot > "$RUNNER_TEMP/pilot.txt"
+          else
+            python3 .github/scripts/skill-quality.py select --base "$BASE_SHA" --head "$HEAD_SHA" \
+              | pixi run -e ci python .github/scripts/skill_trust.py select-pilot > "$RUNNER_TEMP/pilot.txt"
+          fi
           echo "count=$(grep -c . "$RUNNER_TEMP/pilot.txt" || true)" >> "$GITHUB_OUTPUT"
           cat "$RUNNER_TEMP/pilot.txt"
 
@@ -164,7 +178,7 @@ jobs:
             exit 0
           fi
           set +e
-          python3 .github/scripts/skill_trust.py gate --reports "$RUNNER_TEMP/reports" \
+          pixi run -e ci python .github/scripts/skill_trust.py gate --reports "$RUNNER_TEMP/reports" \
             --skills "$RUNNER_TEMP/pilot.txt" --accepted .github/skill-security-accepted.yml \
             --root . > "$RUNNER_TEMP/gate.md"
           status=$?

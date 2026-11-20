@@ -122,3 +122,9 @@ First tagged release. Plugin versions move to this release for every plugin belo
 #### Added
 
 - `CHANGELOG.md`, a [versioning policy](docs/versioning.md), and a [deprecation policy](docs/deprecation.md).
+- [docs/codespaces.md](docs/codespaces.md), with the Codespaces and LiteLLM gateway setup moved out of the README.
+- README badges for CI, the Zenodo DOI, the license, and pixi.
+
+#### Changed
+
+- The README is shorter and points to the [skill catalog](docs/catalog.md) and the other docs instead of listing every plugin, skill, and agent itself.

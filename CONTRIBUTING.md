@@ -99,7 +99,7 @@ Good agents for scientific software should:
 
 4. **Test Your Agent**: Test the agent with Claude Code to ensure it works as expected
 
-5. **Update Documentation**: If adding a new agent, update the category README to list it
+5. **Update Documentation**: If adding a new agent, list it in the plugin's README and run `pixi run catalog-sync` so the [skill catalog](docs/catalog.md) picks it up
 
 6. **Submit a Pull Request**: 
    - Provide a clear description of the agent and its purpose
@@ -114,7 +114,7 @@ Before submitting your PR, ensure:
 - [ ] Filename follows kebab-case convention
 - [ ] Agent prompt is clear and well-documented
 - [ ] Agent has been tested with Claude Code (or equivalent)
-- [ ] README.md is updated if adding a new agent
+- [ ] A new agent is listed in the plugin's README, and `docs/catalog.md` is regenerated with `pixi run catalog-sync`
 - [ ] Commit messages are clear and descriptive
 - [ ] `pixi run plugins-check` passes (run `pixi run plugins-sync` first if you changed a manifest or the catalog)
 - [ ] `CHANGELOG.md` has an entry under `## [Unreleased]` for each plugin you changed

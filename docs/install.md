@@ -34,7 +34,7 @@ Every plugin README carries a note saying the same thing. If a client doesn't lo
 
 🟡 cells follow the client's documentation but haven't been run against this repository. For MCP, ✅ means the client found the server configuration; the server itself wasn't started.
 
-Replace `scientific-python-development` in the examples below with any plugin from [Available Plugins](../README.md#available-plugins).
+Replace `scientific-python-development` in the examples below with any plugin from the [skill catalog](catalog.md).
 
 ## Install by client
 
@@ -54,7 +54,7 @@ copilot plugin marketplace add uw-ssec/savvy
 copilot plugin install scientific-python-development@savvy
 ```
 
-Copilot reads the root `plugin.json` and the marketplace in `.claude-plugin/marketplace.json`, and loads each plugin's skills and MCP servers. It doesn't load our agents or commands yet: those are written for Claude Code, and Copilot-format versions for Copilot CLI and VS Code are tracked in [#240](https://github.com/uw-ssec/savvy/issues/240). The [Codespace](../README.md#github-codespaces) installs every plugin this way.
+Copilot reads the root `plugin.json` and the marketplace in `.claude-plugin/marketplace.json`, and loads each plugin's skills and MCP servers. It doesn't load our agents or commands yet: those are written for Claude Code, and Copilot-format versions for Copilot CLI and VS Code are tracked in [#240](https://github.com/uw-ssec/savvy/issues/240). The [Codespace](codespaces.md) installs every plugin this way.
 
 ### VS Code (Copilot)
 

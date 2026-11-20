@@ -23,8 +23,10 @@ lychee = "0.24.2.*"
 # the checker through pixi (the skill-quality-check task below), so bumping
 # this rev is the only place a version bump is needed. Bump deliberately:
 # scores can shift between SkillEvaluator releases.
+# Rev 707fb9a (main after 5320d93) accepts SkillSpector's `complete_with_caveats`
+# when every caveat is a non-fatal missing reference; older revs flag it incomplete.
 [feature.ci.pypi-dependencies]
-skillevaluator = { git = "https://github.com/NVIDIA/SkillEvaluator.git", rev = "5320d9329c36ecc72bc94c4f58cc813d6b54224b" }
+skillevaluator = { git = "https://github.com/NVIDIA/SkillEvaluator.git", rev = "707fb9a8cbfaf6c8f766506f43bb699212234f01" }
 
 # SkillEvaluator's full Tier 1 `validate` shells out to SkillSpector, Semgrep
 # and Gitleaks, and reports `incomplete` when one is missing. Where each lives:
@@ -53,9 +55,11 @@ macos = "14.0"
 python = "3.12.*"
 go = "1.27.*"
 
+# SkillSpector v2.13.4. Not v2.13.6: its `dependency_inspection` key is
+# rejected by the SkillEvaluator rev above.
 [feature.scanners.pypi-dependencies]
 semgrep = "==1.186.0"
-skillspector = { git = "https://github.com/NVIDIA/SkillSpector.git", rev = "c7958a3268d9498644b22edb75d0f051bbc8cbfc" }
+skillspector = { git = "https://github.com/NVIDIA/SkillSpector.git", rev = "54824463814a0be01360792523ec7245a69190fc" }
 
 [feature.scanners.tasks]
 install-gitleaks = { cmd = "go install github.com/zricethezav/gitleaks/v8@v8.30.1", env = { GOBIN = "$CONDA_PREFIX/libexec/gitleaks" }, outputs = ["$CONDA_PREFIX/libexec/gitleaks/gitleaks"], description = "Build the pinned Gitleaks release with Go into its own directory" }

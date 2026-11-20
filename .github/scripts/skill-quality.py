@@ -5,7 +5,8 @@ select     Print the skill directories a pull request touches, one per line.
            A skill is plugins/<plugin>/skills/<skill>/ or the same under
            community-plugins/, and counts only if its SKILL.md still exists
            (a deleted skill has nothing to score). When the gate itself
-           changed (the workflow or this script), every skill is selected so
+           changed (the workflow, this script, or the pinned checker's
+           version/task in pixi.toml/pixi.lock), every skill is selected so
            the new gate is exercised on the whole catalog.
 
 summarize  Read each skill's skillevaluator-quality.json and print a Markdown
@@ -28,7 +29,9 @@ import sys
 from pathlib import Path
 
 SKILL_DIR = re.compile(r"^((?:community-)?plugins/[^/]+/skills/[^/]+)/")
-GATE_FILES = {".github/workflows/skill-quality-check.yml", ".github/scripts/skill-quality.py"}
+GATE_FILES = {
+    ".github/workflows/skill-quality-check.yml", ".github/scripts/skill-quality.py", "pixi.toml", "pixi.lock",
+}
 
 
 def changed_files(root: Path, base: str, head: str) -> list[str]:

@@ -1,0 +1,57 @@
+name: New Skill Suggestion
+description: Suggest a new skill to be added to savvy.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping make savvy better! Please describe the skill you have in mind.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or motivation
+      description:
+        What problem does would this skill solve? What use case does it enable?
+      placeholder: I'm trying to do X but currently have to Y instead...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description:
+        Describe the skill you'd like to see. Include any API or CLI design
+        ideas.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description:
+        Any alternative approaches or workarounds you've thought about?
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which tier of plugin would this skill fall under? (Optional)
+      multiple: true
+      options:
+        - Core
+        - Community
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Anything else that would help — links, references, prior art.
+    validations:
+      required: false

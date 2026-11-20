@@ -10,6 +10,7 @@ inspection, indexing, and compression configuration.
 Requirements:
     pip install zarr numpy
     # or: pixi add zarr numpy
+    # optional: rich, for the Group.tree() view in section 5
 
 Usage:
     python zarr-quickstart.py
@@ -24,8 +25,17 @@ import zarr
 
 
 def main():
-    # Use a temporary directory so the script is self-contained and clean
+    # Use a temporary directory so the script is self-contained and clean,
+    # and remove it even if a step fails.
     work_dir = Path(tempfile.mkdtemp(prefix="zarr_quickstart_"))
+    try:
+        run(work_dir)
+    finally:
+        shutil.rmtree(work_dir, ignore_errors=True)
+        print(f"\nCleaned up temporary directory: {work_dir}")
+
+
+def run(work_dir):
     print(f"Working directory: {work_dir}\n")
 
     # ──────────────────────────────────────────────
@@ -64,8 +74,8 @@ def main():
     data = (
         lat_gradient[np.newaxis, :, np.newaxis]
         + np.random.randn(365, 180, 360).astype("float32") * 3
-    )
-    z[:] = data.astype("float32")
+    ).astype("float32")  # lat_gradient is float64, so cast back before writing
+    z[:] = data
     print(f"Wrote {data.nbytes / 1e6:.1f} MB of data")
 
     # Read a subset: first 10 days, first 10 lat points, first 10 lon points
@@ -163,7 +173,11 @@ def main():
     root = zarr.open_group(root_path, mode="r")
 
     print("--- Hierarchy (.tree()) ---")
-    print(root.tree())
+    try:
+        print(root.tree())
+    except ImportError:  # Group.tree() needs the optional 'rich' package
+        for name, node in root.members(max_depth=None):
+            print(f"  {name} ({type(node).__name__})")
 
     # Array info (quick summary)
     temp_arr = root["observations/temperature"]
@@ -269,17 +283,13 @@ def main():
     print("  - Group hierarchy with create_group()")
     print("  - Metadata with .attrs")
     print("  - Inspection with .info and .tree()")
-    print("  - Six indexing modes: basic, orthogonal, block, coordinate, mask, field")
+    print("  - Indexing: basic, orthogonal, block, coordinate")
     print("  - Compression configuration (Zstd, none)")
     print()
     print("Next steps:")
     print("  - Try zarr.open_array('s3://...') for cloud storage")
     print("  - Explore sharding with the shards= parameter")
     print("  - Integrate with xarray: xr.open_zarr('path.zarr')")
-
-    # Clean up temporary directory
-    shutil.rmtree(work_dir)
-    print(f"\nCleaned up temporary directory: {work_dir}")
 
 
 if __name__ == "__main__":

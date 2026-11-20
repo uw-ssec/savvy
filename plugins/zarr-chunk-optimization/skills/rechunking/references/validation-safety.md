@@ -4,18 +4,18 @@
 
 | Section | Lines | Description |
 |---------|-------|-------------|
-| Pre-Rechunk Validation | 16–107 | Checks to perform before starting a rechunking operation |
-| Post-Rechunk Validation | 108–184 | Verifying that the rechunked output matches the source |
-| Sample-First Strategy | 185–261 | Rechunking a subset before committing to the full dataset |
-| Rollback Patterns | 262–331 | Atomic swap, backup strategies, and recovery procedures |
-| Data Integrity Checks | 332–403 | Checksum comparison and statistical validation methods |
-| Common Failure Modes | 404–484 | OOM during rechunk, interrupted writes, and corrupted chunks |
+| Pre-Rechunk Validation | 16–113 | Checks to perform before starting a rechunking operation |
+| Post-Rechunk Validation | 114–195 | Verifying that the rechunked output matches the source |
+| Sample-First Strategy | 196–277 | Rechunking a subset before committing to the full dataset |
+| Rollback Patterns | 278–353 | Path swap, backup strategies, and recovery procedures |
+| Data Integrity Checks | 354–408 | Checksum comparison, sampled validation, NaN handling |
+| Common Failure Modes | 409–491 | OOM during rechunk, interrupted writes, and corrupted chunks |
 
 ---
 
 ## Pre-Rechunk Validation
 
-Before starting any rechunking operation, validate the following conditions. The `rechunk.py` script performs steps 1–3 automatically; steps 4–6 require manual verification.
+Before starting any rechunking operation, validate the following conditions. `scripts/rechunk.py` checks steps 1 and 3, and step 6 for local paths only. Do the rest yourself.
 
 ### 1. Source Integrity
 
@@ -26,13 +26,14 @@ import zarr
 
 source = zarr.open("/data/source.zarr", mode="r")
 assert isinstance(source, zarr.Array), "Source is not a Zarr array"
+print(f"Zarr format: {source.metadata.zarr_format}")
 print(f"Shape: {source.shape}")
-print(f"Chunks: {source.chunks}")
+print(f"Chunks: {source.chunks}  Shards: {source.shards}")
 print(f"Dtype: {source.dtype}")
-print(f"Compressor: {source.compressor}")
+print(f"Compressors: {source.compressors}")
 ```
 
-If the source is a Zarr group containing multiple arrays, verify each array independently.
+`Array.compressor` raises on Zarr v3 arrays under zarr-python 3; use `compressors`. If the source is a Zarr group, `scripts/rechunk.py` rejects it: verify each array independently and use the xarray or array-by-array route in rechunking-strategies.md.
 
 ### 2. Disk Space
 
@@ -75,15 +76,16 @@ for i, (chunk, extent) in enumerate(zip(target_chunks, source.shape)):
 
 ### 4. Compression Compatibility
 
-If specifying a different compressor for the output, verify it is installed:
+`scripts/rechunk.py` keeps the source codecs and has no option to change them. If you change codecs through `zarr.from_array(compressors=...)` or xarray `encoding`, round-trip a small array with them first:
 
 ```python
-import numcodecs
-compressor = numcodecs.Blosc(cname='zstd', clevel=3)
-test_data = np.random.rand(100).astype(source.dtype)
-compressed = compressor.encode(test_data)
-decompressed = compressor.decode(compressed)
-assert np.array_equal(test_data, np.frombuffer(decompressed, dtype=source.dtype))
+import zarr
+from zarr.codecs import BloscCodec
+
+test = zarr.create_array(zarr.storage.MemoryStore(), shape=(100,), dtype=source.dtype,
+                         compressors=BloscCodec(cname="zstd", clevel=3))
+test[:] = np.arange(100).astype(source.dtype)
+assert np.array_equal(test[:], np.arange(100).astype(source.dtype))
 ```
 
 ### 5. Cloud Credentials
@@ -91,10 +93,14 @@ assert np.array_equal(test_data, np.frombuffer(decompressed, dtype=source.dtype)
 For S3/GCS sources or outputs, verify credentials before starting:
 
 ```python
-import s3fs
-fs = s3fs.S3FileSystem()
-assert fs.exists("s3://bucket/source.zarr/.zarray"), "Cannot access source in S3"
+import zarr
+
+# Opening the array checks credentials and finds the metadata for either format
+# (zarr.json for v3, .zarray for v2).
+source = zarr.open_array("s3://bucket/source.zarr", mode="r")
 ```
+
+For the output, list the target prefix too: the script checks for an existing output on local paths only.
 
 ### 6. Output Path Safety
 
@@ -124,8 +130,8 @@ These checks catch gross errors (wrong dimensions, truncated data) but do not ve
 #### Dtype Verification
 
 ```python
-source = zarr.open("/data/source.zarr", "r")
-output = zarr.open("/data/output.zarr", "r")
+source = zarr.open("/data/source.zarr", mode="r")
+output = zarr.open("/data/output.zarr", mode="r")
 
 assert source.dtype == output.dtype, \
     f"Dtype mismatch: source={source.dtype}, output={output.dtype}"
@@ -141,46 +147,51 @@ for key in source.attrs:
         f"Attribute mismatch for '{key}': {source.attrs[key]} != {output.attrs[key]}"
 ```
 
-#### Value Sampling
+#### Value Comparison
 
-Spot-check values at random positions to detect data corruption:
+Rechunking must be bit-exact, so compare values exactly. Iterate over the **output's** chunk grid: each block then reads one output chunk (or shard) once. Looping over single indices instead (`source[i]`) re-reads every output chunk once per index it spans.
 
 ```python
+import itertools
 import numpy as np
 
-rng = np.random.default_rng(42)
-num_samples = 1000
+def values_equal(a, b):
+    """Exact comparison where NaN == NaN for float and complex data."""
+    if np.iscomplexobj(a) or np.iscomplexobj(b):
+        # equal_nan=True on complex data ignores the other component of a NaN
+        return values_equal(a.real, b.real) and values_equal(a.imag, b.imag)
+    return np.array_equal(a, b, equal_nan=np.issubdtype(a.dtype, np.inexact))
 
-for _ in range(num_samples):
-    idx = tuple(rng.integers(0, s) for s in source.shape)
-    src_val = source[idx]
-    dst_val = output[idx]
 
-    if np.isnan(src_val) and np.isnan(dst_val):
-        continue  # NaN == NaN is False, but both being NaN is correct
+def iter_blocks(arr):
+    """Yield slices covering arr one stored object (shard, else chunk) at a time."""
+    block = arr.shards or arr.chunks
+    starts = [range(0, n, b) for n, b in zip(arr.shape, block)]
+    for start in itertools.product(*starts):
+        yield tuple(slice(s, s + b) for s, b in zip(start, block))
 
-    assert src_val == dst_val, f"Value mismatch at {idx}: {src_val} != {dst_val}"
 
-print(f"Value sampling passed ({num_samples} random positions)")
+def random_blocks(arr, k, seed=0):
+    """Yield k random block slices from arr's stored-object grid."""
+    rng = np.random.default_rng(seed)
+    block = arr.shards or arr.chunks
+    for _ in range(k):
+        yield tuple(slice(i * b, (i + 1) * b)
+                    for n, b in zip(arr.shape, block)
+                    for i in [int(rng.integers(-(-n // b)))])
+
+
+# Full check: every output block
+for sl in iter_blocks(output):
+    assert values_equal(source[sl], output[sl]), f"Mismatch in {sl}"
+
+# Very large stores: a sample of whole blocks checks far more values per read
+# than single random elements
+for sl in random_blocks(output, k=50):
+    assert values_equal(source[sl], output[sl]), f"Mismatch in {sl}"
 ```
 
-#### Full Comparison (Small Datasets Only)
-
-For datasets that fit in memory, perform a full element-wise comparison:
-
-```python
-# Only for datasets that fit in RAM
-assert np.array_equal(source[:], output[:]), "Full data comparison failed"
-```
-
-For large datasets, compare slice by slice:
-
-```python
-for i in range(source.shape[0]):
-    assert np.array_equal(source[i], output[i]), f"Mismatch at index {i}"
-    if i % 100 == 0:
-        print(f"Validated slice {i}/{source.shape[0]}")
-```
+Without `equal_nan=True`, `np.array_equal` reports identical float data with NaN fill values as a mismatch. Keep it off for integer and string data; `equal_nan=True` raises on strings. On complex data it treats `nan+1j` and `nan+999j` as equal, so `values_equal` compares the real and imaginary parts separately.
 
 ## Sample-First Strategy
 
@@ -188,48 +199,51 @@ Always rechunk a small sample before processing the full dataset. This catches c
 
 ### Creating a Sample
 
-Extract a representative subset of the source data:
+Extract a block that spans two **target** chunks along every axis. A thin slab along the first axis cannot exercise a target chunk that is long on that axis, such as a time-series layout.
 
 ```python
 import zarr
 import numpy as np
 
-source = zarr.open("/data/full_dataset.zarr", mode="r")
+target = (50, 512, 512)  # the --chunks you will use on the full dataset
+source = zarr.open_array("/data/full_dataset.zarr", mode="r")
 
-# Take the first N elements along the first dimension
-sample_size = min(20, source.shape[0])
-sample_shape = (sample_size,) + source.shape[1:]
+region = tuple(slice(0, min(n, 2 * c)) for n, c in zip(source.shape, target))
+data = source[region]  # loads 2**ndim target chunks into memory
 
-sample = zarr.open(
-    "/tmp/rechunk_sample.zarr", mode="w",
-    shape=sample_shape,
+sample = zarr.create_array(
+    "/tmp/rechunk_sample.zarr",
+    shape=data.shape,
     chunks=source.chunks,
     dtype=source.dtype,
-    compressor=source.compressor
+    zarr_format=source.metadata.zarr_format,
+    compressors=source.compressors,
+    overwrite=True,
 )
-sample[:] = source[:sample_size]
+sample[:] = data
 sample.attrs.update(source.attrs)
 ```
 
 ### Rechunking the Sample
 
 ```bash
-python rechunk.py \
+python scripts/rechunk.py \
     --input /tmp/rechunk_sample.zarr \
     --output /tmp/rechunk_sample_output.zarr \
-    --chunks "10,512,512"
+    --chunks "50,512,512" \
+    --summary /tmp/rechunk_sample_summary.json
 ```
 
 ### Validating the Sample
 
 ```python
-source_sample = zarr.open("/tmp/rechunk_sample.zarr", "r")
-output_sample = zarr.open("/tmp/rechunk_sample_output.zarr", "r")
+source_sample = zarr.open("/tmp/rechunk_sample.zarr", mode="r")
+output_sample = zarr.open("/tmp/rechunk_sample_output.zarr", mode="r")
 
 # Full comparison is feasible for small samples
 assert source_sample.shape == output_sample.shape
 assert source_sample.dtype == output_sample.dtype
-assert np.array_equal(source_sample[:], output_sample[:])
+assert values_equal(source_sample[:], output_sample[:])  # from Value Comparison above
 print("Sample validation passed")
 ```
 
@@ -240,7 +254,7 @@ Use the sample timing to estimate the full dataset rechunking time:
 ```python
 import json
 
-with open("rechunk_summary_*.json") as f:
+with open("/tmp/rechunk_sample_summary.json") as f:  # the --summary path; open() does not expand globs
     summary = json.load(f)
 
 sample_time = summary["actual_time_seconds"]
@@ -251,30 +265,31 @@ estimated_full_time = sample_time * (full_elements / sample_elements)
 print(f"Estimated full rechunk time: {estimated_full_time / 3600:.1f} hours")
 ```
 
+This is a rough linear extrapolation: the sample time includes fixed start-up cost, and a cloud store adds per-request latency that a local sample does not show.
+
 ### Decision Criteria
 
 After validating the sample:
 
 - **Proceed** if: shape/dtype/values match, estimated time is acceptable, memory usage is within budget.
 - **Abort** if: values differ, memory usage exceeds budget, estimated time is unacceptable.
-- **Adjust** if: rechunking works but is too slow — try larger `--max-mem` or install the `rechunker` library for parallel execution.
+- **Adjust** if: rechunking works but is too slow. Under zarr-python 3 the script copies sequentially and `--max-mem` has no effect; switch to `zarr.from_array` with higher `async.concurrency`, or to dask (see rechunking-strategies.md).
 
 ## Rollback Patterns
 
-### Pattern 1: Atomic Swap (Recommended)
+### Pattern 1: Swap Paths (Recommended)
 
-Write to a new location, verify, then swap paths atomically:
+Write to a new location, verify, then swap paths:
 
 ```bash
 # Step 1: Rechunk to new path
-python rechunk.py --input /data/dataset.zarr \
+python scripts/rechunk.py --input /data/dataset.zarr \
                   --output /data/dataset_new.zarr \
                   --chunks "50,512,512"
 
-# Step 2: Verify (automated + manual checks)
-python validate.py --source /data/dataset.zarr --target /data/dataset_new.zarr
+# Step 2: Verify with the Post-Rechunk Validation code above (there is no bundled validate script)
 
-# Step 3: Atomic swap
+# Step 3: Swap
 mv /data/dataset.zarr /data/dataset_old.zarr
 mv /data/dataset_new.zarr /data/dataset.zarr
 
@@ -283,7 +298,7 @@ mv /data/dataset_new.zarr /data/dataset.zarr
 rm -rf /data/dataset_old.zarr
 ```
 
-**On Linux/macOS,** `mv` within the same filesystem is atomic at the directory level. Cross-filesystem moves are not atomic — use `rsync` followed by `rm` instead.
+Each `mv` within one filesystem is an atomic rename, but the swap takes two, so readers briefly see no `/data/dataset.zarr`. Stop readers during the swap, or use the symlink pattern below, where one rename switches readers. A move across filesystems copies the data and is not atomic. Object stores (S3, GCS) have no rename at all: point readers at the new prefix rather than moving objects.
 
 ### Pattern 2: Versioned Backups
 
@@ -296,11 +311,18 @@ For datasets that are rechunked periodically, use versioned paths:
 /data/dataset_current.zarr -> dataset_v3.zarr  # Symlink to current version
 ```
 
-Update the symlink atomically:
+Update the symlink atomically: create a temporary link in the same directory, then rename it over the old one.
 
-```bash
-ln -sfn /data/dataset_v3.zarr /data/dataset_current.zarr
+```python
+import os
+
+os.symlink("/data/dataset_v3.zarr", "/data/.dataset_current.zarr.tmp")
+os.replace("/data/.dataset_current.zarr.tmp", "/data/dataset_current.zarr")
 ```
+
+Don't use `ln -sfn`: BSD `ln`, as on macOS, deletes the old link before creating the new one, so readers can find no path.
+
+Readers should open the resolved path, `zarr.open(os.path.realpath("/data/dataset_current.zarr"))`. An array opened through the symlink resolves it again for every chunk, so a swap during a long read mixes chunks from two versions.
 
 ### Pattern 3: Cloud Versioning
 
@@ -323,7 +345,7 @@ On ZFS or Btrfs, use filesystem snapshots before rechunking:
 zfs snapshot tank/data@before-rechunk
 
 # Rechunk
-python rechunk.py --input /data/dataset.zarr --output /data/dataset_new.zarr --chunks "50,512,512"
+python scripts/rechunk.py --input /data/dataset.zarr --output /data/dataset_new.zarr --chunks "50,512,512"
 
 # If something goes wrong
 zfs rollback tank/data@before-rechunk
@@ -333,54 +355,37 @@ zfs rollback tank/data@before-rechunk
 
 ### Checksum Comparison
 
-Compute checksums of the source and output data for definitive integrity verification:
+A checksum reads as much data as the direct comparison above. It earns its cost when source and output are not readable at the same time, for example when the hash is recorded before the source moves:
 
 ```python
 import hashlib
+import itertools
 import zarr
 import numpy as np
 
-def compute_array_checksum(path: str) -> str:
-    """Compute SHA-256 checksum of all data in a Zarr array."""
-    arr = zarr.open(path, mode="r")
+def compute_array_checksum(path: str, block: tuple) -> str:
+    """SHA-256 of a Zarr array's values, read block by block in a fixed order."""
+    arr = zarr.open_array(path, mode="r")
     hasher = hashlib.sha256()
-
-    # Process slice by slice to avoid loading entire array into memory
-    for i in range(arr.shape[0]):
-        data = arr[i]
-        hasher.update(data.tobytes())
-
+    starts = [range(0, n, b) for n, b in zip(arr.shape, block)]
+    for start in itertools.product(*starts):
+        sl = tuple(slice(s, s + b) for s, b in zip(start, block))
+        hasher.update(np.ascontiguousarray(arr[sl]).tobytes())
     return hasher.hexdigest()
 
-source_hash = compute_array_checksum("/data/source.zarr")
-output_hash = compute_array_checksum("/data/output.zarr")
+# Hash both arrays over the SAME block grid (here the output's chunks),
+# or the byte order differs and identical data hashes differently.
+block = zarr.open_array("/data/output.zarr", mode="r").chunks
+source_hash = compute_array_checksum("/data/source.zarr", block)
+output_hash = compute_array_checksum("/data/output.zarr", block)
 
 assert source_hash == output_hash, "Checksum mismatch — data corruption detected"
 print(f"Checksum match: {source_hash}")
 ```
 
-### Statistical Validation
+### Sampled Validation for Very Large Stores
 
-For very large datasets where full checksum comparison is too slow, use statistical methods:
-
-```python
-source = zarr.open("/data/source.zarr", "r")
-output = zarr.open("/data/output.zarr", "r")
-
-# Compare summary statistics per slice
-for i in range(source.shape[0]):
-    src_slice = source[i]
-    dst_slice = output[i]
-
-    assert np.isclose(np.mean(src_slice), np.mean(dst_slice), rtol=1e-7), \
-        f"Mean mismatch at slice {i}"
-    assert np.isclose(np.std(src_slice), np.std(dst_slice), rtol=1e-7), \
-        f"Std mismatch at slice {i}"
-    assert np.nanmin(src_slice) == np.nanmin(dst_slice), \
-        f"Min mismatch at slice {i}"
-    assert np.nanmax(src_slice) == np.nanmax(dst_slice), \
-        f"Max mismatch at slice {i}"
-```
+Summary statistics (mean, std, min, max) are not a cheaper substitute: they read every value, the same as an exact comparison, and `np.mean` returns NaN when a slice holds NaN. To save time, read less data instead: compare a random sample of whole output blocks exactly with `random_blocks` from Value Comparison above.
 
 ### NaN and Special Value Handling
 
@@ -413,11 +418,12 @@ assert np.array_equal(src_data[finite_mask], dst_data[finite_mask]), "Finite val
 - Memory leak in compression codec (rare but possible with certain Blosc configurations).
 
 **Prevention:**
-- Set `--max-mem` to no more than 25% of system RAM.
+- On the `rechunker` path, `--max-mem` is per task: keep `max_mem × concurrent tasks` well under RAM.
+- On the fallback path (zarr-python 3), memory follows the target chunk and the source chunks it overlaps, not `--max-mem`. See rechunking-strategies.md, Memory Profile.
 - Verify that individual target chunks fit in memory: `chunk_elements × bytes_per_element < available_RAM / 4`.
-- Monitor memory usage with `--verbose` during the sample rechunk.
+- Measure peak memory of the sample rechunk with `/usr/bin/time -v` (Linux) or `/usr/bin/time -l` (macOS). `--verbose` does not report memory.
 
-**Recovery:** The output is likely incomplete or corrupted. Delete it and restart with a lower `--max-mem` value.
+**Recovery:** The output is likely incomplete or corrupted. Delete it and restart with a lower `--max-mem`, or with smaller target chunks on the fallback path.
 
 ### 2. Interrupted Writes
 
@@ -448,19 +454,19 @@ assert np.array_equal(src_data[finite_mask], dst_data[finite_mask]), "Finite val
 ```python
 import zarr
 
-arr = zarr.open("/data/output.zarr", mode="r")
+arr = zarr.open_array("/data/output.zarr", mode="r")
 errors = []
 
-for i in range(arr.shape[0]):
+for sl in iter_blocks(arr):  # from Value Comparison above
     try:
-        _ = arr[i]
+        _ = arr[sl]
     except Exception as e:
-        errors.append((i, str(e)))
+        errors.append((sl, str(e)))
 
 if errors:
-    print(f"Found {len(errors)} corrupted slices:")
-    for idx, msg in errors[:10]:
-        print(f"  Slice {idx}: {msg}")
+    print(f"Found {len(errors)} unreadable blocks:")
+    for sl, msg in errors[:10]:
+        print(f"  {sl}: {msg}")
 ```
 
 **Recovery:** Delete the corrupted output and rechunk again. If corruption is in the source, restore from backup or upstream pipeline.
@@ -472,13 +478,14 @@ if errors:
 **Causes:**
 - Fallback chunk-by-chunk copy correctly transfers attributes via `output_array.attrs.update(source_array.attrs)`, but custom scripts may omit this step.
 - Zarr group-level attributes may not be copied when rechunking individual arrays within a group.
+- `zarr.from_array` in zarr-python 3.1 copies neither attributes nor the fill value unless you pass `attributes=` and `fill_value=`.
 
 **Prevention:** Always verify metadata preservation as part of post-rechunk validation (see Post-Rechunk Validation section above).
 
 **Recovery:** Copy attributes from the source to the output manually:
 
 ```python
-source = zarr.open("/data/source.zarr", "r")
-output = zarr.open("/data/output.zarr", "r+")
+source = zarr.open("/data/source.zarr", mode="r")
+output = zarr.open("/data/output.zarr", mode="r+")
 output.attrs.update(source.attrs)
 ```

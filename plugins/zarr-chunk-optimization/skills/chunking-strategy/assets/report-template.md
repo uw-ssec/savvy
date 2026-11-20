@@ -49,34 +49,34 @@
 
 **Operation:** [SPATIAL_OPERATION_DESCRIPTION]
 
-| Config | Mean (s) | Std (s) | Min (s) | Max (s) | Chunks Read | Utilization |
+| Config | Mean (s) | Std (s) | Min (s) | Max (s) | Peak Mem (MB) | Requests |
 |--------|----------|---------|---------|---------|-------------|-------------|
-| [CONFIG_1] | [MEAN] | [STD] | [MIN] | [MAX] | [CHUNKS] | [UTIL] |
-| [CONFIG_2] | [MEAN] | [STD] | [MIN] | [MAX] | [CHUNKS] | [UTIL] |
-| [CONFIG_3] | [MEAN] | [STD] | [MIN] | [MAX] | [CHUNKS] | [UTIL] |
-| [CONFIG_4] | [MEAN] | [STD] | [MIN] | [MAX] | [CHUNKS] | [UTIL] |
+| [CONFIG_1] | [MEAN] | [STD] | [MIN] | [MAX] | [PEAK_MEM_MB] | [HTTP_REQUESTS] |
+| [CONFIG_2] | [MEAN] | [STD] | [MIN] | [MAX] | [PEAK_MEM_MB] | [HTTP_REQUESTS] |
+| [CONFIG_3] | [MEAN] | [STD] | [MIN] | [MAX] | [PEAK_MEM_MB] | [HTTP_REQUESTS] |
+| [CONFIG_4] | [MEAN] | [STD] | [MIN] | [MAX] | [PEAK_MEM_MB] | [HTTP_REQUESTS] |
 
 ## Temporal Access Pattern
 
 **Operation:** [TEMPORAL_OPERATION_DESCRIPTION]
 
-| Config | Mean (s) | Std (s) | Min (s) | Max (s) | Chunks Read | Utilization |
+| Config | Mean (s) | Std (s) | Min (s) | Max (s) | Peak Mem (MB) | Requests |
 |--------|----------|---------|---------|---------|-------------|-------------|
-| [CONFIG_1] | [MEAN] | [STD] | [MIN] | [MAX] | [CHUNKS] | [UTIL] |
-| [CONFIG_2] | [MEAN] | [STD] | [MIN] | [MAX] | [CHUNKS] | [UTIL] |
-| [CONFIG_3] | [MEAN] | [STD] | [MIN] | [MAX] | [CHUNKS] | [UTIL] |
-| [CONFIG_4] | [MEAN] | [STD] | [MIN] | [MAX] | [CHUNKS] | [UTIL] |
+| [CONFIG_1] | [MEAN] | [STD] | [MIN] | [MAX] | [PEAK_MEM_MB] | [HTTP_REQUESTS] |
+| [CONFIG_2] | [MEAN] | [STD] | [MIN] | [MAX] | [PEAK_MEM_MB] | [HTTP_REQUESTS] |
+| [CONFIG_3] | [MEAN] | [STD] | [MIN] | [MAX] | [PEAK_MEM_MB] | [HTTP_REQUESTS] |
+| [CONFIG_4] | [MEAN] | [STD] | [MIN] | [MAX] | [PEAK_MEM_MB] | [HTTP_REQUESTS] |
 
 ## Spectral Access Pattern
 
 **Operation:** [SPECTRAL_OPERATION_DESCRIPTION]
 
-| Config | Mean (s) | Std (s) | Min (s) | Max (s) | Chunks Read | Utilization |
+| Config | Mean (s) | Std (s) | Min (s) | Max (s) | Peak Mem (MB) | Requests |
 |--------|----------|---------|---------|---------|-------------|-------------|
-| [CONFIG_1] | [MEAN] | [STD] | [MIN] | [MAX] | [CHUNKS] | [UTIL] |
-| [CONFIG_2] | [MEAN] | [STD] | [MIN] | [MAX] | [CHUNKS] | [UTIL] |
-| [CONFIG_3] | [MEAN] | [STD] | [MIN] | [MAX] | [CHUNKS] | [UTIL] |
-| [CONFIG_4] | [MEAN] | [STD] | [MIN] | [MAX] | [CHUNKS] | [UTIL] |
+| [CONFIG_1] | [MEAN] | [STD] | [MIN] | [MAX] | [PEAK_MEM_MB] | [HTTP_REQUESTS] |
+| [CONFIG_2] | [MEAN] | [STD] | [MIN] | [MAX] | [PEAK_MEM_MB] | [HTTP_REQUESTS] |
+| [CONFIG_3] | [MEAN] | [STD] | [MIN] | [MAX] | [PEAK_MEM_MB] | [HTTP_REQUESTS] |
+| [CONFIG_4] | [MEAN] | [STD] | [MIN] | [MAX] | [PEAK_MEM_MB] | [HTTP_REQUESTS] |
 
 ---
 
@@ -123,7 +123,7 @@ Consider chunk shape **[ALTERNATIVE_CHUNK_SHAPE]**:
 
 - All timings measured with `time.perf_counter()` (wall-clock)
 - Peak memory measured with `tracemalloc`
-- OS page cache cleared between runs ([CACHE_CLEAR_METHOD])
+- Cache state: [CACHE_STATE] (benchmark_runner.py runs warm after its warm-up read on local stores; S3/GCS reads are refetched each run)
 - Warm-up reads performed before timed measurements ([NUM_WARMUP] warm-up iterations)
 - Performance bias calculated as max(T) / min(T) per Nguyen et al. (2023)
 - [ADDITIONAL_NOTES]

@@ -18,7 +18,7 @@
 
 **Symptoms:** `KeyError`/`FileNotFoundError` opening stores; metadata files not found; compression codec errors; old tutorial code failing.
 
-**Cause:** zarr-python 3 defaults to v3 format, but most existing data is v2. The two use different metadata files (`.zarray` vs `zarr.json`), different default compressors (Blosc vs Zstd), and different chunk key formats.
+**Cause:** zarr-python 3 defaults to v3 format, but most existing data is v2. The two use different metadata files (`.zarray` vs `zarr.json`) and different chunk key formats. In zarr-python 3.1.5 the default compressor depends on the call: v3 arrays get Zstd; v2 arrays get Zstd from `zarr.create_array` but Blosc (lz4) from `Group.create_array`, which is the path xarray uses. Set `compressors=` explicitly rather than relying on either default. Some zarr-python 2 APIs fail under zarr-python 3 whatever the format: `FSStore`, synchronizers, `len(z)`, and `compressor=` in `create_array` (use `compressors=`).
 
 **Solution:**
 
@@ -85,23 +85,22 @@ result = ds["temperature"].mean(dim="time").compute()  # processes chunk-by-chun
 
 ## Issue 4: Concurrent Write Corruption
 
-**Symptoms:** Silent data corruption; arrays contain unexpected values; checksums don't match.
+**Symptoms:** After a parallel write, parts of the array hold the fill value or stale data; results differ between runs; checksums don't match.
 
-**Cause:** Multiple processes writing to overlapping chunks without synchronization. Also: Blosc internal threading conflicting with Python multiprocessing.
+**Cause:** Two writers touched the same chunk (or, in a sharded array, the same shard), even through slices that don't overlap. Each one reads the whole chunk or shard, changes its part and writes the whole object back, so the later write erases the other's values. zarr-python 3 has no locks to prevent this: `zarr.ThreadSynchronizer` and `zarr.ProcessSynchronizer` are gone (`AttributeError`), and `synchronizer=` is accepted but ignored with a `ZarrRuntimeWarning`.
 
 **Solution:**
 
 ```python
-from numcodecs import blosc
-blosc.use_threads = False  # CRITICAL for multi-process safety
+z = zarr.open_array("data.zarr", mode="r")
+block = z.shards or z.chunks   # the unit each writer must own
+print(f"Give each writer whole blocks of {block}")
 
-# Safe: write to non-overlapping chunks (no locks needed)
-# Process 1 writes z[0:1000], Process 2 writes z[1000:2000] — safe
-
-# If overlapping writes are unavoidable (v2 only):
-sync = zarr.ProcessSynchronizer("data.sync")
-z = zarr.open_array("data.zarr", mode="a", synchronizer=sync, zarr_format=2)
+# Safe with chunks=(1000,): process 1 writes z[0:1000], process 2 writes z[1000:2000]
+# Unsafe: process 1 writes z[0:500], process 2 writes z[500:1000] (same chunk)
 ```
+
+If writers can't be aligned, route every write to a shared chunk through one process. Blosc thread settings under multiprocessing are covered by the **compression-codecs** skill.
 
 ---
 
@@ -109,7 +108,7 @@ z = zarr.open_array("data.zarr", mode="a", synchronizer=sync, zarr_format=2)
 
 **Symptoms:** `z.info_complete()` takes minutes; hangs on cloud-stored arrays.
 
-**Cause:** `info_complete()` reads metadata for every chunk to compute compression statistics. For arrays with millions of chunks (especially on cloud storage), this generates millions of requests.
+**Cause:** `info_complete()` lists every stored chunk (or shard) object and sums their sizes to report initialized chunks and bytes stored. For arrays with millions of chunks (especially on cloud storage), this generates millions of requests.
 
 **Solution:**
 
@@ -129,7 +128,7 @@ print(f"Sample dtype: {sample.dtype}, nbytes: {sample.nbytes}")
 
 **Symptoms:** Reads are much slower than expected; high memory usage for small subsets; poor compression ratio.
 
-**Cause:** Chunks are aligned for one access pattern but the actual reads follow a different pattern. Example: chunks of `(365, 1, 1)` (time-optimized) when spatial slices `z[:, lat, lon_range]` are common.
+**Cause:** Chunks are aligned for one access pattern but the actual reads follow a different pattern. Example: chunks of `(365, 30, 30)` (time-optimized) when maps at one time step, `z[t, :, :]`, are common: each map read decodes 72 chunks, 365 time steps each.
 
 **Solution:**
 
@@ -138,14 +137,15 @@ print(f"Sample dtype: {sample.dtype}, nbytes: {sample.nbytes}")
 z = zarr.open_array("data.zarr", mode="r")
 print(f"Shape: {z.shape}, Chunks: {z.chunks}")
 
+# Sizes below are float32 for a (365, 180, 360) array.
 # If primary access is spatial slices (fixed time, varying lat/lon):
-# Use chunks=(1, 180, 360) or (7, 90, 180)
+# Use chunks=(8, 180, 360)   # ~2.1 MB
 
 # If primary access is time series (fixed location, all times):
-# Use chunks=(365, 1, 1) or (30, 10, 10)
+# Use chunks=(365, 30, 30)   # ~1.3 MB
 
-# Balanced (mixed access): chunks=(30, 90, 180)
-# Rule of thumb: 1–10 MB per chunk, aligned with dominant access pattern
+# Balanced (mixed access): chunks=(30, 90, 180)   # ~1.9 MB
+# Rule of thumb: at least 1 MB uncompressed per chunk, aligned with the dominant access pattern
 ```
 
 → See the **zarr-chunk-optimization** plugin for benchmarking tools.

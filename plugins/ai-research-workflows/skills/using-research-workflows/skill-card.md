@@ -56,7 +56,7 @@ Released with the `ai-research-workflows` plugin; see its `plugin.json` version.
 
 ## Ethics
 
-The skill nudges the agent toward understanding code before changing it, verifying before reporting, and capturing provenance for results that will be relied on. It deliberately constrains agent behavior, so teams should decide whether that suits their working style. Developers should confirm the skill fits their team's policies before adoption.
+The skill directs the agent, in strongly directive language, toward understanding code before changing it, verifying before reporting, and capturing provenance for results that will be relied on. It deliberately constrains agent behavior, so teams should decide whether that suits their working style. Developers should confirm the skill fits their team's policies before adoption.
 
 ## Reference(s)
 

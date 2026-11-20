@@ -41,7 +41,7 @@ Accepted security findings: none for this skill in `.github/skill-security-accep
 Risk: re-running recorded commands can be slow or costly (long jobs, GPUs) and downloads and installs third-party packages.
 Mitigation: the skill allows a minimal reproduction (smaller subset, fewer steps, one seed). The skill leans Direct and has no pause before the re-run, and it says that lack of time is never a reason to skip the reproduction, so the agent may start compute without asking. Review the recorded commands beforehand, or ask the agent to confirm before it runs them.
 
-Risk: the record is written to a committed path (`docs/rse/specs/`) and the skill has the agent capture config file contents, data URLs and exact commands, so tokens in URLs, secrets in config files or values from the environment can end up in version control.
+Risk: the record is written to a committed path (`docs/rse/specs/`) and the skill has the agent capture config file contents, data URLs and exact commands, so tokens in URLs, secrets in config files or an environment dump the agent chooses to take (the skill does not direct one) can end up in version control.
 Mitigation: the skill has no secret filter. Review the record for credentials before committing it, and keep credentials out of recorded URLs and commands.
 
 Risk: the skill re-runs the exact recorded commands and does not say to redirect their outputs, so a re-run in the same checkout can overwrite the original checkpoint or result being reproduced.

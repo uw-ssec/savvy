@@ -39,7 +39,7 @@ Capability declarations (`metadata` in `SKILL.md`) and what each implies:
 Accepted security findings: none for this skill in `.github/skill-security-accepted.yml`.
 
 Risk: edits to a plan can break its internal consistency (phase numbering, cross-references, the automated versus manual verification split) or silently invalidate its reproducibility or numerical-correctness criteria.
-Mitigation: the skill requires a consistency scan after editing and a re-check of the research criteria when the approach changes. It requires the agent to present the proposed changes and get the user's confirmation before writing to the plan file, and the skill states no exemption from that confirmation. It also forbids leaving open questions in the plan.
+Mitigation: the skill requires a consistency scan after editing and a re-check of the research criteria when the approach changes. It requires the agent to present the proposed changes and get the user's confirmation before writing to the plan file, and the skill states no exemption from that confirmation. The skill points to the plugin's mode protocol for override rules, which lets "go ahead" select Direct mode, and it does not say whether that lifts this confirmation. It also forbids leaving open questions in the plan.
 
 Risk: an agent rewrites more of the plan than was asked.
 Mitigation: the skill specifies surgical edits and lists whole-plan rewrites as a bad edit. Review the diff of the plan.

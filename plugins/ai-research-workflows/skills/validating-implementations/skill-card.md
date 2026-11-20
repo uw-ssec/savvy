@@ -38,7 +38,7 @@ Capability declarations (`metadata` in `SKILL.md`) and what each implies:
 
 Accepted security findings, from `.github/skill-security-accepted.yml`:
 
-- `Anti-Refusal Statement (AR2)` (high), in `SKILL.md`. This is a false positive. The accepted-findings file attributes the match to the guidance for reviewing in a fresh session, which says to note deviations "without judging them". That asks the reviewer to report deviations as observable facts and not speculate about intent. It does not ask the agent to suppress warnings or refusals. The nearby line about having no memory of implementation decisions describes a fresh session. The acceptance is pinned to the SHA-256 of `SKILL.md`, so any edit to that file requires a new review.
+- `Anti-Refusal Statement (AR2)`, in `SKILL.md` (the accepted-findings file does not record a severity; the gate covers high and critical findings). This is a false positive. The accepted-findings file attributes the match to the guidance for reviewing in a fresh session, which says to note deviations "without judging them". That asks the reviewer to report deviations as observable facts and not speculate about intent. It does not ask the agent to suppress warnings or refusals. The nearby line about having no memory of implementation decisions describes a fresh session. The acceptance is pinned to the SHA-256 of `SKILL.md`, so any edit to that file requires a new review.
 
 Risk: running the plan's verification commands executes whatever the plan says, so a malicious or mistaken plan is run.
 Mitigation: read the plan before validation. The skill itself does not vet the commands, and that review does not reach the baseline test run or the re-run of research code, which are not in the plan.

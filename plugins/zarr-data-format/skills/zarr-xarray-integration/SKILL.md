@@ -1,143 +1,69 @@
 ---
 name: zarr-xarray-integration
-description: Integrates Zarr with xarray and Dask for labeled, multi-dimensional scientific data workflows. Covers reading and writing Zarr stores with xarray, append and region-write operations, multi-file virtual datasets, Dask chunk alignment with Zarr chunks, encoding configuration, consolidated metadata, and performance optimization. Use when the user asks about reading or writing Zarr stores with xarray, aligning Dask chunks with Zarr arrays, or optimizing large-scale multi-dimensional data pipelines.
+description: Use when reading or writing Zarr stores with xarray (open_zarr, to_zarr), setting to_zarr encoding, appending with append_dim, writing regions from parallel workers, or aligning Dask chunks with Zarr chunks or shards. Also use when to_zarr raises "would overlap multiple Dask chunks" or "must be an int or a tuple of ints", when appended times or coordinates come back wrong, or when a consolidated store opens stale.
 metadata:
   references: references/patterns.md references/examples.md references/common-issues.md
 ---
 
 # Zarr + xarray Integration
 
-Use xarray as the high-level interface for reading, writing, and analyzing Zarr datasets, with Dask for parallel out-of-core computation.
+Reads, writes, appends to and region-writes Zarr stores through xarray and Dask without corrupting their layout, coordinates or timestamps.
 
-## Resources
+**Core principle:** `to_zarr` writes what the encoding says and checks little else. On-disk chunks come from `encoding`, which data opened from Zarr keeps through `.chunk()`. Bad appends and region writes often succeed and leave a wrong store, so check inputs before writing.
 
-| Resource | Purpose |
-|----------|---------|
-| [references/patterns.md](references/patterns.md) | Full patterns: cloud reads, encoding, append, region writes, chunk alignment, consolidated metadata |
-| [references/examples.md](references/examples.md) | Real-world workflows |
-| [references/common-issues.md](references/common-issues.md) | Chunk mismatch, append errors, memory OOM, stale consolidated metadata |
-| [assets/xarray-zarr-roundtrip.py](assets/xarray-zarr-roundtrip.py) | Runnable roundtrip demo |
+## When to use
 
-## Installation
+- Opening, writing, appending to or region-writing a Zarr store with xarray, locally or on S3/GCS
+- Choosing `to_zarr` chunks, dtype, codecs or fill values
+- After a write: wrong timestamps, replaced coordinates, duplicate times, or a store that won't open
 
-```bash
-pixi add xarray zarr dask numpy     # pixi
-pip install xarray[complete] zarr dask[complete]  # pip
-pip install zarr[remote]             # adds s3fs/gcsfs for cloud
-```
+## When NOT to use
 
-## Read
+- General xarray work (selection, groupby, NetCDF I/O): `xarray-for-multidimensional-data` (scientific-domain-applications plugin)
+- zarr-python arrays and groups, v2 vs v3, sharding: `zarr-fundamentals`
+- Codec choice: `compression-codecs`. Cloud credentials, fsspec, Icechunk: `cloud-storage-backends`
+- HDF5/NetCDF conversion, VirtualiZarr, kerchunk: `data-migration`
+- Choosing chunk shapes or rechunking a store: `chunking-strategy`, `rechunking` (zarr-chunk-optimization plugin)
 
-```python
-import xarray as xr
+## Quick reference
 
-ds = xr.open_zarr("data.zarr")                                    # local, lazy (Dask)
-ds = xr.open_zarr("s3://bucket/data.zarr", storage_options={"anon": True},
-                  consolidated=True)                               # cloud, public
-ds = xr.open_zarr("data.zarr", chunks={"time": 30, "lat": 90})   # explicit Dask chunks
-ds = xr.open_dataset("data.zarr", engine="zarr", chunks={})       # alternative form
-```
+| Task | Call |
+|------|------|
+| Open lazily, one Dask chunk per Zarr chunk | `xr.open_zarr(path)` (default `chunks={}`) |
+| Bigger Dask chunks, multiples of Zarr's | `chunks="auto"` or a dict of multiples |
+| Open without Dask (NumPy on access) | `chunks=None`, or `xr.open_dataset(path, engine="zarr")` |
+| Public S3 (needs `s3fs`) | `xr.open_zarr("s3://...", storage_options={"anon": True})` |
+| Create (fails if present) / overwrite | `ds.to_zarr(path)` / `mode="w"` |
+| Chunks, dtype, codecs | `encoding={"t2m": {"chunks": (24, 90, 180), "dtype": "float32", "compressors": [zarr.codecs.ZstdCodec()]}}` |
+| Append | `new.to_zarr(path, append_dim="time")` |
+| Pre-allocate, then fill regions | `template.to_zarr(path, mode="w", compute=False)` (Dask-backed), then `part.to_zarr(path, region="auto")` |
+| Add variables / overwrite values only | `mode="a"` / `mode="r+"` (default with `region`) |
+| Zarr v2 output | `zarr_format=2` (zarr-python 3 defaults to v3) |
+| Consolidated metadata | Written by default. After writes with `consolidated=False` or plain zarr-python: `zarr.consolidate_metadata(path)` |
 
-| `open_zarr` parameter | Default | Description |
-|-----------------------|---------|-------------|
-| `chunks` | `"auto"` | `{}` = match Zarr chunks exactly; `None` = load eagerly |
-| `consolidated` | `None` | Read consolidated metadata (faster cloud opens) |
-| `storage_options` | `None` | fsspec kwargs (e.g. `{"anon": True}` for public S3) |
-| `decode_cf` | `True` | Decode CF conventions (times, units, masks) |
-| `group` | `None` | Open a specific group within the store |
+Code for each: [patterns.md](references/patterns.md). Workflows: [examples.md](references/examples.md). More symptoms: [common-issues.md](references/common-issues.md). Demo: `python assets/xarray-zarr-roundtrip.py`.
 
-## Write
+## Rechunk before writing: drop the stale encoding
 
 ```python
-# Basic write
-ds.to_zarr("output.zarr", mode="w")
-
-# With per-variable encoding (recommended)
-encoding = {
-    "temperature":   {"chunks": {"time": 30, "lat": 90, "lon": 180}, "dtype": "float32"},
-    "precipitation": {"chunks": {"time": 30, "lat": 90, "lon": 180}, "dtype": "float32"},
-}
-ds.to_zarr("output.zarr", mode="w", encoding=encoding, consolidated=True)
-
-# To cloud
-ds.to_zarr("s3://bucket/output.zarr", storage_options={"key": "...", "secret": "..."}, mode="w")
+ds = xr.open_zarr("in.zarr").chunk({"time": 120, "lat": 90, "lon": 180})
+for var in ds.variables.values():
+    for key in ("chunks", "preferred_chunks", "shards"):
+        var.encoding.pop(key, None)  # else to_zarr keeps the source chunks or raises
+ds.to_zarr("out.zarr", mode="w")
 ```
 
-## Append
+## Common mistakes
 
-**Step 1 — Create initial store:**
-```python
-ds_initial.to_zarr("timeseries.zarr", mode="w")
-```
-**Step 2 — Append subsequent batches:**
-```python
-ds_new.to_zarr("timeseries.zarr", append_dim="time")
-```
-**Step 3 — Validate:**
-```python
-ds_check = xr.open_zarr("timeseries.zarr")
-expected_len = len(ds_initial.time) + len(ds_new.time)
-assert ds_check.dims["time"] == expected_len, f"Expected {expected_len}, got {ds_check.dims['time']}"
-```
-
-Note: non-appended dimensions must match exactly. See [common-issues.md](references/common-issues.md) Issue 2 for conflict errors. After appending, re-consolidate metadata if `consolidated=True` was used on initial write.
-
-## Region Writes (Parallel-Safe)
-
-**Step 1 — Pre-allocate with `compute=False`:**
-```python
-ds_full.to_zarr("parallel_output.zarr", mode="w", compute=False)
-```
-**Step 2 — Each worker writes its own non-overlapping region:**
-```python
-ds_chunk.to_zarr("parallel_output.zarr", region={"time": slice(day_start, day_end)})
-```
-**Step 3 — Validate after all workers complete:**
-```python
-ds_out = xr.open_zarr("parallel_output.zarr")
-assert not ds_out["temperature"].isnull().all(), "Some regions were not written"
-assert ds_out.dims["time"] == 365, f"Expected 365 time steps, got {ds_out.dims['time']}"
-```
-
-Region writes require a pre-existing store (step 1). Regions must not overlap between workers.
-
-## Dask Chunk Alignment
-
-Dask chunks must be exact multiples of Zarr chunks to avoid redundant reads:
-
-```python
-# Best: use Zarr's native chunks
-ds = xr.open_zarr("data.zarr", chunks={})
-
-# Check alignment
-for var in ds.data_vars:
-    zarr_chunks = ds[var].encoding.get("chunks")
-    dask_chunks = ds[var].data.chunksize
-    print(f"{var}: zarr={zarr_chunks}, dask={dask_chunks}")
-
-# Misaligned example to avoid:
-# Zarr chunks = (30, 90, 180); Dask chunks = (45, ...) — 45 is not a multiple of 30
-```
-
-See [common-issues.md](references/common-issues.md) Issue 1 for performance symptoms of misaligned chunks.
-
-## Encoding Fields
-
-| Field | Purpose |
-|-------|---------|
-| `chunks` | Zarr chunk sizes (dict or tuple) |
-| `dtype` | On-disk data type |
-| `compressor` | Compression codec (numcodecs object or `None` for default) |
-| `_FillValue` | Fill value for missing data |
-| `scale_factor` / `add_offset` | CF packing parameters |
-
-See [patterns.md Pattern 2](references/patterns.md) for complete encoding examples including CF packing.
-
-## Performance Quick Reference
-
-| Symptom | Fix |
-|---------|-----|
-| Slow cloud open | Use `consolidated=True` on write and read |
-| Memory OOM on `to_zarr` | Pass Dask-backed (lazy) Dataset; do not call `.compute()` first |
-| Slow reads | Align Dask chunks with Zarr chunks (`chunks={}`) |
-| Stale metadata after append | Call `zarr.consolidate_metadata("store.zarr")` after each append |
+| Mistake | What happens | Fix |
+|---------|--------------|-----|
+| `encoding` chunks as a dict | `TypeError: ... must be an int or a tuple of ints` | Tuple in dim order |
+| `.chunk()` then `to_zarr` on data read from Zarr | Old chunks written silently, or the overlap error below | Pop the stale encoding (above) |
+| Dask chunks not whole multiples of Zarr chunks or shards | `ValueError: ... would overlap multiple Dask chunks` | `.chunk()` to multiples, or `align_chunks=True` |
+| First write sets time units (`days since` for daily data) | Later hourly appends land on wrong dates; only a `UserWarning` | First write: `encoding={"time": {"units": "seconds since 1970-01-01", "dtype": "int64"}}` |
+| Appended batch has other lat/lon values | Store's coordinates replaced, no error | Compare `indexes` first |
+| Appended batch adds or drops a variable | Reopening raises `conflicting sizes for dimension 'time'` | Append exactly the store's variables |
+| Appended times overlap the store | Duplicate timestamps, no error | Start after the store's last time |
+| Explicit `region` with coords lacking the region dim | `ValueError: ... at least one dimension in common with the region's dimensions` | `region="auto"`, or `drop_vars` them |
+| Concurrent regions split a Zarr chunk or shard | Lost writes; NumPy-backed regions aren't checked | Region edges on chunk (shard) boundaries |
+| `sel(lat=slice(-30, 30))` on descending latitude (ERA5) | Empty result, no error | `slice(30, -30)`; check 0–360 longitudes |

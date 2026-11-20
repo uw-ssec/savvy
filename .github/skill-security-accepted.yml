@@ -12,5 +12,5 @@
   line_content: "- No memory of implementation decisions; reconstruct from git and artifacts.\n- Focus\
     \ on observable facts: does the code match the plan, do tests pass, are\n  success criteria met?\n\
     - Don't speculate abo"
-  file_sha256: bb09df9fe645ea6d0a390ab907069997c0198c0ae46b6659d528a9960cdde41f
-  reason: "False positive: the trigger is 'without judging' (line 50), which asks the reviewer to report deviations neutrally, not to suppress warnings or refusals; line 47 describes a fresh session."
+  file_sha256: 345f72240d188c608e28330b8486f2680c74f5427006ac9d112e973ed4271d5b
+  reason: "False positive: the trigger is 'without judging' (line 53), which asks the reviewer to report deviations neutrally, not to suppress warnings or refusals; line 49 describes a fresh session."

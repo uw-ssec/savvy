@@ -4,14 +4,59 @@
 
 | Section | Lines | Description |
 |---------|-------|-------------|
-| Report Sections and Their Purpose | 18–33 | Overview of each report section and why it exists |
-| Dataset Summary Block | 36–81 | Shape, dtype, chunks, storage, size — what to include and formatting |
-| Environment Metadata | 84–143 | Platform, Python version, fsspec, network — recording reproducibility context |
-| Configuration Comparison Tables | 146–189 | Formatting, units, highlighting winners, sorting, and column definitions |
-| Per-Pattern Performance Tables | 192–231 | Time, memory, throughput per config per pattern with statistical detail |
-| Performance Bias Summary | 234–270 | Bias per config, ranked, with classification and interpretation |
-| Recommendation Writing | 273–338 | Primary with reasoning, alternatives, configs to avoid |
-| Methodology Notes | 341–380 | Run count, cache clearing, statistical method, and reproducibility |
+| Loading Runner Output | 19–59 | Code that reads benchmark_runner.py JSON, validates it and computes PB, composite score and peak memory |
+| Report Sections and Their Purpose | 63–77 | Overview of each report section and why it exists |
+| Dataset Summary Block | 81–125 | Shape, dtype, chunks, storage, size — what to include and formatting |
+| Environment Metadata | 129–187 | Platform, Python version, fsspec, network — recording reproducibility context |
+| Configuration Comparison Tables | 191–233 | Formatting, units, highlighting winners, sorting, and column definitions |
+| Per-Pattern Performance Tables | 237–275 | Time, memory, throughput per config per pattern with statistical detail |
+| Performance Bias Summary | 279–316 | Bias per config, ranked, with classification and interpretation |
+| Recommendation Writing | 320–384 | Primary with reasoning, alternatives, configs to avoid |
+| Methodology Notes | 388–428 | Run count, cache clearing, statistical method, and reproducibility |
+
+---
+
+## Loading Runner Output
+
+`load` reads one or more `benchmark_runner.py` JSON files (one per rechunked store), keeps the patterns named in `names`, and rejects files where several chunk configs read one store. `summarize` computes PB, composite score, peak memory, worst CV and budget status per config. Weights select the patterns, so PB covers only those.
+
+```python
+import json
+import pandas as pd
+
+def load(paths, names):
+    """names: {("slice", "time"): "map", ("traverse", "time"): "series"}"""
+    rows, failed = [], []
+    for path in paths:
+        for b in json.load(open(path))["benchmarks"]:
+            if "error" in b:
+                failed.append(b)
+            elif (key := (b["access_pattern"], b["dimension_name"])) in names:
+                s = b["statistics"]
+                rows.append({"dataset": b["dataset"], "config": tuple(b["chunk_config"]),
+                             "pattern": names[key], "mean": s["wall_time"]["mean"],
+                             "std": s["wall_time"]["std"],
+                             "peak_gb": s["peak_memory_mb"]["max"] / 1024})
+    df = pd.DataFrame(rows)
+    if (df.groupby("dataset")["config"].nunique() > 1).any():
+        raise ValueError("several chunk configs read the same store: no layout was compared")
+    return df, failed
+
+def summarize(df, weights, budget_gb):
+    w = pd.Series(weights, dtype=float)
+    w /= w.sum()
+    t = df.pivot_table(index="config", columns="pattern", values="mean")[w.index]
+    if t.isna().any().any():
+        raise ValueError("a config is missing a pattern")
+    out = t.assign(PB=t.max(axis=1) / t.min(axis=1), composite_s=t.mul(w).sum(axis=1),
+                   peak_gb=df.groupby("config")["peak_gb"].max(),
+                   max_cv=(df["std"] / df["mean"]).groupby(df["config"]).max())
+    out["within_budget"] = out["peak_gb"] <= budget_gb
+    # Sort while numeric; round and bold only when rendering the markdown.
+    return out.sort_values(["within_budget", "composite_s"], ascending=[False, True])
+```
+
+`to_markdown()` on the rounded result needs the `tabulate` package. Check `failed` and list those entries in the methodology section.
 
 ---
 
@@ -83,7 +128,7 @@ total_size_gb = total_size_bytes / (1024 ** 3)
 
 ## Environment Metadata
 
-Environment metadata ensures benchmark results are reproducible and interpretable. Record this at the start of each benchmark session.
+Environment metadata ensures benchmark results are reproducible and interpretable. Record this at the start of each benchmark session. The runner's `metadata` block records only the timestamp, `platform.platform()`, the processor and `sys.version`; collect library versions, instance type and storage backend with the code below.
 
 ### Required Fields
 
@@ -162,7 +207,7 @@ The comparison table is the most important artifact in the report. It enables di
 
 ### Formatting Rules
 
-1. **Times**: One decimal place with standard deviation: `8.3 +/- 0.7`
+1. **Times**: One decimal place with standard deviation: `8.3 +/- 0.7` (the runner's `std` is population std, ddof=0)
 2. **Memory**: One decimal place in GB: `3.8`
 3. **PB**: Two decimal places: `1.35`
 4. **Status**: `PASS` if peak memory <= budget, `FAIL` otherwise
@@ -170,22 +215,22 @@ The comparison table is the most important artifact in the report. It enables di
 
 ### Sorting
 
-Default sort order: by the user's primary access pattern time (ascending). If no primary pattern specified, sort by PB (ascending).
+Default sort order: the ranking order — configs within budget first, then composite score ascending (equal weights unless the user gave weights). For a single-pattern workload, sort by that pattern's time. The PB Summary below is the place to sort by PB.
 
 ### Example
 
 ```markdown
 | Config | Chunk Shape | Spatial (s) | Temporal (s) | Spectral (s) | PB | Peak Mem (GB) | Status |
 |--------|-------------|-------------|--------------|---------------|----|---------------|--------|
-| B | (50, 512, 512) | 8.3 +/- 0.7 | 11.2 +/- 0.9 | 10.1 +/- 0.6 | **1.35** | **3.8** | PASS |
-| C | (100, 256, 256) | 9.1 +/- 0.8 | 9.8 +/- 0.7 | 11.5 +/- 0.9 | 1.42 | 5.1 | PASS |
-| A | (10, 1024, 1024) | **6.1 +/- 0.5** | 18.4 +/- 1.2 | 12.7 +/- 0.8 | 3.02 | 10.2 | FAIL |
+| B | (50, 512, 512) | 8.3 +/- 0.7 | 11.2 +/- 0.9 | **10.1 +/- 0.6** | 1.35 | **3.8** | PASS |
+| C | (100, 256, 256) | 9.1 +/- 0.8 | 9.8 +/- 0.7 | 11.5 +/- 0.9 | **1.26** | 5.1 | PASS |
 | D | (200, 128, 128) | 15.3 +/- 1.1 | **5.8 +/- 0.4** | 14.2 +/- 1.0 | 2.64 | 4.3 | PASS |
+| A | (10, 1024, 1024) | **6.1 +/- 0.5** | 18.4 +/- 1.2 | 12.7 +/- 0.8 | 3.02 | 10.2 | FAIL |
 ```
 
 ### When Patterns Are Omitted
 
-If the user benchmarked fewer than three patterns, include only the tested pattern columns. Set PB to 1.0 for single-pattern benchmarks and note this in the methodology section.
+If the user benchmarked fewer than three patterns, include only the tested pattern columns. With a single pattern, PB is undefined: write `n/a`, not 1.0, which would read as Balanced.
 
 ---
 
@@ -198,22 +243,22 @@ Each access pattern gets its own detailed table showing all configurations with 
 ```markdown
 ## Spatial Access Pattern
 
-**Operation:** Load full frequency x baseline plane at a single time index
+**Operation:** `slice` on `time`: full frequency x baseline plane at one time index
 
-| Config | Mean (s) | Std (s) | Min (s) | Max (s) | Peak Mem (GB) | Chunks Read | Utilization |
-|--------|----------|---------|---------|---------|---------------|-------------|-------------|
-| A | 6.1 | 0.5 | 5.4 | 6.9 | 10.2 | 16 | 0.95 |
-| B | 8.3 | 0.7 | 7.4 | 9.6 | 3.8 | 32 | 0.88 |
+| Config | Mean (s) | Std (s) | Min (s) | Max (s) | Peak Mem (GB) | Throughput (MB/s) | Dask Tasks |
+|--------|----------|---------|---------|---------|---------------|-------------------|------------|
+| A | 6.1 | 0.5 | 5.4 | 6.9 | 10.2 | 2.6 | 17 |
+| B | 8.3 | 0.7 | 7.4 | 9.6 | 3.8 | 1.9 | 33 |
 ```
 
 ### Required Columns
 
-- **Mean** — average across all timed runs
-- **Std** — standard deviation across all timed runs
-- **Min / Max** — range boundaries for identifying outliers
-- **Peak Mem** — maximum memory observed across all runs for this config and pattern
-- **Chunks Read** — number of chunk objects accessed
-- **Utilization** — fraction of loaded bytes actually used
+- **Mean / Std / Min / Max** — `statistics.wall_time` across all timed runs
+- **Peak Mem** — `statistics.peak_memory_mb.max` / 1024 (tracemalloc: Python-heap peak, not process RSS)
+- **Throughput** — `statistics.throughput_mbps.mean`: MB of returned (decompressed) data per second, not bytes read from storage
+- **Dask Tasks** — `statistics.dask_tasks.mean`; add `http_requests` for cloud stores
+
+Do not add chunks-read or utilization columns: the runner does not measure them (`chunk_utilization` is always `None`).
 
 ### Statistical Notes
 
@@ -223,11 +268,11 @@ Each access pattern gets its own detailed table showing all configurations with 
 
 ### Operation Description
 
-Each pattern table should begin with a one-line description of the operation being timed:
+Each pattern table should begin with a one-line description of the operation being timed, naming the runner pattern it came from:
 
-- **Spatial:** "Load full Y x X plane at a single time index"
-- **Temporal:** "Load full time series at a single spatial point"
-- **Spectral:** "Load full frequency/wavelength axis at a single spatial-temporal point"
+- **Spatial:** `slice` on the time dimension — full Y x X plane at one time index
+- **Temporal:** `traverse` on the time dimension — full time series at the middle point of every other dimension
+- **Spectral:** `traverse` on the frequency/wavelength dimension — full spectrum at the middle point of every other dimension
 
 ---
 
@@ -242,13 +287,15 @@ The bias summary table provides a quick view of how balanced each configuration 
 
 | Config | Chunk Shape | Best Pattern | Worst Pattern | PB | Classification |
 |--------|-------------|-------------|---------------|-----|----------------|
+| C | (100, 256, 256) | Spatial (9.1 s) | Spectral (11.5 s) | 1.26 | Balanced |
 | B | (50, 512, 512) | Spatial (8.3 s) | Temporal (11.2 s) | 1.35 | Balanced |
-| C | (100, 256, 256) | Temporal (9.8 s) | Spectral (11.5 s) | 1.17 | Balanced |
 | D | (200, 128, 128) | Temporal (5.8 s) | Spatial (15.3 s) | 2.64 | Moderate |
 | A | (10, 1024, 1024) | Spatial (6.1 s) | Temporal (18.4 s) | 3.02 | Biased |
 ```
 
 ### Classification Key
+
+These bands are this plugin's heuristics; Nguyen et al. (2023) define the ratio, not the bands.
 
 | PB Range | Classification |
 |----------|---------------|
@@ -344,14 +391,15 @@ The methodology section ensures the benchmark is auditable and reproducible.
 
 ### Required Content
 
-1. **Timing method**: Always `time.perf_counter()` (wall-clock)
-2. **Memory measurement**: `tracemalloc` or `memory_profiler` — state which
-3. **Cache clearing**: Method used (e.g., `sudo purge` on macOS, `echo 3 > /proc/sys/vm/drop_caches` on Linux)
-4. **Run count**: Number of timed runs per configuration per pattern
-5. **Warm-up**: Number of warm-up iterations performed before timing
-6. **PB formula**: `max(T) / min(T)` per Nguyen et al. (2023)
-7. **Statistical method**: How mean and std were computed (e.g., `numpy.mean`, `numpy.std(ddof=1)`)
+1. **Timing method**: `time.perf_counter()` (wall-clock), around graph construction and `.compute()`
+2. **Memory measurement**: `tracemalloc` peak (Python-heap allocations, a lower bound on RSS)
+3. **Cache clearing**: the runner clears fsspec caches before every run; the OS page cache is cleared only if the user did it by hand before starting (`sudo purge` on macOS, `sync && sudo sh -c 'echo 3 > /proc/sys/vm/drop_caches'` on Linux)
+4. **Run count**: `num_runs` timed runs per configuration per pattern (the runner requires at least 5)
+5. **Warm-up**: the runner performs 1 warm-up run per benchmark; its `--warmup` flag is currently not passed through
+6. **PB formula**: unweighted `max(T) / min(T)` over the reported patterns, per Nguyen et al. (2023)
+7. **Statistical method**: `numpy.mean` and `numpy.std` (population, ddof=0), as the runner writes them; recompute from `values` if you report sample std
 8. **Outlier handling**: Whether any runs were excluded and why
+9. **Failed entries**: every benchmark entry with an `error` field, and its message
 
 ### Example
 
@@ -359,14 +407,14 @@ The methodology section ensures the benchmark is auditable and reproducible.
 ## Methodology Notes
 
 - All timings measured with `time.perf_counter()` (wall-clock)
-- Peak memory measured with `tracemalloc`
-- OS page cache cleared between runs (`sudo purge` on macOS)
-- fsspec caching disabled during benchmark session
-- 2 warm-up iterations per configuration (not included in results)
+- Peak memory measured with `tracemalloc` (Python-heap peak per read)
+- OS page cache cleared once before the session (`sudo purge` on macOS); fsspec caches cleared before every run
+- 1 warm-up run per configuration and pattern (not included in results)
 - 10 timed runs per configuration per access pattern
-- Performance bias calculated as max(T) / min(T) per Nguyen et al. (2023)
-- Standard deviation computed with ddof=1 (sample standard deviation)
+- Performance bias calculated as max(T) / min(T) over the spatial, temporal and spectral patterns, per Nguyen et al. (2023)
+- Standard deviation is population std (ddof=0), as written by the runner
 - No outlier runs excluded; all runs within 2x of mean
+- No failed benchmark entries
 ```
 
 ### Reproducibility Checklist

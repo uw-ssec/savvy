@@ -1,46 +1,16 @@
 # savvy
 
+[![UW SSEC Project](https://img.shields.io/endpoint?url=https://uwssec.org/badges/uw-ssec.json&label=Project)](https://escience.washington.edu/software-engineering/ssec/)
+[![Validate Plugins](https://github.com/uw-ssec/savvy/actions/workflows/validate-plugins.yml/badge.svg?branch=main)](https://github.com/uw-ssec/savvy/actions/workflows/validate-plugins.yml?query=branch%3Amain)
+[![Test CI scripts](https://github.com/uw-ssec/savvy/actions/workflows/test-ci-scripts.yml/badge.svg?branch=main)](https://github.com/uw-ssec/savvy/actions/workflows/test-ci-scripts.yml?query=branch%3Amain)
+[![DOI](https://zenodo.org/badge/1091290859.svg)](https://zenodo.org/badge/latestdoi/1091290859)
+[![License: BSD-3-Clause](https://img.shields.io/github/license/uw-ssec/savvy)](LICENSE)
+[![Pixi Badge](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/prefix-dev/pixi/main/assets/badge/v0.json)](https://pixi.sh)
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/uw-ssec/savvy?quickstart=1)
 
-Custom AI agents and skills for Research Software Engineering (RSE) and Scientific Computing tasks, designed for use with [Claude Code](https://claude.com/product/claude-code) and compatible AI coding assistants.
+savvy is a collection of plugins that help AI coding assistants with research software engineering and scientific computing, so the code they help write follows the practices the Scientific Python community already uses. The plugins cover environments with pixi, packaging, testing, documentation, containers, supply-chain security, research workflows, and project handoff, along with domain work in astronomy, climate and Earth science, Zarr, and interactive visualization with HoloViz. Each plugin bundles skills (instructions the assistant loads when a request matches them), and many add agents and commands for Claude Code.
 
-## GitHub Codespaces
-
-Click the badge above to open a Codespace with all savvy plugins pre-installed. Claude Code and GitHub Copilot CLI are ready to use immediately.
-
-### Using a LiteLLM Gateway (Optional)
-
-To route Copilot through a custom LiteLLM-compatible gateway, you need to set two secrets. Because GitHub Codespaces secrets can only be scoped to repos you own, follow these steps:
-
-1. **Fork this repo** — Click **Fork** on [github.com/uw-ssec/savvy](https://github.com/uw-ssec/savvy).
-2. **Add secrets** — Go to your GitHub account settings: **Settings → Codespaces → Secrets**, then add:
-   - `LITELLM_BASE_URL` — your gateway base URL
-   - `LITELLM_API_KEY` — your gateway API key
-   - When adding each secret, under **Repository access**, select your fork.
-3. **Open a Codespace from your fork** — Go to your fork on GitHub and click **Code → Codespaces → Create codespace on main**.
-
-The Codespace will automatically detect the secrets and configure Copilot to route through your gateway.
-
-## Purpose
-
-This repository provides specialized agents and skills that understand the unique challenges of scientific software development, including:
-
-- Modern Scientific Python development following community best practices
-- Reproducible environment management with pixi
-- Python packaging and distribution with pyproject.toml
-- Comprehensive testing strategies with pytest
-- Scientific computing workflows and numerical methods
-- Research software engineering practices
-- Domain-specific scientific computing (astronomy, geospatial analysis, climate science)
-- Interactive data visualization with the HoloViz ecosystem (Panel, hvPlot, HoloViews, Datashader, GeoViews, Lumen)
-- Scientific Python ecosystem (NumPy, Pandas, SciPy, Matplotlib, Xarray, Astropy, etc.)
-
-## Installation
-
-Skills work in Claude Code, GitHub Copilot (CLI and VS Code), Codex, Cursor, Gemini CLI and OpenCode. Agents and commands are written for Claude Code. Cursor loads them too; the other clients don't. **[docs/install.md](docs/install.md)** has the support matrix, install steps for each client, and how to copy skills into any client's `.agents/skills/` directory.
-
-> [!IMPORTANT]
-> Skills are instructions, not programs, but your agent acts on them: it may run commands, edit files and use the network, within the permissions your client allows. Before installing, read [Trust and safety](docs/trust-and-safety.md) for what plugins can and can't do, how to review one, and where each client's permission controls are. To report a security problem privately, see [SECURITY.md](SECURITY.md).
+## Install
 
 In Claude Code:
 
@@ -49,334 +19,33 @@ claude plugin marketplace add uw-ssec/savvy
 claude plugin install scientific-python-development@savvy
 ```
 
-## Available Plugins
+Skills also work in GitHub Copilot (CLI and VS Code), Codex, Cursor, Antigravity CLI, and OpenCode. [docs/install.md](docs/install.md) has the support matrix and install steps for each client. To try everything without installing, open a Codespace with the badge above; [docs/codespaces.md](docs/codespaces.md) covers routing Copilot through your own LiteLLM gateway.
 
-The repository provides Claude Code plugins organized by domain. Each plugin contains agents (specialized AI personas) and skills (reusable knowledge modules).
+> [!IMPORTANT]
+> Skills are instructions, not programs, but your agent acts on them: it may run commands, edit files and use the network, within the permissions your client allows. Before installing, read [Trust and safety](docs/trust-and-safety.md) for what plugins can and can't do, how to review one, and where each client's permission controls are. To report a security problem privately, see [SECURITY.md](SECURITY.md).
 
-**Not sure which skill you need?** The [skill catalog](docs/catalog.md) lists every skill on one page, grouped by tier, with the phrases that trigger it, an example prompt to try, and who maintains it. It also lists each plugin's commands and agents.
+## Find a skill
 
-### Scientific Python Development Plugin
-
-Expert agents and comprehensive skills for modern Scientific Python development.
-
-**Agents:**
-- **Scientific Python Expert** - Comprehensive agent for scientific Python development following [Scientific Python Development Guide](https://learn.scientific-python.org/development/) best practices
-- **Scientific Documentation Architect** - Expert in creating comprehensive, user-friendly documentation for scientific software following Scientific Python community standards
-
-**Skills:**
-- **pixi-package-manager** - Fast, reproducible scientific Python environments with unified conda and PyPI management
-- **python-packaging** - Modern packaging with pyproject.toml, src layout, and Hatchling build backend
-- **python-testing** - Robust testing strategies with pytest following Scientific Python community guidelines
-- **code-quality-tools** - Linting, formatting, and type checking tools for Python code quality
-- **scientific-documentation** - Documentation best practices for scientific software including Sphinx, API docs, tutorials, and examples
-
-**When to use:** Scientific computing projects, data analysis pipelines, research software development, package creation, reproducible research workflows
-
-### Scientific Domain Applications Plugin
-
-Domain-specific scientific computing agents and skills for astronomy, geospatial analysis, climate science, and interactive visualization.
-
-**Agents:**
-- **Astronomy & Astrophysics Expert** - Expert in astronomical data analysis, FITS files, coordinate systems, and photometry/spectroscopy pipelines with Astropy
-
-**Skills:**
-- **xarray-for-multidimensional-data** - Work with labeled multidimensional arrays and NetCDF/Zarr datasets for climate and Earth science
-- **astropy-fundamentals** - Astronomical data formats, coordinate transformations, physical units, and time handling with Astropy
-
-**When to use:** Astronomy research, telescope data processing, climate data analysis, Earth science workflows, geospatial analysis
-
-### AI Research Workflows Plugin
-
-Skills-first research workflows for Research Software Engineers and researchers — covering the full arc from understanding code and surveying prior art through planning, experimentation, implementation, validation, reproducibility, and handoff.
-
-**Agent:**
-- **Research Workflow Orchestrator** - Guides users through structured development workflows from research to validated implementation
-
-**Commands:**
-- `/research` - Document how existing code works
-- `/plan` - Create a phased implementation plan
-- `/iterate-plan` - Revise an existing plan
-- `/experiment` - Compare approaches with real prototype code
-- `/implement` - Execute an approved plan phase by phase
-- `/validate` - Verify implementation against plan criteria
-- `/handoff` - Write a context-transfer document
-- `/prior-art` - Survey tools, papers, and methods outside the codebase
-- `/reproduce` - Capture provenance so a result can be reproduced
-- `/harden` - Add correctness and regression tests to research code
-
-**Skills (11):**
-- **using-research-workflows** (meta), **researching-codebases**, **planning-implementations**, **iterating-plans**, **running-experiments**, **implementing-plans**, **validating-implementations**, **creating-handoffs**, **researching-prior-art**, **ensuring-reproducibility**, **hardening-research-code**
-
-**When to use:** Complex feature development, architectural changes, exploratory implementation, prior-art surveys, reproducibility capture, research code hardening, context-transfer handoffs
-
-### Project Management Plugin
-
-Project lifecycle management — onboarding, documentation quality, handoff readiness, and community health for research software projects in any language.
-
-**Agents:**
-- **Project Onboarding Specialist** - Expert in project initialization, contributor onboarding, and knowledge transfer
-- **Documentation Validator** - Expert in documentation quality assurance, setup instruction validation, and completeness checking
-
-**Commands:**
-- `/setup-project` - Scaffold a new project with community health files and standard structure
-- `/project-handoff` - Assess project readiness for handoff to new maintainers
-- `/validate-project-handoff` - Test that setup instructions and documentation actually work
-
-**Skills:**
-- **community-health-files** - Templates for README, CONTRIBUTING, LICENSE, CODE_OF_CONDUCT, SECURITY, and CITATION.cff
-- **documentation-validation** - Validation tools (Vale, markdownlint, HTMLProofer) and documentation quality metrics
-
-**When to use:** Project initialization, onboarding documentation, project handoff, documentation quality auditing, community health file creation
-
-### HoloViz Visualization Plugin
-
-Expert agents and comprehensive skills for interactive data visualization using the HoloViz ecosystem (Panel, hvPlot, HoloViews, Datashader, GeoViews, Lumen).
-
-**Agents:**
-- **Panel Specialist** - Expert in building interactive dashboards, web applications, and component systems with Panel and Param
-- **Visualization Designer** - Strategic guide for multi-library visualization design using HoloViz ecosystem tools
-- **Data Engineer** - Specialist in large-scale data rendering and performance optimization with Datashader (100M+ points)
-- **Geo-Spatial Expert** - Expert in geographic and mapping visualizations with GeoViews and spatial data handling
-
-**Skills:**
-- **panel-dashboards** - Interactive dashboard and application development with Panel and Param
-- **plotting-fundamentals** - Quick plotting and interactive visualization with hvPlot
-- **data-visualization** - Advanced declarative visualization with HoloViews
-- **advanced-rendering** - High-performance rendering for large datasets with Datashader
-- **geospatial-visualization** - Geographic and mapping visualizations with GeoViews
-- **colormaps-styling** - Color management and visual styling with Colorcet
-- **parameterization** - Declarative parameter systems with Param for type-safe configuration
-- **lumen-dashboards** - Declarative, no-code data dashboards with Lumen YAML specifications
-- **lumen-ai** - AI-powered natural language data exploration with Lumen AI
-
-**When to use:** Interactive dashboards, web applications, large-scale data visualization, geographic mapping, real-time data streaming, exploratory data analysis, publication-quality visualizations
-
-### GAIA Data Downloader Plugin
-
-Generate and develop hydroclimatological data download scripts for the GAIA project, covering 10+ environmental data sources.
-
-**Agent:**
-- **Data Downloader** - Generates download scripts from natural language prompts using a three-phase interaction (propose config → confirm → generate) for CONUS404, HRRR, WRF, PRISM, Stage IV, USGS, ORNL, DEM, Synoptic, and IRIS data
-
-**Skill:**
-- **download-script-dev** - Templates, configuration validation, and debugging guidance for developing data download scripts
-
-**When to use:** Downloading hydroclimatological data for GAIA geoscience research, creating reproducible data pipelines, setting up new data download workflows
-
-### UI/UX Design Team Plugin
-
-Comprehensive UI/UX design team simulation with 10 specialized agents covering the full design lifecycle — user research, information architecture, interaction design, visual design, motion design, design systems engineering, accessibility auditing, UX writing, and design operations.
-
-**Agent:**
-- **UX Design Lead** - Coordinator agent that facilitates design thinking, conducts design critiques, and orchestrates 9 specialist agents (research, information architecture, interaction, visual, motion, design systems, accessibility, writing, ops) across the full design lifecycle
-
-**Commands (10):**
-- `/design-review`, `/audit-accessibility`, `/create-design-system`, `/create-persona`, `/create-type-scale`, `/design-handoff`, `/evaluate-usability`, `/frontend-design`, `/generate-palette`, `/map-journey`
-
-**Skills (22):**
-- **user-research**, **information-architecture**, **wireframing**, **visual-design**, **motion-design**, **design-tokens**, **design-system-creation**, **component-library**, **accessibility-audit**, **ux-writing**, **responsive-design**, **css-architecture**, **frontend-components**, **usability-evaluation**, **design-philosophies**, **design-case-studies**, **user-journey-mapping**, **ab-testing-strategy**, **design-handoff**, **color-systems**, **typography-systems**, **grid-layout-systems**
-
-**When to use:** UI/UX design work, design system creation, accessibility audits, usability evaluation, user research and persona creation, design reviews, frontend component design, design-to-development handoff
-
-Browse the [plugins directory](plugins/) and [community-plugins directory](community-plugins/) to explore all available plugins, or see the [skill catalog](docs/catalog.md).
-
-## Repository Structure
-
-```
-savvy/
-├── .claude-plugin/
-│   └── marketplace.json                                # Plugin catalog (Claude Code, Copilot CLI, Codex)
-├── .agents/plugins/
-│   └── marketplace.json                                # Codex marketplace (generated)
-├── .cursor-plugin/
-│   └── marketplace.json                                # Cursor marketplace (generated)
-├── plugins/                                            # Main plugin collection
-│   ├── scientific-python-development/                  # Scientific Python development plugin
-│   │   ├── plugin.json                                 # Agent Plugins manifest (edit this one)
-│   │   ├── .claude-plugin/
-│   │   │   └── plugin.json                             # Claude Code manifest (generated)
-│   │   ├── agents/
-│   │   │   ├── scientific-python-expert.md
-│   │   │   └── scientific-docs-architect.md
-│   │   ├── commands/
-│   │   └── skills/
-│   │       ├── pixi-package-manager/
-│   │       ├── python-packaging/
-│   │       ├── python-testing/
-│   │       ├── code-quality-tools/
-│   │       └── scientific-documentation/
-│   ├── scientific-domain-applications/                 # Domain-specific scientific computing plugin
-│   │   ├── .claude-plugin/
-│   │   │   └── plugin.json
-│   │   ├── agents/
-│   │   │   └── astronomy-astrophysics-expert.md
-│   │   └── skills/
-│   │       ├── xarray-for-multidimensional-data/
-│   │       └── astropy-fundamentals/
-│   ├── ai-research-workflows/                          # Skills-first research workflow plugin
-│   │   ├── .claude-plugin/
-│   │   │   └── plugin.json
-│   │   ├── agents/
-│   │   │   └── research-workflow-orchestrator.md
-│   │   ├── commands/                                 # 10 thin wrappers (research, plan, iterate-plan,
-│   │   │   └── ...                                   #   experiment, implement, validate, handoff,
-│   │   │                                             #   prior-art, reproduce, harden)
-│   │   └── skills/                                   # 11 skills
-│   │       ├── using-research-workflows/             #   meta-skill
-│   │       ├── researching-codebases/
-│   │       ├── planning-implementations/
-│   │       ├── iterating-plans/
-│   │       ├── running-experiments/
-│   │       ├── implementing-plans/
-│   │       ├── validating-implementations/
-│   │       ├── creating-handoffs/
-│   │       ├── researching-prior-art/
-│   │       ├── ensuring-reproducibility/
-│   │       └── hardening-research-code/
-│   └── project-management/                              # Project lifecycle management plugin
-│       ├── .claude-plugin/
-│       │   └── plugin.json
-│       ├── agents/
-│       │   ├── project-onboarding-specialist.md
-│       │   └── documentation-validator.md
-│       ├── commands/
-│       │   ├── setup-project.md
-│       │   ├── project-handoff.md
-│       │   └── validate-project-handoff.md
-│       └── skills/
-│           ├── community-health-files/
-│           └── documentation-validation/
-├── community-plugins/                                  # Community-contributed plugins
-│   ├── gaia-data-downloader/                           # GAIA data download plugin
-│   │   ├── .claude-plugin/
-│   │   │   └── plugin.json
-│   │   ├── agents/
-│   │   │   └── data-downloader.md
-│   │   ├── skills/
-│   │   │   └── download-script-dev/
-│   │   │       ├── SKILL.md
-│   │   │       └── references/
-│   │   ├── AGENTS.md
-│   │   ├── CLAUDE.md
-│   │   └── README.md
-│   └── holoviz-visualization/                          # HoloViz ecosystem plugin
-│       ├── .claude-plugin/
-│       │   └── plugin.json
-│       ├── agents/
-│       │   ├── panel-specialist.md
-│       │   ├── visualization-designer.md
-│       │   ├── data-engineer.md
-│       │   └── geo-spatial-expert.md
-│       ├── skills/
-│       │   ├── panel-dashboards/
-│       │   ├── plotting-fundamentals/
-│       │   ├── data-visualization/
-│       │   ├── advanced-rendering/
-│       │   ├── geospatial-visualization/
-│       │   ├── colormaps-styling/
-│       │   ├── parameterization/
-│       │   ├── lumen-dashboards/
-│       │   └── lumen-ai/
-│       └── references/                                 # HoloViz ecosystem documentation
-│           ├── holoviz-ecosystem.md
-│           ├── library-matrix.md
-│           ├── best-practices/
-│           ├── patterns/
-│           ├── troubleshooting/
-│           ├── lumen-dashboards/
-│           ├── lumen-ai/
-│           └── colormaps/
-├── docs/
-│   └── trust-and-safety.md                             # What plugins can and can't do
-├── CONTRIBUTING.md                                     # Contribution guidelines
-├── LICENSE                                             # BSD 3-Clause License
-├── README.md                                           # This file
-└── SECURITY.md                                         # How to report a vulnerability
-```
-
-## Architecture
-
-### Plugin System
-
-This repository uses the Claude Code plugin marketplace architecture:
-
-- **Plugins** - Top-level containers organized by domain (e.g., python-development, scientific-computing)
-- **Agents** - Specialized AI personas with comprehensive expertise in specific areas
-- **Skills** - Reusable knowledge modules that provide detailed guidance on specific topics
-
-### Design Philosophy
-
-The agents and skills follow the [Scientific Python Development Guide](https://learn.scientific-python.org/development/) principles:
-
-1. **Collaborate** - Adopt conventions and tooling used by the broader scientific Python community
-2. **Refactor Fearlessly** - Leverage tests and tools to enable confident iteration
-3. **Prefer Wide Over Deep** - Build reusable, extensible solutions for unforeseen applications
-
-### Agent vs Skill
-
-- **Agents** - Comprehensive personas that handle complete workflows, make decisions, and provide end-to-end guidance
-- **Skills** - Focused knowledge modules on specific topics (e.g., testing patterns, packaging workflows) that agents can reference
-
-## Contributing
-
-We welcome contributions of new agents, skills, and improvements! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
-
-- Creating new agents and skills
-- Plugin organization and structure
-- Naming conventions and best practices
-- Testing and validation
-- Submitting pull requests
-- The [security review checklist](CONTRIBUTING.md#-security-review-checklist) every plugin change must pass
+The [skill catalog](docs/catalog.md) lists every plugin, skill, command, and agent on one page, with the phrases that trigger each skill, an example prompt to try, and who maintains it. The plugins themselves live in [plugins/](plugins/) and [community-plugins/](community-plugins/), and each has its own README.
 
 ## Documentation
 
-For detailed information about the plugins and their contents:
-
-- [Installation](docs/install.md) - Which clients load which parts of a plugin, and how to install in each
-- [Contributing Guidelines](CONTRIBUTING.md) - How to contribute to this repository
-- [Versioning Policy](docs/versioning.md) - How releases and plugin versions are numbered
-- [Deprecation Policy](docs/deprecation.md) - Notice you get before a skill, command, agent or plugin changes or disappears
-- [Trust and Safety](docs/trust-and-safety.md) - What plugins can and can't do, how to review one before installing, and where to find each client's permission controls
-- [Security Policy](SECURITY.md) - How to report a vulnerability privately, response times and supported versions
-- [HoloViz Ecosystem Overview](community-plugins/holoviz-visualization/references/holoviz-ecosystem.md) - Introduction to the HoloViz ecosystem
-- [HoloViz Library Matrix](community-plugins/holoviz-visualization/references/library-matrix.md) - Comparison of HoloViz libraries and when to use each
-
-## Related Resources
-
-### Scientific Python Community
-- [Scientific Python Development Guide](https://learn.scientific-python.org/development/) - Community best practices
-- [Scientific Python Lectures](https://lectures.scientific-python.org/) - Educational materials
-- [NumPy](https://numpy.org/), [SciPy](https://scipy.org/), [Pandas](https://pandas.pydata.org/) - Core libraries
-
-### HoloViz Ecosystem
-- [HoloViz.org](https://holoviz.org/) - Main HoloViz ecosystem portal
-- [Panel](https://panel.holoviz.org/) - Build interactive dashboards and web applications
-- [hvPlot](https://hvplot.holoviz.org/) - High-level plotting API for pandas and xarray
-- [HoloViews](https://holoviews.org/) - Declarative data visualization
-- [Datashader](https://datashader.org/) - Render large datasets accurately
-- [GeoViews](https://geoviews.org/) - Geographic data visualization
-- [Lumen](https://lumen.holoviz.org/) - No-code dashboards with AI capabilities
-- [Param](https://param.holoviz.org/) - Declarative parameter management
-- [Colorcet](https://colorcet.holoviz.org/) - Perceptually uniform colormaps
-
-### Domain-Specific Libraries
-- [Astropy](https://www.astropy.org/) - Astronomy and astrophysics in Python
-- [Xarray](https://xarray.dev/) - Labeled multidimensional arrays for climate and Earth science
-
-### Research Software Engineering
-- [UW Scientific Software Engineering Center](https://escience.washington.edu/software-engineering/)
-- [Best Practices for Scientific Computing](https://journals.plos.org/plosbiology/article?id=10.1371/journal.pbio.1001745)
-- [The Turing Way](https://the-turing-way.netlify.app/) - Guide to reproducible research
-
-### Claude Code
-- [Claude Code Documentation](https://docs.anthropic.com/claude/docs)
-- [Claude Plugin Marketplace](https://code.claude.com/docs/en/plugins)
+- [Installation](docs/install.md): which clients load which parts of a plugin, and how to install in each
+- [Skill catalog](docs/catalog.md): every skill, command, and agent, grouped by plugin and tier
+- [Codespaces](docs/codespaces.md): the preconfigured Codespace and the optional LiteLLM gateway
+- [Trust and safety](docs/trust-and-safety.md): what plugins can and can't do, and how to review one before installing
+- [Versioning policy](docs/versioning.md): how releases and plugin versions are numbered
+- [Deprecation policy](docs/deprecation.md): the notice you get before a skill, command, agent, or plugin changes or disappears
+- [Changelog](CHANGELOG.md): what changed in each release
+- [Contributing](CONTRIBUTING.md): plugin conventions, evals, and the security review checklist every plugin change must pass
+- [AI policy](AI_POLICY.md): what we ask of AI-assisted contributions
+- [Security policy](SECURITY.md): how to report a vulnerability privately, response times, and supported versions
 
 ## How to cite
 
 If you use savvy in your research, please cite it. The **Cite this repository** button in the repository sidebar gives APA and BibTeX, generated from [CITATION.cff](CITATION.cff).
 
-Each GitHub Release is archived on Zenodo with a DOI. The DOI will be listed here after the first release.
+Each GitHub Release is archived on Zenodo with a DOI. The DOI badge at the top of this page links to the latest release's DOI once the first release is published.
 
 ## License
 

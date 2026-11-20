@@ -118,8 +118,6 @@ plugins:
         example: What Rust-specific supply-chain gotchas should I check in Cargo.toml and .cargo/config.toml?
       supply-chain-hardened-ci-cd:
         example: 'Write a hardened GitHub Actions release workflow (.github/workflows/release.yml) for a Python package: SHA-pinned actions, a two-job build/publish split, OIDC trusted publishing, and deny-by-default permissions.'
-        activates: false
-        issue: 184
       supply-chain-incident-response:
         example: 'The tj-actions/changed-files GitHub Action was compromised and our CI used it last week. Walk me through the incident-response runbook: lockfile check, CI cache check, secret rotation, persistence hunt.'
         activates: false

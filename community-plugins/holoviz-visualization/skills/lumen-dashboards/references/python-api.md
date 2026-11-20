@@ -597,6 +597,6 @@ except Exception as e:
 
 ## References
 
-- [Lumen Python API Documentation](https://lumen.holoviz.org/reference/index.html)
+- [Lumen Python API Documentation](https://lumen.holoviz.org/en/docs/latest/reference/api/)
 - [Panel Documentation](https://panel.holoviz.org/)
 - [Param Documentation](https://param.holoviz.org/)

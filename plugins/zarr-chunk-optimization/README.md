@@ -56,4 +56,4 @@ Benchmarks Zarr chunking strategies for multi-dimensional datasets on cloud obje
 
 ## Research Basis
 
-This plugin implements the benchmarking methodology described in Nguyen et al. (2023), "Optimizing Zarr Chunk Configurations for Cloud-Based Access Patterns." DOI: [10.1109/MCSE.2023.3302524](https://doi.org/10.1109/MCSE.2023.3302524)
+This plugin implements the benchmarking methodology described in Nguyen et al. (2023), "Impact of Chunk Size on Read Performance of Zarr Data in Cloud-based Object Stores." DOI: [10.1002/essoar.10511054.2](https://doi.org/10.1002/essoar.10511054.2)

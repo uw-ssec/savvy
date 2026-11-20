@@ -3,7 +3,7 @@
 Benchmarks Zarr chunking strategies for multi-dimensional datasets on cloud object stores (S3, GCS). Based on Nguyen et al. (2023) methodology. Measures wall-clock time, peak memory, and I/O metrics across spatial, time-series, and spectral access patterns.
 
 > [!NOTE]
-> **Claude Code and Cursor only:** this plugin's agents and commands are written for Claude Code. Cursor loads them too, but GitHub Copilot, Codex, Gemini CLI and OpenCode don't. Its skills follow the [Agent Skills](https://agentskills.io/) format and work in all of these clients. See [Installing the plugins](https://github.com/uw-ssec/savvy/blob/main/docs/install.md) for what each client loads.
+> **Client-specific parts:** this plugin's agents and commands are written for Claude Code. Cursor loads them too, Antigravity CLI loads the agents but not the commands, and GitHub Copilot, Codex and OpenCode load neither. Its skills follow the [Agent Skills](https://agentskills.io/) format and work in all of these clients. See [Installing the plugins](https://github.com/uw-ssec/savvy/blob/main/docs/install.md) for what each client loads.
 
 ## Agents
 
@@ -56,4 +56,4 @@ Benchmarks Zarr chunking strategies for multi-dimensional datasets on cloud obje
 
 ## Research Basis
 
-This plugin implements the benchmarking methodology described in Nguyen et al. (2023), "Optimizing Zarr Chunk Configurations for Cloud-Based Access Patterns." DOI: [10.1109/MCSE.2023.3302524](https://doi.org/10.1109/MCSE.2023.3302524)
+This plugin implements the benchmarking methodology described in Nguyen et al. (2023), "Impact of Chunk Size on Read Performance of Zarr Data in Cloud-based Object Stores." DOI: [10.1002/essoar.10511054.2](https://doi.org/10.1002/essoar.10511054.2)

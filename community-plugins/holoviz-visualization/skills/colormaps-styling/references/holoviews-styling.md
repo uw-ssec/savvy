@@ -695,6 +695,6 @@ overlay.opts(legend_position='top_right', show_legend=True)
 
 ## References
 
-- [HoloViews Styling Guide](https://holoviews.org/user_guide/Styling_Plots.html)
+- [HoloViews Styling Guide](https://holoviews.org/user_guide/Style_Mapping.html)
 - [Bokeh Styling](https://docs.bokeh.org/en/latest/docs/user_guide/styling.html)
 - [Colorcet Documentation](https://colorcet.holoviz.org/)

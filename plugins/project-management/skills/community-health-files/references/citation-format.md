@@ -509,7 +509,7 @@ root is the standard.
 
 ## External Resources
 
-- [CFF Specification](https://citation-file-format.github.io/cff-initializer-guide/) — Official specification and initializer tool
+- [CFF Specification](https://citation-file-format.github.io/cff-initializer-javascript/) — Official specification and initializer tool
 - [CFF Schema](https://github.com/citation-file-format/citation-file-format/blob/main/schema-guide.md) — Complete schema documentation
 - [cffconvert](https://github.com/citation-file-format/cffconvert) — CLI validation and format conversion tool
 - [CFF GitHub Action](https://github.com/citation-file-format/cffconvert-github-action) — CI validation

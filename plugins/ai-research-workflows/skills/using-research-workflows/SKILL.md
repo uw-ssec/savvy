@@ -4,7 +4,7 @@ description: >-
   Use when starting or continuing ANY research-software task — understanding or
   modifying code, surveying prior art, planning, experimenting, implementing,
   validating, reproducing, or hardening — and before reading code to "just
-  check", before editing, or before answering "how does X work". Triggers:
+  check" or before editing. Triggers:
   research workflow, which skill should I use, where do I start, guide me through
   the workflow, structured development.
 ---
@@ -17,8 +17,8 @@ meta-skill makes you *use* the right skill — it does not just list them.
 
 <EXTREMELY-IMPORTANT>
 If there is even a 1% chance a research-workflow skill applies to what you are
-about to do, you MUST invoke it before acting — before reading code to "just
-check", before editing, before answering a "how does X work" question.
+about to do, you MUST invoke it before acting — before editing, and before
+reading code to "just check" ahead of a change.
 
 IF A SKILL APPLIES, YOU DO NOT HAVE A CHOICE. Invoke it. You cannot rationalize
 your way past this because you are in a hurry, because the change "looks small",
@@ -26,8 +26,8 @@ or because the user said "don't overthink it".
 
 This compels using the **right** skill, not running the whole chain. Right-sizing
 the workflow (see *Common workflow patterns*) means picking the minimal matching
-skill — a quick `researching` read, a short plan. Right-sized never means **zero
-skills** for code or research work.
+skill — a scoped `researching` pass, a short plan. Right-sized never means
+**zero skills** for a code change or a research investigation.
 </EXTREMELY-IMPORTANT>
 
 ## Instruction priority
@@ -50,7 +50,8 @@ X", "fix Y") never authorizes skipping straight to code.
 ## Choosing a skill (decision tree)
 
 ```text
-Need to understand code or survey prior art? → researching
+Only asking how existing code works?         → answer from the code, no skill
+Investigating code or surveying prior art?   → researching
 Ready to design an implementation?           → planning-implementations
 Need to adjust an existing plan?             → iterating-plans
 Unsure which technical approach is best?     → running-experiments
@@ -98,7 +99,6 @@ These thoughts mean you are about to skip a skill you should invoke:
 
 | Thought | Reality |
 |---|---|
-| "This is just a quick data/code question" | Questions are tasks. Invoke `researching`. |
 | "I'll just tweak the code real quick" | Code changes need understanding first → `researching` then `planning-implementations`. |
 | "I already know how this codebase works" | Memory drifts; the code is ground truth. Trace it with `researching`. |
 | "5 minutes — don't overthink it" | Right-size the skill, don't skip it. A 90-second read still beats a stale-cache bug. |
@@ -166,9 +166,9 @@ them rather than re-implementing their guidance here.
 ## Common Mistakes
 
 - **Skipping the workflow because the task "looks small"** — the most common and
-  most expensive mistake. Right-size the skill (a quick `researching` read, a
-  short plan), but never skip skill-invocation entirely for code or research
-  work. See *Red flags* above.
+  most expensive mistake. Right-size the skill (a scoped `researching` pass, a
+  short plan), but never skip skill-invocation entirely for a code change or a
+  research investigation. See *Red flags* above.
 - **Forcing the *full* chain when one skill suffices** — the opposite error:
   running research → plan → experiment → implement → validate for a trivial change
   wastes time. Pick the minimal matching skill from the decision tree. This is

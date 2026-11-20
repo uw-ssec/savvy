@@ -99,5 +99,5 @@ Plain `pip install -r requirements.txt` does not enforce hashes unless the requi
 
 - PEP 517 build backends: <https://peps.python.org/pep-0517/>
 - PyPI trusted publishing: <https://docs.pypi.org/trusted-publishers/>
-- uv lockfile: <https://docs.astral.sh/uv/concepts/projects/lock/>
+- uv lockfile: <https://docs.astral.sh/uv/concepts/projects/sync/>
 - `.pth` mechanism: Python `site` module docs, `site.addsitedir`

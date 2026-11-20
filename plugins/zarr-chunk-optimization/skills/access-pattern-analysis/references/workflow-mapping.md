@@ -53,9 +53,9 @@ Listen for keywords that signal specific patterns:
 **User says:** "I compute monthly mean SST maps for the tropical Pacific."
 
 **Translation:**
-1. "monthly mean" -> temporal aggregation (`.resample(time="1M").mean()`)
+1. "monthly mean" -> temporal aggregation (`.resample(time="1MS").mean()`)
 2. "SST maps" -> output is spatial (2D map)
-3. "tropical Pacific" -> spatial subset (`.sel(lat=slice(-30, 30), lon=slice(120, 280))`)
+3. "tropical Pacific" -> spatial subset (`.sel(lat=slice(-30, 30), lon=slice(120, 280))` on an ascending-lat, 0–360 grid; write `lat=slice(30, -30)` if lat is descending)
 
 **Formal pattern:** Diagonal access with spatial-dominant output. The read touches a spatial subset across all timesteps within each month, then reduces along time.
 
@@ -93,9 +93,9 @@ The most reliable way to identify access patterns is to examine the actual xarra
 | `ds.mean(dim="time")` | Full dataset | Spatial |
 | `ds.mean(dim=["lat", "lon"])` | Full dataset | Temporal |
 | `ds.mean(dim="freq")` | Full dataset | Non-spectral |
-| `ds.resample(time="1M").mean()` | Full time per month | Spatial per month |
+| `ds.resample(time="1MS").mean()` | Full dataset | Spatial per month |
 | `ds.groupby("time.season").mean()` | Full dataset | Spatial per season |
-| `ds.rolling(time=30).mean()` | Temporal windows | Same shape |
+| `ds.rolling(time=30).mean()` | Full dataset (windows cross chunk edges) | Same shape |
 
 ### Computation Operations
 
@@ -108,20 +108,20 @@ The most reliable way to identify access patterns is to examine the actual xarra
 
 ### Compound Operations
 
-Many real workflows chain multiple operations. The access pattern is determined by the first operation that touches the store (before Dask optimization):
+Many real workflows chain multiple operations. The selections (`sel`/`isel`) applied before computing decide which chunks are read. Reductions and resampling that come after only change the output, not the read:
 
 ```python
-# Pattern: Spatial (initial read is full spatial at each time)
+# Pattern: Diagonal (spatial subset × every timestep), even though the output is a time series
 ds["temp"].sel(lat=slice(30, 50), lon=slice(-100, -80)).mean(dim=["lat", "lon"])
 
-# Pattern: Temporal (initial read is time series at each point)
-ds["temp"].sel(lat=45.0, lon=-90.0).resample(time="1M").mean()
+# Pattern: Temporal (one point, every timestep)
+ds["temp"].sel(lat=45.0, lon=-90.0, method="nearest").resample(time="1MS").mean()
 
-# Pattern: Full scan (no early selection)
+# Pattern: Full scan (no selection)
 ds["temp"].mean(dim="time")
 ```
 
-**Key insight:** Dask and xarray may reorder operations for optimization. The logical pattern in user code may differ from the physical I/O pattern. When in doubt, profile the actual chunk access.
+**Key insight:** a selection placed after a reduction or a `.load()` does not shrink the read. When in doubt, count the chunks the selection touches (see Profiling Chunk Access).
 
 ---
 
@@ -169,7 +169,7 @@ This section maps common end-to-end scientific workflows to their constituent ac
 2. Temporal read per baseline per frequency channel (~15%)
 3. Full baseline read at one time-frequency point for imaging (~5%)
 
-**Recommended chunk shape:** Spectral-dominant, e.g., `(1, 1, 4096)` for `(time, baseline, frequency)`.
+**Recommended chunk shape:** Spectral-dominant, e.g., `(1, 64, 4096)` for `(time, baseline, frequency)`: about 2 MB of complex64 per chunk. `(1, 1, 4096)` would make 32 KB objects.
 
 ### Satellite Change Detection
 
@@ -186,44 +186,46 @@ This section maps common end-to-end scientific workflows to their constituent ac
 
 ## Dask Task Graph Analysis
 
-When users run xarray operations backed by Dask, the task graph reveals the actual I/O pattern regardless of how the user describes their workflow. Analyzing task graphs is the most objective method for pattern identification.
+When users run xarray operations backed by Dask, the task graph shows which chunks a computation reads, whatever the user says their workflow is.
 
 ### Reading Task Graphs
 
 ```python
 import dask
 
-# Visualize the task graph
 result = ds["temp"].sel(time="2020-01-01").mean(dim="lat")
-result.visualize(filename="task_graph.png")
+dask.visualize(result, filename="task_graph.png")  # DataArray has no .visualize(); needs graphviz
 ```
 
-**Spatial pattern graph characteristics:**
-- Wide, shallow graph (many parallel chunk reads at one time index).
-- Tasks are labeled with chunk coordinates that vary in spatial dimensions but share a time index.
-- Minimal inter-chunk dependencies.
+The graph's overall shape is a weak signal: chunk reads are independent tasks in every pattern, so all graphs start wide. Read the chunk indices on the load tasks instead:
 
-**Temporal pattern graph characteristics:**
-- Narrow, deep graph (sequential reads along time at one spatial index).
-- Tasks are labeled with chunk coordinates that vary in time but share spatial indices.
-- Aggregation tasks at the end (e.g., mean, sum).
-
-**Diagonal pattern graph characteristics:**
-- Moderately wide and moderately deep.
-- Chunk coordinates vary across multiple dimensions.
-- More complex dependency structure than pure spatial or temporal.
+- **Spatial:** the indices vary along the spatial dimensions and share one time index.
+- **Temporal:** the indices vary along time and share one spatial index. Each read uses only a sliver of its chunk unless the chunks are long in time.
+- **Diagonal:** the indices vary along several dimensions at once.
 
 ### Profiling Chunk Access
 
-Use Zarr's built-in diagnostics or custom instrumentation:
+Count the chunks a selection touches, and the read amplification, from the index ranges and the chunk shape. No I/O is needed:
 
 ```python
-import zarr
+import math
 
-store = zarr.open("dataset.zarr", mode="r")
-# Count chunk reads per operation
-# Compare chunks_read vs chunks_needed (read amplification)
+def chunks_touched(index_ranges, chunks):
+    """index_ranges: (start, stop) per dimension, stop exclusive."""
+    return math.prod((stop - 1) // c - start // c + 1
+                     for (start, stop), c in zip(index_ranges, chunks))
+
+# One full time series at one grid point in a (14600, 721, 1440) array
+ranges = [(0, 14600), (180, 181), (1080, 1081)]
+for chunks in [(1, 721, 1440), (1000, 16, 16)]:
+    n = chunks_touched(ranges, chunks)
+    amplification = n * math.prod(chunks) / 14600   # elements fetched / elements used
+    print(chunks, n, f"{amplification:,.0f}x")
+# (1, 721, 1440) 14600 1,038,240x
+# (1000, 16, 16) 15 263x
 ```
+
+To find the index ranges for a real selection, call `ds.indexes["lat"].get_indexer(...)` or use `isel`. High amplification on a frequent pattern is the strongest sign that the layout should change.
 
 ### Dask Performance Reports
 
@@ -332,17 +334,18 @@ Use the `assets/pattern-definitions-template.json` template for machine-readable
 
 2. **Temporal (weight: 0.30)** — Station validation against observations.
    Frequency: ~80 ops/day across 8 users.
-   Operation: `ds["t2m"].sel(lat=51.5, lon=-0.1, method="nearest")`
+   Operation: `ds["t2m"].sel(lat=51.5, lon=359.9, method="nearest")`  (0–360 grid)
 
 3. **Diagonal (weight: 0.15)** — Regional monthly means for climate indices.
    Frequency: ~20 ops/day across 3 users.
-   Operation: `ds["t2m"].sel(lat=slice(30,50), lon=slice(-100,-80), time=slice("2010","2020")).mean(dim=["lat","lon"]).resample(time="1M").mean()`
+   Operation: `ds["t2m"].sel(lat=slice(50,30), lon=slice(260,280), time=slice("2010","2020")).mean(dim=["lat","lon"]).resample(time="1MS").mean()`  (descending lat, 0–360 lon)
 
 ### Conflicts and Resolution
 
 Spatial vs. temporal conflict resolved with compromise chunking `(48, 128, 128)`.
-Spatial access will read 128x128 chunks (aligned). Temporal access will read
-48-step chunks (acceptable, ~150 chunks for 20 years of 6-hourly data).
+A spatial read of one timestep touches 6 × 12 = 72 chunks and reads 48 timesteps
+from each (48× read amplification, accepted). A 20-year 6-hourly series at one point
+touches ~610 chunks (29,220 steps / 48), versus 29,220 with the old `(1, 721, 1440)`.
 
 ### Review Schedule
 

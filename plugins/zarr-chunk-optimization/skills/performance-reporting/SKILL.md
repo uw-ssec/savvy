@@ -1,6 +1,6 @@
 ---
 name: performance-reporting
-description: Generates structured benchmark reports with configuration comparison tables, performance bias analysis, ranked recommendations, and trade-off explanations from Zarr chunking benchmark results. Use when the user has Zarr chunking benchmark data to analyze, needs to compare chunk configurations, wants performance recommendations for Zarr storage, or needs to present chunking strategy results to stakeholders.
+description: Use when Zarr chunking benchmark results already exist, as benchmark_runner.py JSON or as read times per chunk shape, and someone needs them compared, ranked, turned into a chunk-shape recommendation, charted, or written up as a report for stakeholders. Also use when asked for a performance bias score, a memory-budget check, or a weighted score for a mixed map and time-series workload.
 metadata:
   references: references/report-generation.md references/visualization-patterns.md
   assets: assets/comparison-table-template.md assets/recommendation-template.md
@@ -8,113 +8,67 @@ metadata:
 
 # Performance Reporting
 
-Transform raw Zarr chunking benchmark data into structured markdown reports with comparison tables, bias analysis, and ranked recommendations.
+Turns Zarr chunking benchmark results into a report that ranks chunk shapes and recommends one, using comparison tables, performance bias and memory-budget checks.
 
-## Resources
+**Core principle:** every number in the report traces to a measured field. Unmeasured metrics (TTFB, chunk utilization, chunks read) stay out rather than being estimated.
 
-| Resource | Purpose |
-|----------|---------|
-| [references/report-generation.md](references/report-generation.md) | Deep reference: section formatting, dataset summaries, environment metadata, table layout, recommendation writing |
-| [references/visualization-patterns.md](references/visualization-patterns.md) | Bar charts, heatmaps, radar charts, scatter plots with matplotlib/hvPlot code |
-| [assets/comparison-table-template.md](assets/comparison-table-template.md) | Ready-to-fill comparison table template |
-| [assets/recommendation-template.md](assets/recommendation-template.md) | Ready-to-fill recommendation section template |
+## When to Use
+
+- Results exist (the JSON from `chunking-strategy/scripts/benchmark_runner.py`, or per-shape read times the user pasted) and need ranking, a recommendation, charts or a write-up.
+- Old results need re-ranking under new workload weights or a new memory budget.
+
+**When NOT to use:**
+- No results yet: use **chunking-strategy** to run the benchmarks.
+- Workload weights not yet agreed: use **access-pattern-analysis** first.
+- Applying the chosen shape: use **rechunking**. Need a test dataset: use **synthetic-data**.
+
+## Input: What benchmark_runner.py Writes
+
+Top level: `metadata` (timestamp, platform, Python version, dimensions) and `benchmarks`, one entry per (chunk config, access pattern, dimension):
+
+- `chunk_config`, `dataset`, `shape`, `num_runs`, `dim_index`, `dimension_name`
+- `access_pattern`: `slice` reads one index of `dimension_name` and all of the rest (a map at one time step); `traverse` reads all of `dimension_name` at the middle index of every other dimension (a time series at one point).
+- `statistics.<metric>` = `{mean, std, min, max, values}`, `std` with ddof=0. Metrics: `wall_time` (s), `peak_memory_mb`, `throughput_mbps` (MB/s of returned data), `data_size_mb`, `dask_tasks`, `http_requests` (0 for local stores).
+- `error` instead of `statistics`: that run failed. List it in the report.
+
+`ttfb` and `chunk_utilization` are hardcoded to `None`: absent from `statistics`, or, in older runners, the cause of every entry failing with `unsupported operand type(s) for +: 'NoneType' and 'NoneType'`. That error is a runner bug, not a bad configuration, and leaves nothing to report.
+
+**Check before ranking:**
+1. **One chunk layout per store.** The runner does not rechunk: `chunk_config` is only a label, and it reads `dataset` with its stored chunks. Several configs sharing one `dataset` path measured the same layout, so their differences are noise. Stop and ask for one run per rechunked store.
+2. **Name the patterns.** Map each `(access_pattern, dimension_name)` to the user's workload names, e.g. `("slice", "time")` is a map and `("traverse", "time")` is a time series. By default the runner tests both patterns on every dimension. Keep only the ones the workload uses.
+3. **Every config has every kept pattern**, and `num_runs` ≥ 5.
+
+## Quick Reference
+
+| Quantity | Definition | Note |
+|----------|------------|------|
+| Pattern time `T_p` | `statistics.wall_time.mean` | Report as mean ± std |
+| Peak memory | max of `peak_memory_mb.max` over a config's entries, / 1024 for GB | Python-heap peak per read, not RSS: a lower bound |
+| Performance bias (PB) | `max_p T_p / min_p T_p` over the kept patterns | Unweighted, as in Nguyen et al. (2023); n/a with one pattern |
+| Composite score | `Σ w_p T_p`, weights normalized to sum to 1 | Expected seconds per operation; equal weights by default |
+| Noisy | `std / mean > 0.3` | Re-run with more runs; don't drop the config |
+| Tie | mean ± std ranges overlap | Confirm with Welch's t-test on `values` if it decides the pick |
+
+PB classes (plugin heuristics, not from the paper): < 1.5 Balanced, 1.5–3 Moderate, 3–10 Biased, > 10 Extreme.
+
+## Ranking
+
+1. Mark configs over the memory budget as infeasible. They cannot be the primary pick.
+2. Rank feasible configs by composite score, or by `T_p` alone when one pattern dominates.
+3. Break ties by lower PB, then lower peak memory, then smaller chunks.
+4. **Primary:** rank 1. **Alternative:** a config ≥ 25% faster on one pattern, with the trade-off stated; if it is over budget, say how much memory it needs. **Avoid:** configs dominated on every metric, and over-budget configs not offered as the alternative.
+
+For code that loads runner JSON, rejects shared-store or missing-pattern input, and computes these quantities, see [Loading Runner Output](references/report-generation.md#loading-runner-output).
+
+## Common Mistakes
+
+| Mistake | Fix |
+|---------|-----|
+| Weighted PB `max(w·T) / min(w·T)` | Mixes workload shares into balance: under 70/30 weights a config with equal times scores 2.33. Use weights only in the composite score |
+| PB over all of the runner's patterns | PB over the workload's patterns only |
+| Sorting formatted strings (`"12.50" < "2.64"`) | Sort numbers; format only when rendering |
+| Methodology says sample std, OS cache cleared between runs, or several warm-ups | Runner: population std, fsspec cache cleared before each run, OS cache only if cleared by hand, 1 warm-up (`--warmup` is not passed through) |
 
 ## Report Structure
 
-1. **Dataset Summary** — path, shape, dtype, current chunks, compression, total size
-2. **Benchmark Environment** — platform, Python/library versions, instance type, storage backend, network
-3. **Configuration Comparison Table** — all configs ranked with key metrics side by side
-4. **Per-Pattern Results** — detailed tables for each access pattern (spatial, temporal, spectral)
-5. **Performance Bias Summary** — PB score and classification per config
-6. **Recommendations** — primary, alternative, configs to avoid
-7. **Methodology Notes** — run count, cache clearing, statistical method
-
-**Validation checkpoint after generating:** Verify (a) every configuration appears in the comparison table, (b) each config has a winner highlight in at least one column, (c) memory budget pass/fail is marked for every config, (d) PB score is present for every config.
-
-## Key Metrics
-
-| Metric | Unit | Direction | Note |
-|--------|------|-----------|------|
-| Wall-clock time | s | Lower | Primary ranking metric |
-| TTFB | ms | Lower | Interactive responsiveness |
-| Peak memory | GB | Lower | Feasibility under budget |
-| Throughput | MB/s | Higher | Bulk processing |
-| Chunk utilization | 0–1 | Higher | I/O alignment (< 0.5 = poor fit) |
-| Performance Bias (PB) | ratio | → 1.0 | Balance across patterns |
-
-## Generating the Comparison Table (Python)
-
-```python
-import pandas as pd
-
-def build_comparison_table(results: dict, memory_budget_gb: float) -> pd.DataFrame:
-    """
-    results = {
-        "config_label": {
-            "spatial_mean": float, "temporal_mean": float, "spectral_mean": float,
-            "peak_memory_gb": float
-        }, ...
-    }
-    """
-    rows = []
-    for label, m in results.items():
-        times = [v for k, v in m.items() if k.endswith("_mean")]
-        pb = max(times) / min(times) if min(times) > 0 else float("inf")
-        rows.append({
-            "Config": label,
-            "Spatial (s)": f"{m['spatial_mean']:.1f}",
-            "Temporal (s)": f"{m['temporal_mean']:.1f}",
-            "Peak Mem (GB)": f"{m['peak_memory_gb']:.1f}",
-            "PB": f"{pb:.2f}",
-            "Within Budget": "✓" if m["peak_memory_gb"] <= memory_budget_gb else "✗",
-        })
-    df = pd.DataFrame(rows)
-    # Mark winner per numeric column
-    for col in ["Spatial (s)", "Temporal (s)", "Peak Mem (GB)"]:
-        idx = df[col].astype(float).idxmin()
-        df.loc[idx, col] = f"**{df.loc[idx, col]}**"
-    return df.sort_values("PB")
-```
-
-## Performance Bias Score
-
-```
-PB = max(mean_time per pattern) / min(mean_time per pattern)
-```
-
-| PB | Classification | When acceptable |
-|----|---------------|----------------|
-| 1.0–1.5 | Balanced | Mixed workloads |
-| 1.5–3.0 | Moderate | Known primary pattern |
-| 3.0–10.0 | Biased | Single-pattern only |
-| > 10.0 | Extreme | Rarely acceptable |
-
-For weighted workloads: `Weighted PB = max(w_i × T_i) / min(w_i × T_i)`.
-
-## Ranking and Elimination
-
-**Eliminate before ranking** configurations that:
-- Exceed the memory budget
-- Have any single-pattern time > 5× the best config for that pattern
-- Show CV (std/mean) > 0.3 (unreliable measurements)
-
-**Score remaining configs:**
-```
-composite_score = sum(weight_i × mean_time_i)  # default: equal weights
-```
-Tie-break order: (1) lower PB, (2) lower peak memory, (3) smaller chunk size.
-
-## Writing Recommendations
-
-**Primary:** State chunk shape, composite score or dominant-pattern time, PB classification, peak memory, and one-sentence reasoning.
-
-**Alternative:** Include when a specialist config is >25% faster on one pattern. State the trade-off explicitly.
-
-**Avoid:** List dominated configs (worse on all metrics) or budget-exceeding configs with specific reasons.
-
-See `assets/recommendation-template.md` for the fill-in-the-blank format.
-
-## Progressive Disclosure
-
-- Load [report-generation.md](references/report-generation.md) for detailed formatting, section-by-section guidance, confidence assessment, and common mistakes.
-- Load [visualization-patterns.md](references/visualization-patterns.md) when the user requests charts or plots.
+Dataset summary, environment, comparison table, per-pattern tables, PB summary, recommendations, methodology (with failed entries). Formatting and examples: [references/report-generation.md](references/report-generation.md). Charts: [references/visualization-patterns.md](references/visualization-patterns.md). Templates: [comparison table](assets/comparison-table-template.md), [recommendations](assets/recommendation-template.md).

@@ -1,11 +1,13 @@
 {
-  "_description": "Template for defining benchmark-ready access patterns with relative weights. All weights must sum to 1.0. Each pattern includes a name, description, the xarray operation to benchmark, and its priority weight.",
+  "_description": "Template for weighted, benchmark-ready access patterns. Weights must sum to 1.0. Each pattern has a name, a description, an xarray operation that returns a non-empty result against the store, a weight, the evidence for that weight, and the matching benchmark_runner.py arguments.",
   "dataset": {
     "name": "DATASET_NAME",
     "dimensions": ["time", "lat", "lon"],
     "shape": [null, null, null],
+    "dtype": "float32 | float64 | int16 | ...",
     "current_chunks": [null, null, null],
-    "storage_backend": "local | s3 | gcs | azure"
+    "storage_backend": "local | s3 | gcs | azure",
+    "_notes": "Record coordinate conventions: is lat descending (ds.lat[0] > ds.lat[-1])? Is lon 0-360 or -180-180? Every sel() below must follow them."
   },
   "patterns": [
     {
@@ -13,32 +15,40 @@
       "description": "Read a full 2D spatial field at a single timestep. Typical for map visualization and spatial analysis.",
       "xarray_operation": "ds['VARIABLE'].sel(time='YYYY-MM-DD')",
       "weight": 0.50,
+      "evidence": "SOURCE (logs | code review | interview | profiling), or 'ASSUMPTION: <why>'",
+      "benchmark_args": "--slice-dims 0",
       "expected_bytes_per_read": null,
-      "_notes": "Replace VARIABLE and time value with actuals. Weight reflects dominance of map-based workflows."
+      "_notes": "Replace VARIABLE and the time value. benchmark_args uses the dimension index of time."
     },
     {
       "name": "temporal_single_point",
       "description": "Read a full time series at a single spatial location. Typical for trend analysis and station validation.",
       "xarray_operation": "ds['VARIABLE'].sel(lat=LAT, lon=LON, method='nearest')",
       "weight": 0.30,
+      "evidence": "SOURCE (logs | code review | interview | profiling), or 'ASSUMPTION: <why>'",
+      "benchmark_args": "--traverse-dims 0",
       "expected_bytes_per_read": null,
-      "_notes": "Replace LAT and LON with representative coordinates. Use method='nearest' for non-exact grid alignment."
+      "_notes": "Write LON in the store's convention (90W is 270 on a 0-360 grid). method='nearest' does not raise an error for a point outside the grid."
     },
     {
       "name": "spectral_single_point_time",
       "description": "Read across the full spectral/frequency axis at a single spatial location and timestep. Typical for spectral analysis and calibration.",
       "xarray_operation": "ds['VARIABLE'].sel(time='YYYY-MM-DD', lat=LAT, lon=LON, method='nearest')",
       "weight": 0.10,
+      "evidence": "SOURCE (logs | code review | interview | profiling), or 'ASSUMPTION: <why>'",
+      "benchmark_args": "--traverse-dims FREQ_DIM_INDEX",
       "expected_bytes_per_read": null,
       "_notes": "Only relevant for datasets with a spectral or frequency dimension. Remove if not applicable."
     },
     {
       "name": "diagonal_regional_timeseries",
       "description": "Read a spatial subset across a time range, then aggregate spatially. Typical for regional climate indices and area-averaged statistics.",
-      "xarray_operation": "ds['VARIABLE'].sel(lat=slice(LAT_MIN, LAT_MAX), lon=slice(LON_MIN, LON_MAX), time=slice('START', 'END')).mean(dim=['lat', 'lon'])",
+      "xarray_operation": "ds['VARIABLE'].sel(lat=slice(LAT_START, LAT_STOP), lon=slice(LON_START, LON_STOP), time=slice('START', 'END')).mean(dim=['lat', 'lon'])",
       "weight": 0.10,
+      "evidence": "SOURCE (logs | code review | interview | profiling), or 'ASSUMPTION: <why>'",
+      "benchmark_args": null,
       "expected_bytes_per_read": null,
-      "_notes": "Replace slice bounds with representative values. This pattern stresses both spatial and temporal chunk alignment."
+      "_notes": "Slice bounds must follow coordinate order: slice(60, 30) on a descending lat. benchmark_runner.py has no diagonal access mode, so leave benchmark_args null and say so in the report."
     }
   ],
   "metadata": {

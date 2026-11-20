@@ -4,12 +4,12 @@
 
 | Section | Lines | Description |
 |---------|-------|-------------|
-| The All-or-Nothing Constraint | 16–43 | Why reading any value requires loading the entire chunk |
-| Why Peak Memory is a First-Class Metric | 44–57 | Comparing strategies with similar I/O but different memory footprints |
-| How to Interpret Memory Measurements | 58–87 | Peak vs mean memory, overhead factors, and memory budgets |
-| Measuring Peak Memory | 88–126 | Practical methods using tracemalloc, memory_profiler, and Dask |
-| Common Memory Issues | 127–154 | Diagnosing OOM kills, swapping, and inconsistent measurements |
-| Recommendations for This Plugin | 155–173 | Reporting both wall-clock time and peak memory in benchmarks |
+| The All-or-Nothing Constraint | 16–45 | Why reading any value requires loading the entire chunk |
+| Why Peak Memory is a First-Class Metric | 46–59 | Comparing strategies with similar I/O but different memory footprints |
+| How to Interpret Memory Measurements | 60–89 | Peak vs mean memory, overhead factors, and memory budgets |
+| Measuring Peak Memory | 90–128 | Practical methods using tracemalloc, memory_profiler, and Dask |
+| Common Memory Issues | 129–156 | Diagnosing OOM kills, swapping, and inconsistent measurements |
+| Recommendations for This Plugin | 157–175 | Reporting both wall-clock time and peak memory in benchmarks |
 
 ---
 
@@ -22,6 +22,8 @@ Zarr's chunking model imposes a fundamental constraint: **you cannot read part o
 3. **Decompressed** (if compression is enabled)
 
 This is called the **all-or-nothing constraint**.
+
+**Sharded stores (Zarr v3):** the unit is the *inner* chunk, not the shard. A shard is one storage object holding many inner chunks plus an index, and a reader fetches only the inner chunks it needs (byte-range reads). Size inner chunks for memory and read efficiency; size shards to keep the object count manageable.
 
 ### Example
 
@@ -39,7 +41,7 @@ Even though you're only accessing **one scalar value**, Zarr must:
 - Decompress the entire chunk (if compressed)
 - Hold it in memory long enough to extract the single value
 
-**Implication:** Peak memory usage is determined by the **size of the largest chunk accessed**, not the amount of data you actually need.
+**Implication:** Peak memory is driven by **chunk size × the number of chunks decompressed at once** (up to every chunk the selection touches; with Dask, roughly the chunks in flight across threads), not by the amount of data you actually need. A single chunk sets the floor.
 
 ## Why Peak Memory is a First-Class Metric
 
@@ -47,7 +49,7 @@ When benchmarking chunking strategies, wall-clock time is not sufficient. Two ch
 
 | Config | Chunk Shape | Wall Time | Peak Memory | Usable on 8 GB System? |
 |--------|-------------|-----------|-------------|------------------------|
-| A      | (10, 100, 100) | 12.3 s | 400 MB | ✅ Yes |
+| A      | (10, 512, 512) | 12.3 s | 400 MB | ✅ Yes |
 | B      | (100, 1000, 1000) | 10.1 s | 3.8 GB | ⚠️  Tight |
 | C      | (500, 2000, 2000) | 8.7 s | 15.3 GB | ❌ No (OOM) |
 
@@ -94,7 +96,7 @@ import tracemalloc
 tracemalloc.start()
 
 # Run benchmark operation
-result = ds.sel(time=42).compute()
+result = ds.isel(time=42).compute()
 
 current, peak = tracemalloc.get_traced_memory()
 tracemalloc.stop()
@@ -107,7 +109,7 @@ print(f"Peak memory: {peak / 1024**2:.1f} MB")
 from memory_profiler import memory_usage
 
 def benchmark_operation():
-    result = ds.sel(time=42).compute()
+    result = ds.isel(time=42).compute()
     return result
 
 mem_usage = memory_usage(benchmark_operation, interval=0.1, max_usage=True)
@@ -119,7 +121,7 @@ print(f"Peak memory: {mem_usage:.1f} MB")
 from dask.distributed import performance_report
 
 with performance_report(filename="dask-report.html"):
-    result = ds.sel(time=42).compute()
+    result = ds.isel(time=42).compute()
 
 # Open dask-report.html to see memory usage over time
 ```
@@ -146,11 +148,11 @@ with performance_report(filename="dask-report.html"):
 
 **Symptom:** Peak memory varies widely between runs (e.g., 2 GB, 4 GB, 3 GB, 6 GB).
 
-**Cause:** OS page cache or Python garbage collection timing.
+**Cause:** Python garbage collection timing, or a varying number of chunks in flight across Dask threads. (The OS page cache is not process memory, so it does not inflate these numbers.)
 
 **Solution:**
-- Clear OS cache between runs (`purge` on macOS, `drop_caches` on Linux)
 - Force garbage collection before measurement: `gc.collect()`
+- Fix the thread count, e.g. `dask.config.set(scheduler="threads", num_workers=4)`
 
 ## Recommendations for This Plugin
 
@@ -165,7 +167,7 @@ Example report format:
 ```markdown
 | Config | Chunk Shape | Wall Time | Peak Memory | 8GB OK? | 16GB OK? |
 |--------|-------------|-----------|-------------|---------|----------|
-| A      | (10, 100, 100) | 12.3 s ± 0.8 s | 0.4 GB | ✅ | ✅ |
+| A      | (10, 512, 512) | 12.3 s ± 0.8 s | 0.4 GB | ✅ | ✅ |
 | B      | (100, 500, 500) | 8.1 s ± 0.5 s | 3.8 GB | ✅ | ✅ |
 | C      | (100, 1000, 1000) | 6.7 s ± 0.3 s | 12.2 GB | ❌ | ✅ |
 ```

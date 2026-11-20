@@ -99,8 +99,8 @@ new_data = np.random.randn(50, 10).astype("float32")
 z.append(new_data, axis=0)
 print(f"New shape: {z.shape}")  # (150, 10)
 
-# Resize explicitly (for pre-allocation)
-z.resize(200, 10)
+# Resize explicitly (for pre-allocation); the new shape is one tuple
+z.resize((200, 10))
 z[150:200, :] = np.random.randn(50, 10).astype("float32")
 ```
 
@@ -130,12 +130,14 @@ mask = np.zeros(z.shape, dtype=bool)
 mask[0:100, 0:100] = True
 values = z.vindex[mask]             # 1D array of True-masked values
 
-# ── Block selection (by chunk index) ──
+# ── Block selection (by chunk index; by shard index when sharded) ──
 block = z.blocks[0, 0]             # shape (1000, 1000) — first chunk
 block = z.blocks[0:2, 0:3]        # shape (2000, 3000) — 2×3 chunk region
 
 # ── Field selection (structured dtype) ──
-# z_struct["field_name"] — extracts one field from a compound dtype
+# z_struct["field_name"] raises TypeError in zarr 3.1.5 (v2 and v3 arrays).
+# Read whole records, then take the field from the NumPy result:
+# x = z_struct[0:1000]["field_name"]
 ```
 
 ---
@@ -148,12 +150,12 @@ block = z.blocks[0:2, 0:3]        # shape (2000, 3000) — 2×3 chunk region
 import zarr
 import numpy as np
 
-# Sharded array: outer chunks (shards) contain inner chunks
+# Sharded array: each shard (stored object) holds a grid of inner chunks
 z = zarr.create_array(
     store="sharded.zarr",
     shape=(10000, 10000),
-    chunks=(2500, 2500),     # shard size (4 shard files)
-    shards=(500, 500),       # inner chunk size (25 chunks per shard)
+    chunks=(500, 500),       # inner chunk: the read unit (25 per shard)
+    shards=(2500, 2500),     # shard: the stored object; must be a multiple of chunks
     dtype="float32",
 )
 
@@ -163,11 +165,13 @@ z[:] = np.random.randn(10000, 10000).astype("float32")
 subset = z[0:500, 0:500]
 
 # Object count comparison:
-# No sharding:  100,000 objects (10000/100)²
-# With sharding: 4 shard files + metadata
+# No sharding:   400 chunk objects (10000/500)²
+# With sharding: 16 shard objects (10000/2500)² + metadata
 ```
 
-**Trade-off:** Shards are the minimum write unit — the full shard must fit in memory. Target 100 MB–1 GB shard sizes.
+`z.chunks` reports the inner chunk shape and `z.shards` the shard shape. Swapping the two (`chunks` larger than `shards`) raises `ValueError`, and Zarr format 2 rejects `shards=`.
+
+**Trade-off:** the shard is the write unit. A write that covers part of a shard reads, re-encodes and rewrites the whole shard, so the full shard must fit in memory, and parallel writers must each own whole shards (see Pattern 6). Target 100 MB–1 GB shard sizes.
 
 ---
 
@@ -181,21 +185,23 @@ import numpy as np
 from multiprocessing import Pool
 
 # ── Concurrent reads: always safe, no locks needed ──
-z = zarr.open_array("data.zarr", mode="r")
-# Multiple threads/processes can read simultaneously
+# Multiple threads/processes can open the same array with mode="r" and read simultaneously.
 
-# ── Concurrent writes: safe IF writing to non-overlapping chunks ──
+# ── Concurrent writes: safe when each writer covers whole, distinct chunks ──
 def write_chunk(args):
     idx, path = args
     z = zarr.open_array(path, mode="r+")
     start = idx * 1000
-    z[start:start+1000] = np.random.randn(1000).astype("float32")
+    z[start:start+1000] = np.random.randn(1000).astype("float32")  # exactly chunk idx
 
-z = zarr.create_array(store="parallel.zarr", shape=(10000,), chunks=(1000,), dtype="float32")
-with Pool(4) as pool:
-    pool.map(write_chunk, [(i, "parallel.zarr") for i in range(10)])
-
-# ── CRITICAL for Blosc + multiprocessing ──
-from numcodecs import blosc
-blosc.use_threads = False  # prevents silent data corruption
+if __name__ == "__main__":  # required where multiprocessing spawns workers (macOS, Windows)
+    zarr.create_array(store="parallel.zarr", shape=(10000,), chunks=(1000,), dtype="float32")
+    with Pool(4) as pool:
+        pool.map(write_chunk, [(i, "parallel.zarr") for i in range(10)])
 ```
+
+- **Same chunk, two writers:** each writer reads the chunk, changes its part and writes the whole chunk back, so the later write erases the other's values, even when their slices don't overlap.
+- **Sharded arrays:** the same applies per shard. Give each writer whole shards, even when its slices cover whole inner chunks.
+- **No synchronizers:** zarr-python 3 removed `ThreadSynchronizer` and `ProcessSynchronizer`. `synchronizer=` is accepted but does nothing beyond a `ZarrRuntimeWarning`. Align work to chunk (shard) boundaries, or funnel writes to a shared chunk through one writer.
+- **I/O concurrency** (both formats): `zarr.config.set({"async.concurrency": 4})` limits zarr's concurrent I/O per process (default 10). Lower it when many Dask threads or processes each run zarr I/O.
+- **Blosc threading** under multiprocessing is a codec setting: see the **compression-codecs** skill.

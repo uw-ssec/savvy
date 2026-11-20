@@ -4,10 +4,11 @@
 
 | Section | Lines | Description |
 |---------|-------|-------------|
-| Core Principles | 16–177 | Minimum runs, cache clearing, parameter isolation, environment control, sampling, timing, and warm-up |
-| Common Pitfalls to Avoid | 178–258 | Six frequent mistakes and their fixes (caching, small data, lazy compute, network variance, rechunking, metadata) |
-| Recommended Workflow | 259–276 | Step-by-step procedure for a complete benchmark session |
-| Output Format | 277–291 | Structured markdown table format for reporting results |
+| Core Principles | 17–179 | Minimum runs, cache clearing, parameter isolation, environment control, sampling, timing, and warm-up |
+| Common Pitfalls to Avoid | 180–267 | Six frequent mistakes and their fixes (caching, small data, lazy compute, network variance, rechunking, metadata) |
+| Recommended Workflow | 268–285 | Step-by-step procedure for a complete benchmark session |
+| Output Format | 286–304 | Structured markdown table format for reporting results |
+| Script Output | 305–336 | JSON written by benchmark_runner.py and which fields to trust |
 
 ---
 
@@ -56,25 +57,24 @@ sudo sh -c 'echo 3 > /proc/sys/vm/drop_caches'
 
 #### fsspec Cache
 
-Python's `fsspec` library (used by xarray for remote data access) maintains its own cache.
+`fsspec` (used by xarray and zarr for remote stores) only caches chunk bytes when you ask it to, by chaining a caching protocol in front of the URL (`simplecache::s3://...`, `filecache::s3://...`, `blockcache::s3://...`). A plain `s3://` or `gs://` URL fetches from storage on every read.
 
-**Disable fsspec caching:**
 ```python
-import fsspec
+import xarray as xr
 
-# Option 1: Disable caching entirely
-ds = xr.open_zarr(
-    fsspec.get_mapper("s3://bucket/data.zarr",
-                      client_kwargs={'config': Config(signature_version=UNSIGNED)},
-                      cache_storage=None)  # Disable cache
-)
+# Benchmark: plain URL, no caching layer
+ds = xr.open_zarr("s3://bucket/data.zarr", storage_options={"anon": True})
 
-# Option 2: Clear cache between runs
-fsspec.config.conf['cache_storage'] = '/tmp/fsspec_cache'
-# Then manually delete /tmp/fsspec_cache between runs
+# NOT for benchmarking: caches every chunk on local disk after the first read
+ds = xr.open_zarr("simplecache::s3://bucket/data.zarr",
+                  storage_options={"s3": {"anon": True}})
 ```
 
-**When to clear:** Between runs, or disable entirely for benchmarking.
+`fsspec.config.conf` holds default keyword arguments per protocol (`conf["s3"] = {...}`); it has no global cache switch. `benchmark_runner.py`'s `clear_fsspec_cache()` only empties fsspec's cache of filesystem instances between runs; it does not touch the already-open dataset, the OS page cache, or a caching protocol in the dataset URL.
+
+**Local stores and the script:** all timed runs happen in one process after a warm-up read of the same selection, so the OS page cache is warm for every timed run. Local results therefore measure decode and framework cost, not disk I/O. Clearing the page cache before the call does not change that. For cold reads, benchmark on the target object store or time reads yourself with a cache clear before each run.
+
+**When to clear:** Never benchmark through a caching protocol. Clear the OS page cache (above) between runs for local stores.
 
 ### 3. Vary One Parameter at a Time
 
@@ -132,7 +132,9 @@ env_info = {
 **Example:**
 ```python
 # If chunk shape is (50, 256, 256) and data shape is (10000, 2048, 2048)
-# Sample: 500 time steps (10 chunks), full spatial extent
+# Sample: 500 time steps (10 chunks along time), full spatial extent.
+# A map read at one time step then touches 8 x 8 = 64 chunks, and a time
+# series at one pixel touches 10.
 sample_ds = full_ds.isel(time=slice(0, 500))
 ```
 
@@ -144,7 +146,7 @@ sample_ds = full_ds.isel(time=slice(0, 500))
 import time
 
 start = time.perf_counter()
-result = ds.sel(time=42).compute()
+result = ds.isel(time=42).compute()
 end = time.perf_counter()
 
 wall_time = end - start
@@ -162,7 +164,7 @@ wall_time = end - start
 
 ```python
 # Warm-up (not timed)
-_ = ds.sel(time=0).compute()
+_ = ds.isel(time=0).compute()
 gc.collect()
 
 # Timed runs
@@ -170,7 +172,7 @@ times = []
 for i in range(5):
     clear_cache()  # OS and fsspec
     start = time.perf_counter()
-    result = ds.sel(time=i).compute()
+    result = ds.isel(time=i).compute()
     end = time.perf_counter()
     times.append(end - start)
 ```
@@ -181,9 +183,9 @@ for i in range(5):
 
 **Symptom:** First run is slow (10 s), subsequent runs are fast (0.5 s).
 
-**Cause:** OS page cache is serving data from RAM instead of reading from S3.
+**Cause:** For a local store, the OS page cache is serving chunk files from RAM instead of disk. For S3/GCS the OS page cache is not involved: look for a caching protocol (`simplecache::`) in the URL, or first-run connection setup (warm-up handles that).
 
-**Fix:** Clear cache between every run (see section 2).
+**Fix:** Clear the OS page cache between runs for local stores; never benchmark through a caching protocol (see section 2).
 
 ### Pitfall 2: Testing on Unrealistically Small Data
 
@@ -215,19 +217,26 @@ for i in range(5):
 
 **Cause:** Rechunking the sample data **inside** the benchmark loop.
 
-**Fix:** Rechunk **once** before benchmarking, then run access pattern benchmarks on the pre-rechunked data.
+**Fix:** Rechunk **once** before benchmarking, then run access pattern benchmarks on the pre-rechunked data. This is also how `benchmark_runner.py` works: it reads the store's existing layout, and `--configs` is only a label, so each candidate needs its own store.
 
 ```python
-# Correct approach
-for config in chunk_configs:
-    # Rechunk sample (not timed)
-    rechunked = sample_ds.chunk(config)
-    rechunked.to_zarr(f"temp_rechunked_{config}.zarr")
+# Correct approach: one store per candidate (not timed)
+for config in chunk_configs:              # e.g. (1000, 32, 32)
+    label = "x".join(map(str, config))
+    target = dict(zip(sample_ds["t2m"].dims, config))
+    rechunked = sample_ds.chunk(target)   # Dataset.chunk needs a dict, not a tuple
+    for var in rechunked.variables.values():
+        # Otherwise the source's on-disk chunks are written again
+        var.encoding.pop("chunks", None)
+        var.encoding.pop("preferred_chunks", None)
+    rechunked.to_zarr(f"sample_c{label}.zarr", mode="w")
+```
 
-    # Benchmark access patterns (timed)
-    test_ds = xr.open_zarr(f"temp_rechunked_{config}.zarr")
-    for run in range(5):
-        # ... timed access operations ...
+```bash
+# Benchmark access patterns (timed), once per store
+python scripts/benchmark_runner.py --dataset sample_c1000x32x32.zarr \
+  --configs "1000,32,32" --slice-dims 0 --traverse-dims 0 --runs 5 \
+  --output results_c1000x32x32.json
 ```
 
 ### Pitfall 6: Not Recording Configuration Details
@@ -280,12 +289,48 @@ Report results in structured markdown tables:
 
 ```markdown
 ## Spatial Access Pattern (load full frequency×baseline at single time)
+Array: (10000, 2048, 2048) float32, so the result is 16 MiB.
 
-| Chunk Shape | Wall Time (mean ± std) | Min | Max | Peak Memory | HTTP Requests |
-|-------------|------------------------|-----|-----|-------------|---------------|
-| (10, 512, 512) | 8.3 s ± 0.7 s | 7.4 s | 9.6 s | 1.2 GB | 142 |
-| (50, 512, 512) | 9.1 s ± 0.9 s | 8.0 s | 10.8 s | 6.3 GB | 28 |
-| (100, 512, 512) | 10.2 s ± 1.1 s | 8.9 s | 12.1 s | 12.5 GB | 14 |
+| Chunk Shape | Chunk Size | Wall Time (mean ± std) | Min | Max | Peak Memory | Chunk GETs |
+|-------------|------------|------------------------|-----|-----|-------------|------------|
+| (10, 512, 512) | 10 MiB | 2.1 s ± 0.2 s | 1.8 s | 2.4 s | 0.3 GB | 16 |
+| (50, 512, 512) | 50 MiB | 8.3 s ± 0.7 s | 7.4 s | 9.6 s | 1.4 GB | 16 |
+| (100, 512, 512) | 100 MiB | 16.2 s ± 1.1 s | 14.9 s | 17.8 s | 2.8 GB | 16 |
 ```
 
+Every row reads the same 4 × 4 = 16 chunks; what grows is the bytes fetched per chunk (160 MiB, 800 MiB, 1.6 GiB uncompressed). Larger time chunks never reduce the request count for a single-time-step read.
+
 Include similar tables for each access pattern, followed by a **Recommendations** section explaining which configuration(s) to use based on the user's priorities.
+
+## Script Output
+
+`benchmark_runner.py` writes one JSON file per call:
+
+```json
+{
+  "metadata": {"timestamp": "...", "dataset": "...", "num_runs": 5,
+               "python_version": "...", "platform": "...", "processor": "...",
+               "dimensions": ["time", "lat", "lon"], "num_dimensions": 3},
+  "benchmarks": [
+    {"dataset": "...", "chunk_config": [1000, 32, 32],
+     "access_pattern": "traverse", "dim_index": 0, "dimension_name": "time",
+     "num_runs": 5, "dimensions": ["time", "lat", "lon"], "shape": [8760, 721, 1440],
+     "statistics": {
+       "wall_time": {"mean": 0.0, "std": 0.0, "min": 0.0, "max": 0.0, "values": []},
+       "peak_memory_mb": {"...": "same fields"},
+       "throughput_mbps": {"...": "same fields"},
+       "data_size_mb": {"...": "same fields"},
+       "http_requests": {"...": "same fields"},
+       "dask_tasks": {"...": "same fields"}}},
+    {"chunk_config": [1000, 32, 32], "access_pattern": "slice", "dim_index": 0,
+     "error": "..."}
+  ]
+}
+```
+
+- `chunk_config` is the `--configs` label, not a measured property of the store.
+- One entry per config × pattern × dimension. Entries with `error` failed; the script still exits 0.
+- `std` is the population standard deviation (`np.std`, ddof=0), slightly smaller than the sample standard deviation for 5–10 runs.
+- `ttfb` and `chunk_utilization` are placeholders (`None`), not measurements.
+- `http_requests` counts `GET`/`HEAD` lines in fsspec debug logs: approximate for S3/GCS, 0 for local stores.
+- `peak_memory_mb` comes from `tracemalloc`, which sees NumPy buffers but may miss memory allocated inside compression libraries.

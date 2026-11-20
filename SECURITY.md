@@ -30,7 +30,7 @@ Please include:
 
 - The affected plugin and file path (for example `plugins/<plugin>/skills/<skill>/SKILL.md`), and the commit you looked at
 - What the problem is, and what an attacker or a misled agent could do with it
-- The agent client and version you used to reproduce it (for example Claude Code, GitHub Copilot CLI, VS Code, Codex, Gemini CLI, Cursor or OpenCode), with the prompt or steps
+- The agent client and version you used to reproduce it (for example Claude Code, GitHub Copilot CLI, VS Code, Codex, Antigravity CLI, Cursor or OpenCode), with the prompt or steps
 - Any fix you'd suggest
 
 ## What to expect

@@ -22,7 +22,7 @@ Observed 2025–2026, verified 2026-11: major incidents were maintainer account 
 
 ## Rules
 
-1. **Lockfile only.** Commit it. CI's install command must fail on a stale lockfile (table below). No `*` or `latest` in manifests.
+1. **Lockfile only.** Commit it. CI's install command must fail on a stale lockfile. No `*` or `latest` in manifests.
 2. **Install scripts off.** Never drop `--ignore-scripts`, even once. Rebuild only what needs it:
 
    ```bash
@@ -31,8 +31,8 @@ Observed 2025–2026, verified 2026-11: major incidents were maintainer account 
    ```
 
    npm 12+: approve it first (`npm install-scripts approve <package>`, commit `package.json`).
-3. **7-day cooldown.** Nothing younger merges. Cooldown settings filter resolution, not locked versions. Check the age of every version a lockfile diff adds: `npm view <package> time`, or the cooldown check in `supply-chain-threat-awareness`.
-4. **Check the publisher.** Compare with earlier releases (`npm view <package>@<version> _npmUser`), run `npm audit signatures`, read `npm diff --diff=<package>@<old> --diff=<package>@<new>`. A first-time publisher on an established package is the takeover pattern: hold the version.
+3. **7-day cooldown.** Nothing younger merges. Cooldown settings filter resolution, not locked versions. Age-check every version a lockfile diff adds: `npm view <package> time`, PyPI `https://pypi.org/pypi/<package>/<version>/json` (`upload_time_iso_8601`), `pixi search <package>==<version>`.
+4. **Check the publisher.** Compare with earlier releases (`npm view <package>@<version> _npmUser`), run `npm audit signatures`, read `npm diff --diff=<package>@<old> --diff=<package>@<new>`. A first-time publisher on an established package signals takeover: hold the version.
 5. **`.pth` files:** use the PyPI `.pth` check in `supply-chain-ecosystem-quirks`.
 6. **Findings:** class, `<package>@<version>`, advisory or campaign, install-time reach, fix.
 
@@ -47,7 +47,7 @@ Observed 2025–2026, verified 2026-11: major incidents were maintainer account 
 | Poetry | `poetry install` (refuses a stale lock) | `poetry config --local solver.min-release-age 7` (2.4+) |
 | pip | `pip install --require-hashes -r requirements.txt` | `--uploaded-prior-to P7D` (26.1+) |
 | pixi | `pixi install --locked` | `[workspace]`: `exclude-newer = "7d"` (0.67+) |
-| conda-lock | `conda-lock install -n <env> conda-lock.yml` | none |
+| conda-lock | `conda-lock lock --check-input-hash -p <platform>`, `git diff --exit-code conda-lock.yml`, then `conda-lock install -n <env> conda-lock.yml` | none |
 
 Bots: Dependabot `cooldown:` with `default-days: 7`; Renovate `"minimumReleaseAge": "7 days"`. Neither delays security updates.
 
@@ -61,12 +61,12 @@ Bots: Dependabot `cooldown:` with `default-days: 7`; Renovate `"minimumReleaseAg
 
 ## Red Flags
 
-- Removing or bypassing `--ignore-scripts` for any build
+- Bypassing `--ignore-scripts` for any build
 - A version under 7 days old, or from a first-time publisher
 
 **Either one: keep the control, hold the version.**
 
 ## Common Mistakes
 
-- **`pixi install` in CI:** rewrites `pixi.lock` when the manifest changed; `--frozen` skips the check. Use `--locked`. Same for `uv sync --frozen`.
+- **`pixi install` in CI:** rewrites `pixi.lock` on manifest changes; `--frozen` skips the check. Use `--locked`. Same for `uv sync --frozen`.
 - **`ignore-scripts=true` in `.npmrc`:** `npm rebuild <package>` silently runs nothing. Add `--ignore-scripts=false` to that rebuild.

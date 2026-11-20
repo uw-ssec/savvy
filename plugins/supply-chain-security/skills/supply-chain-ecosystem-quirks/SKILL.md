@@ -28,7 +28,7 @@ Not for: a known compromise (`supply-chain-incident-response`), campaign exposur
 | Script | Purpose |
 |--------|---------|
 | `bash scripts/quick-check.sh <project-dir>` | All checks for the detected ecosystems |
-| `bash scripts/quick-check.sh --pth-only [--env <env-prefix>] <project-dir>` | The PyPI `.pth` check alone: standard startup files are INFO, unknown code-executing `.pth`/`.start` files FAIL. Rules: ".pth Check (Canonical)" in `references/pypi-quirks.md` |
+| `bash scripts/quick-check.sh --pth-only [--env <env-prefix>] <project-dir>` | The PyPI `.pth` check alone: standard startup files from their own tool are INFO; unknown code-executing `.pth`/`.start` files, or a standard one from another package, FAIL. Rules: ".pth Check (Canonical)" in `references/pypi-quirks.md` |
 
 | Ecosystem | Trigger files | Reference |
 |-----------|---------------|-----------|

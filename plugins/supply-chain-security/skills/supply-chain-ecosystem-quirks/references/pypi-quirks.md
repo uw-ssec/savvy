@@ -39,22 +39,26 @@ It scans the site directories of `python3` and `python` on `PATH` (`site.getsite
 
 - `pypi INFO: scanned N .pth/.start files in DIR`: one line per site directory, so an empty scan is visible.
 - Path-only `.pth` files run no code and are not reported.
-- `pypi INFO: known startup code in FILE: ORIGIN`: the file name and every code line match the exact text written by one of the tools below.
-- `pypi FAIL: unknown startup code in FILE (owner: DIST): FIRST-LINE`: any other code-executing `.pth` or `.start`. The owner comes from the `RECORD` files of installed packages. `no installed package lists it` means an installer did not put it there.
+- `pypi INFO: known startup code in FILE: ORIGIN (owner: DIST)`: the file name and every code line match the exact text written by one of the tools below, and the file and the module it imports belong to that tool.
+- `pypi FAIL: startup code in FILE looks like ORIGIN, but PROBLEM (owner: DIST)`: name and code match, but another package installed the file or its module. This is how a wheel imitates a known file: it ships `_editable_impl_<name>.pth` and its own `_editable_impl_<name>.py`, or overwrites `_distutils_hack`.
+- `pypi WARN: startup code in FILE looks like ORIGIN, but no RECORD or conda-meta names its owner`: installed outside pip, uv and conda, for example by an OS package manager. Confirm the owner with it (`dpkg -S FILE`, `rpm -qf FILE`). A wheel always writes a `RECORD`, so a wheel-installed file never lands here.
+- `pypi FAIL: unknown startup code in FILE (owner: DIST): FIRST-LINE`: any other code-executing `.pth` or `.start`.
 
-| File | Written by | Code line |
-|------|------------|-----------|
-| `distutils-precedence.pth` | setuptools >= 49.3 | `import os; ... 'SETUPTOOLS_USE_DISTUTILS' ... add_shim();` |
-| `_virtualenv.pth` | `uv venv`, virtualenv 20.x | `import _virtualenv` |
-| `__editable__.<dist>-<ver>.pth` | setuptools editable install (finder mode) | `import __editable___<dist>_<ver>_finder; ...install()` |
-| `_editable_impl_<dist>.pth` | `editables` (hatchling `dev-mode-exact`) | `import _editable_impl_<dist>` |
-| `_editable_skbc_<dist>.pth` / `.start` | scikit-build-core editable install | `import _editable_skbc_<dist>` / `_editable_skbc_<dist>:entrypoint` |
-| `<dist>-editable.pth` / `.start` | meson-python editable install | `import _<dist>_editable_loader; ...init()` / `..._loader:init` |
-| `<dist>-<ver>-py3.X-nspkg.pth` | setuptools namespace packages (matplotlib <= 3.7) | setuptools' generated line (31.x, 36–69 or 75+ template) for the package it names, character for character |
-| `a1_coverage.pth` | coverage >= 7.13 | `import sys; exec(...)` that starts coverage only if `COVERAGE_PROCESS_START`/`_CONFIG` is set |
-| `pytest-cov.pth` | pytest-cov < 7 | `import os, sys;exec(...)` gated on `COV_CORE_SOURCE` |
+Owners come from the `RECORD` files of installed wheels and, in a conda or pixi env, from `conda-meta/*.json` (conda-forge's setuptools has no `RECORD`). `none recorded` means neither lists the file.
 
-A known file name is not enough: a known name with any extra code FAILs. A tool that changes its text in a new release also FAILs. Read the whole file, and if it does only what the table row describes, report it as INFO and quote the new text.
+| File | Written by | Code line | File and imported module must belong to |
+|------|------------|-----------|------------------------------------------|
+| `distutils-precedence.pth` | setuptools >= 49.3 | `import os; ... 'SETUPTOOLS_USE_DISTUTILS' ... add_shim();` | `setuptools` only |
+| `_virtualenv.pth` | `uv venv`, virtualenv 20.x | `import _virtualenv` | no package, in a venv whose `pyvenv.cfg` has a `uv` or `virtualenv` key |
+| `__editable__.<dist>-<ver>.pth` | setuptools editable install (finder mode) | `import __editable___<dist>_<ver>_finder; ...install()` | one package whose `direct_url.json` has `"editable": true` |
+| `_editable_impl_<dist>.pth` | `editables` (hatchling `dev-mode-exact`) | `import _editable_impl_<dist>` | same |
+| `_editable_skbc_<dist>.pth` / `.start` | scikit-build-core editable install | `import _editable_skbc_<dist>` / `_editable_skbc_<dist>:entrypoint` | same |
+| `<dist>-editable.pth` / `.start` | meson-python editable install | `import _<dist>_editable_loader; ...init()` / `..._loader:init` | same |
+| `<dist>-<ver>-py3.X-nspkg.pth` | setuptools namespace packages (matplotlib <= 3.7) | setuptools' generated line (31.x, 36–69 or 75+ template) for the package it names, character for character | not checked: the line imports no module |
+| `a1_coverage.pth` | coverage >= 7.13 | `import sys; exec(...)` that starts coverage only if `COVERAGE_PROCESS_START`/`_CONFIG` is set | `coverage` only |
+| `pytest-cov.pth` | pytest-cov < 7 | `import os, sys;exec(...)` gated on `COV_CORE_SOURCE` | `pytest-cov` only |
+
+A known file name is not enough: a known name with any extra code FAILs, and so does a known file from the wrong owner. A tool that changes its text in a new release also FAILs. Read the whole file, and if it does only what the table row describes and its owner fits, report it as INFO and quote the new text.
 
 **On a FAIL:** don't start that interpreter, because every start runs the code. Copy the file for evidence and treat the environment as compromised. Follow the `supply-chain-incident-response` skill.
 

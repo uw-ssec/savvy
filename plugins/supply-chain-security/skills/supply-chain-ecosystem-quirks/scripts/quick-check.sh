@@ -96,7 +96,7 @@ logical() {
     }
     END { out() }' "$@" 2>/dev/null
 }
-# Split each logical command into single commands at &&, ||, ;, and | outside
+# Split each logical command into single commands at &&, ||, ;, |, ( and ) outside
 # shell quotes and ${{ }} expressions; each keeps its logical command's start line.
 # A YAML-quoted scalar is unquoted first. YAML step names are left whole.
 commands() {
@@ -116,7 +116,7 @@ commands() {
         if (q == "\"") { if (ch == q) q = ""; piece = piece ch; continue }
         if (substr(c, i, 3) == "${{" && (j = index(substr(c, i), "}}")) > 0) { piece = piece substr(c, i, j + 1); i += j; continue }
         if (ch == "\"" || ch == "\047") q = ch
-        else if (ch == ";" || ch == "|" || substr(c, i, 2) == "&&") { emit(); if (substr(c, i, 2) ~ /^(&&|[|][|])$/) i++; continue }
+        else if (ch == ";" || ch == "|" || ch == "(" || ch == ")" || substr(c, i, 2) == "&&") { emit(); if (substr(c, i, 2) ~ /^(&&|[|][|])$/) i++; continue }
         piece = piece ch
       }
       emit()
@@ -349,32 +349,41 @@ pth_scan() {
     say pypi WARN "no Python site directories found; .pth/.start scan skipped"
     return 0
   fi
-  # Known-good files must match both the name and the exact code their tool writes.
+  # Known-good files must match the name and the exact code their tool writes, and
+  # the .pth/.start file and the module it imports must belong to that tool.
   if ! "$scanner" -I -S - "${dirs[@]}" <<'PY'
-import csv, glob, os, re, sys
+import csv, glob, json, os, re, sys
 
-KNOWN = [  # (file-name regex, regex every code line must fully match, origin)
+VENV, EDITABLE = "venv", "editable"
+KNOWN = [  # (file-name regex, regex every code line must fully match, origin, owner, module)
+    # owner: the package that must install the file and the module it imports; EDITABLE =
+    # one editable install; VENV = no package, in a venv uv or virtualenv created.
+    # module: the module the code imports; None = group 1 of the line regex.
     (r"distutils-precedence\.pth",
      r"import os; (var = 'SETUPTOOLS_USE_DISTUTILS'; enabled = os\.environ\.get\(var, '(local|stdlib)'\)|"
      r"enabled = os\.environ\.get\('SETUPTOOLS_USE_DISTUTILS'\)) == 'local'; "
-     r"enabled and __import__\('_distutils_hack'\)\.add_shim\(\);?", "setuptools >= 49.3 distutils shim"),
-    (r"_virtualenv\.pth", r"import _virtualenv", "uv venv, or virtualenv 20.x"),
-    (r"__editable__\..+\.pth", r"import (__editable___\w+_finder); \1\.install\(\)", "setuptools editable install"),
-    (r"_editable_impl_(\w+)\.pth", r"import _editable_impl_\w+", "editables-based editable install, e.g. hatchling dev-mode-exact"),
-    (r"_editable_skbc_(\w+)\.pth", r"import _editable_skbc_\w+", "scikit-build-core editable install"),
-    (r"_editable_skbc_(\w+)\.start", r"_editable_skbc_\w+:entrypoint", "scikit-build-core editable install"),
-    (r".+-editable\.pth", r"import (_\w+_editable_loader); \1\.init\(\)", "meson-python editable install"),
-    (r".+-editable\.start", r"_\w+_editable_loader:init", "meson-python editable install"),
+     r"enabled and __import__\('_distutils_hack'\)\.add_shim\(\);?", "setuptools >= 49.3 distutils shim",
+     "setuptools", "_distutils_hack"),
+    (r"_virtualenv\.pth", r"import _virtualenv", "uv venv, or virtualenv 20.x", VENV, "_virtualenv"),
+    (r"__editable__\..+\.pth", r"import (__editable___\w+_finder); \1\.install\(\)", "setuptools editable install",
+     EDITABLE, None),
+    (r"_editable_impl_\w+\.pth", r"import (_editable_impl_\w+)", "editables-based editable install, e.g. hatchling dev-mode-exact",
+     EDITABLE, None),
+    (r"_editable_skbc_\w+\.pth", r"import (_editable_skbc_\w+)", "scikit-build-core editable install", EDITABLE, None),
+    (r"_editable_skbc_\w+\.start", r"(_editable_skbc_\w+):entrypoint", "scikit-build-core editable install", EDITABLE, None),
+    (r".+-editable\.pth", r"import (_\w+_editable_loader); \1\.init\(\)", "meson-python editable install", EDITABLE, None),
+    (r".+-editable\.start", r"(_\w+_editable_loader):init", "meson-python editable install", EDITABLE, None),
     (r"a1_coverage\.pth",
      r"import sys; exec\('(\\n)*import os\\n\\nif os\.getenv\(\"COVERAGE_PROCESS_START\"\) or "
      r"os\.getenv\(\"COVERAGE_PROCESS_CONFIG\"\):\\n try:\\n  import coverage\\n except:\\n  pass\\n else:\\n  "
-     r"coverage\.process_startup\(slug=\"pth\"\)(\\n)*'\)", "coverage >= 7.13 subprocess measurement"),
+     r"coverage\.process_startup\(slug=\"pth\"\)(\\n)*'\)", "coverage >= 7.13 subprocess measurement",
+     "coverage", "coverage"),
     (r"pytest-cov\.pth",
      re.escape("import os, sys;exec('if \\'COV_CORE_SOURCE\\' in os.environ:\\n try:\\n  from pytest_cov.embed "
                "import init\\n  init()\\n except Exception as exc:\\n  sys.stderr.write(\\n   \"pytest-cov: Failed "
                "to setup subprocess coverage. \"\\n   \"Environ: {0!r} \"\\n   \"Exception: {1!r}\\\\n\".format(\\n"
                "    dict((k, v) for k, v in os.environ.items() if k.startswith(\\'COV_CORE\\')),\\n    exc\\n   )\\n"
-               "  )\\n')"), "pytest-cov < 7 subprocess support"),
+               "  )\\n')"), "pytest-cov < 7 subprocess support", "pytest_cov", "pytest_cov"),
 ]
 # setuptools' *-nspkg.pth line templates (namespaces.py _nspkg_tmpl): 31.x, 36-69, 75+.
 NSPKG_HEAD = "import sys, types, os;"
@@ -432,23 +441,118 @@ def code_lines(path):
 
 
 def known(name, lines):
+    """(origin, owner rule, imported module) for known-good code, else None. The
+    namespace-package lines import no module, so they get no owner rule."""
     if name.endswith("-nspkg.pth") and all(nspkg_line(ln) for ln in lines):
-        return "setuptools namespace package, e.g. matplotlib <= 3.7"
-    for name_re, line_re, origin in KNOWN:
+        return "setuptools namespace package, e.g. matplotlib <= 3.7", None, None
+    for name_re, line_re, origin, rule, module in KNOWN:
         if re.fullmatch(name_re, name) and all(re.fullmatch(line_re, ln) for ln in lines):
-            return origin
+            return origin, rule, module or re.fullmatch(line_re, lines[0]).group(1)
     return None
 
 
-def owner(sitedir, name):
-    for record in glob.glob(os.path.join(sitedir, "*.dist-info", "RECORD")):
-        try:
-            with open(record, newline="", encoding="utf-8") as f:
-                if any(row and row[0] == name for row in csv.reader(f)):
-                    return os.path.basename(os.path.dirname(record))[: -len(".dist-info")]
-        except OSError:
-            pass
-    return "no installed package lists it"
+def norm(dist):
+    return re.sub(r"[-_.]+", "_", dist).lower()
+
+
+def up(sitedir, test):
+    """The nearest of the site dir's three parents for which test(dir) is true, or None."""
+    d = sitedir
+    for _ in range(3):
+        d = os.path.dirname(d)
+        if test(d):
+            return d
+    return None
+
+
+FILES = {}
+
+
+def files_of(sitedir):
+    """Map each path under sitedir to the packages that installed it, from wheel RECORD
+    files and, in a conda or pixi env, conda-meta (conda packages have no RECORD)."""
+    if sitedir not in FILES:
+        files = FILES[sitedir] = {}
+        for record in glob.glob(os.path.join(sitedir, "*.dist-info", "RECORD")):
+            dist = norm(os.path.basename(os.path.dirname(record))[: -len(".dist-info")].rpartition("-")[0])
+            try:
+                with open(record, newline="", encoding="utf-8") as f:
+                    for row in csv.reader(f):
+                        if row:
+                            files.setdefault(row[0], set()).add(dist)
+            except OSError:
+                pass
+        prefix = up(sitedir, lambda d: os.path.isdir(os.path.join(d, "conda-meta")))
+        if prefix:
+            rel = os.path.relpath(sitedir, prefix).replace(os.sep, "/") + "/"
+            for meta in glob.glob(os.path.join(prefix, "conda-meta", "*.json")):
+                try:
+                    with open(meta, encoding="utf-8") as f:
+                        pkg = json.load(f)
+                except (OSError, ValueError):
+                    continue
+                for path in pkg.get("files", []):
+                    if path.startswith(rel):
+                        files.setdefault(path[len(rel):], set()).add(norm(pkg.get("name", "?")))
+    return FILES[sitedir]
+
+
+def owners(sitedir, name, module):
+    """Packages that installed the file, and packages that installed the module it imports."""
+    files = files_of(sitedir)
+    mod = set()
+    if module:
+        for path, dists in files.items():
+            head = path.split("/", 1)[0]
+            if head.split(".", 1)[0] == module:  # module.py, module/..., module.<abi>.so
+                mod |= dists
+    return files.get(name, set()), mod
+
+
+def editable(sitedir, dist):
+    for info in glob.glob(os.path.join(sitedir, "*.dist-info")):
+        if norm(os.path.basename(info)[: -len(".dist-info")].rpartition("-")[0]) == dist:
+            try:
+                with open(os.path.join(info, "direct_url.json"), encoding="utf-8") as f:
+                    return json.load(f).get("dir_info", {}).get("editable") is True
+            except (OSError, ValueError, AttributeError):
+                return False
+    return False
+
+
+def venv_by_tool(sitedir):
+    """True if the site dir is in a venv whose pyvenv.cfg has a uv or virtualenv key."""
+    prefix = up(sitedir, lambda d: os.path.isfile(os.path.join(d, "pyvenv.cfg")))
+    if not prefix:
+        return False
+    try:
+        with open(os.path.join(prefix, "pyvenv.cfg"), encoding="utf-8") as f:
+            return any(ln.partition("=")[0].strip().lower() in ("uv", "virtualenv") for ln in f if "=" in ln)
+    except OSError:
+        return False
+
+
+def judge(sitedir, name, rule, module):
+    """(level, problem, owner text) for a file whose name and code are known-good."""
+    pth, mod = owners(sitedir, name, module)
+    who = ", ".join(sorted(pth | mod)) or "none recorded"
+    if rule is None:
+        return "INFO", "", who
+    if rule == VENV:
+        if pth or mod:
+            return "FAIL", "installed by a package, not by uv or virtualenv", who
+        if not venv_by_tool(sitedir):
+            return "FAIL", "not in a venv whose pyvenv.cfg names uv or virtualenv", who
+        return "INFO", "", who
+    if rule == EDITABLE:
+        if len(pth) != 1 or mod != pth or not editable(sitedir, next(iter(pth))):
+            return "FAIL", "file and %s are not from one editable install (direct_url.json)" % module, who
+        return "INFO", "", who
+    if not pth and not mod:
+        return "WARN", "no RECORD or conda-meta names its owner; confirm it with the package manager that installed %s" % rule, who
+    if pth != {rule} or mod != {rule}:
+        return "FAIL", "file and %s must both belong to %s only" % (module, rule), who
+    return "INFO", "", who
 
 
 fails = 0
@@ -468,13 +572,19 @@ for sitedir in dict.fromkeys(sys.argv[1:]):
             continue
         if not lines:
             continue  # path entries only
-        origin = known(name, lines)
-        if origin:
-            print("pypi INFO: known startup code in %s: %s" % (path, origin))
+        match = known(name, lines)
+        if match:
+            origin, rule, module = match
+            level, problem, who = judge(sitedir, name, rule, module)
+            if level == "INFO":
+                print("pypi INFO: known startup code in %s: %s (owner: %s)" % (path, origin, who))
+            else:
+                fails += level == "FAIL"
+                print("pypi %s: startup code in %s looks like %s, but %s (owner: %s)" % (level, path, origin, problem, who))
         else:
             fails += 1
             print("pypi FAIL: unknown startup code in %s (owner: %s): %s"
-                  % (path, owner(sitedir, name), lines[0][:160]))
+                  % (path, ", ".join(sorted(owners(sitedir, name, None)[0])) or "none recorded", lines[0][:160]))
 sys.exit(1 if fails else 0)
 PY
   then

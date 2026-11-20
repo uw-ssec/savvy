@@ -17,7 +17,7 @@
     },
     {
       "id": "hardening-research-code-002",
-      "prompt": "I have a simulation script that integrates a damped-free pendulum with a hand-written RK4 stepper. It seems to run fine but I don't trust it over long runs. Is this numerically correct? Can you add regression tests so I don't break it when I refactor?",
+      "prompt": "I have a simulation script that integrates an undamped pendulum with a hand-written RK4 stepper. It seems to run fine but I don't trust it over long runs. Is this numerically correct? Can you add regression tests so I don't break it when I refactor?",
       "expected_output": "An assessment of the pendulum RK4 integrator's numerical correctness backed by tests that use independent criteria (e.g., energy conservation drift bounds, small-angle analytic solution, convergence order check with step-size halving), plus regression tests whose baseline values are either verified against those references or explicitly labeled UNVERIFIED. Tolerances are justified from numerics.",
       "assertions": [
         "The agent identified at least one independent correctness criterion for the integrator (energy conservation, small-angle analytic solution, or RK4 convergence order) and tested against it",

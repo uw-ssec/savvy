@@ -136,7 +136,6 @@ def check_card(skill_dir: Path) -> list[str]:
 
 
 EVALS_FILE = "evals/evals.json"
-EVAL_CASE_FIELDS = ("prompt", "expected_output", "assertions")
 MIN_POSITIVE_CASES = 5
 
 
@@ -172,9 +171,17 @@ def check_evals(skill_dir: Path) -> list[str]:
                 positives += 1
             else:
                 errors.append(f"{EVALS_FILE}: id '{cid}' must be '{name}-NNN' or '{name}-neg-NNN'")
-        for field_name in EVAL_CASE_FIELDS:
-            if not case.get(field_name):
-                errors.append(f"{EVALS_FILE}: {label} needs a non-empty '{field_name}'")
+        for field_name in ("prompt", "expected_output"):
+            value = case.get(field_name)
+            if not isinstance(value, str) or not value.strip():
+                errors.append(f"{EVALS_FILE}: {label} needs a non-blank '{field_name}' string")
+        assertions = case.get("assertions")
+        if not (
+            isinstance(assertions, list)
+            and assertions
+            and all(isinstance(a, str) and a.strip() for a in assertions)
+        ):
+            errors.append(f"{EVALS_FILE}: {label} needs 'assertions' as a non-empty list of non-blank strings")
     if positives < MIN_POSITIVE_CASES:
         errors.append(f"{EVALS_FILE}: needs at least {MIN_POSITIVE_CASES} '{name}-NNN' should-trigger cases, found {positives}")
     if negatives < 1:

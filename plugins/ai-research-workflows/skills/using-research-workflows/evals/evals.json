@@ -20,7 +20,7 @@
       "prompt": "Our data loader is dropping the last partial batch and it's messing with our eval numbers. Just fix the loader, don't overthink it, it's probably a one-liner.",
       "expected_output": "The data loader's batch-dropping behavior is investigated by first reading and understanding the relevant loader code and its usage, then a fix is made or proposed that retains the final partial batch, with a note on how to verify that eval numbers are affected correctly. The fix is grounded in what the code actually does rather than assumed.",
       "assertions": [
-        "The agent checked whether a workflow skill applied (for example understanding the data loader before editing) instead of treating 'just fix it' as permission to skip the process",
+        "The agent named which workflow skill applies to this request (for example researching) or stated that none does, before making any edit",
         "The agent inspected the data loader code and identified where the last partial batch is dropped before making any edit",
         "The agent's fix addresses the partial-batch drop (for example a drop_last setting or equivalent)",
         "The agent's final response includes a way to verify the fix, such as checking batch counts or re-running the eval",

@@ -475,6 +475,16 @@ def test_evals_empty_assertions(st, tmp_path):
     assert any("assertions" in e for e in st.check_evals(d))
 
 
+@pytest.mark.parametrize(
+    "field,value",
+    [("prompt", "  "), ("expected_output", ""), ("prompt", 5), ("assertions", "one string"), ("assertions", ["ok", " "]), ("assertions", [1])],
+)
+def test_evals_rejects_blank_or_mistyped_fields(st, tmp_path, field, value):
+    d = make_skill(tmp_path, "a")
+    write_evals(d, cases=[case("a-001", **{field: value})] + [case(f"a-{i:03d}") for i in range(2, 6)] + [case("a-neg-001")])
+    assert any(field in e for e in st.check_evals(d))
+
+
 def test_evals_foreign_id(st, tmp_path):
     d = make_skill(tmp_path, "a")
     write_evals(d, cases=[case("zzz-001")] + [case(f"a-{i:03d}") for i in range(1, 6)] + [case("a-neg-001")])

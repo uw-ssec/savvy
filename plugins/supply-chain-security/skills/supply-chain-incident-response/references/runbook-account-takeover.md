@@ -6,81 +6,89 @@ An attacker compromises a package maintainer's credentials (phishing, leaked tok
 
 ## Scope Determination
 
-Search every lockfile in the repo for the affected package name. Use ecosystem-appropriate patterns.
+Search every lockfile and manifest for the package name, on every branch. Pull-request CI installs from the PR branch's lockfile, so a bad version bumped on an unmerged branch counts. `git grep` alone reads only the checkout, and `git log` without `--all` follows only the current branch. `-A3` prints the lines after each hit, where most lockfiles record the resolved version. The leading `*` also matches lockfiles in subdirectories. Each hit starts with the branch it is on.
 
-**npm / yarn / pnpm:**
 ```bash
-git grep -nE "\"<pkg>\"" -- 'package-lock.json' 'yarn.lock' 'pnpm-lock.yaml' 'package.json'
+git fetch --all
+git grep -nwF -A3 '<pkg>' $(git for-each-ref --format='%(refname)' refs/remotes) -- '*package-lock.json' '*yarn.lock' '*pnpm-lock.yaml' \
+  '*uv.lock' '*poetry.lock' '*pixi.lock' '*conda-lock.yml' '*Cargo.lock' '*go.sum' \
+  '*package.json' '*pyproject.toml' '*requirements*.txt' '*environment*.yml' '*pixi.toml' '*Cargo.toml' '*go.mod'
 ```
 
-**PyPI (pip / poetry / uv / pixi):**
+Where each lockfile records the version:
+
+- `package-lock.json`: `"version"` on the line after `"node_modules/<pkg>"`.
+- `yarn.lock`: `version` on the line after `<pkg>@<range>:`.
+- `pnpm-lock.yaml`: in the key, `<pkg>@<version>:`.
+- `uv.lock`, `poetry.lock`, `Cargo.lock`: `version` on the line after `name = "<pkg>"`.
+- `conda-lock.yml`: `version:` on the line after `name: <pkg>`.
+- `pixi.lock`: in the package URL, `<pkg>-<version>-…`.
+- `go.sum`: on the same line, `<module> v<version>`.
+
+Then find when, and on which branch, the bad version entered and left (`%S` names the branch). Search with `-G` for the version, dots escaped. `-S` counts occurrences, so it misses any commit that leaves the count unchanged: a bump searched by package name, or `<pkg>` moving to the bad version while another package moves off it. `-G` also lists commits where only other packages have that version, so confirm each hit with `git show <hash> -- <lockfile>` and read `<pkg>`'s lines.
+
 ```bash
-git grep -nE "^<pkg>==|name = \"<pkg>\"" -- 'requirements*.txt' 'poetry.lock' 'uv.lock' 'pixi.lock' 'pyproject.toml'
+# <bad-version> with dots escaped, e.g. 1\.2\.4
+git log --all --source -G'<bad-version>' --format='%h %cI %S %s' -- '*package-lock.json' '*yarn.lock' '*pnpm-lock.yaml' \
+  '*uv.lock' '*poetry.lock' '*pixi.lock' '*conda-lock.yml' '*Cargo.lock' '*go.sum'
 ```
 
-**conda:**
-```bash
-git grep -nE "<pkg>=" -- 'environment*.yml' 'conda-lock.yml' 'pixi.lock'
-```
-
-**cargo:**
-```bash
-git grep -nE "name = \"<pkg>\"" -- 'Cargo.lock' 'Cargo.toml'
-```
-
-**Go:**
-```bash
-git grep -nE "<pkg> v" -- 'go.sum' 'go.mod'
-```
-
-Record every `file:line` hit. Empty across all ecosystems = PASS for the lockfile check.
+Record every `ref:file:line` hit. No hit in any lockfile = PASS for the lockfile check.
 
 ## CI Cache Nuke
 
-Every cache built during the exposure window may contain the bad version. List, filter, delete.
+Every cache created since the window opened may contain the bad version. There is no end bound: a partial restore-key match copies an old cache's contents into the next one saved. Write the start as `<YYYY-MM-DDTHH:MM>` in UTC, without seconds, so the string comparison with `createdAt` stays correct.
 
 ```bash
-# List caches created after exposure start
-gh actions cache list --sort created --order desc --limit 100 \
-  --json key,createdAt,ref \
-  | jq -r '.[] | select(.createdAt > "<exposure-start-iso>") | .key'
+# List caches created since the window opened
+gh cache list --sort created_at --order desc --limit 1000 \
+  --json id,key,createdAt,ref \
+  --jq '.[] | select(.createdAt >= "<YYYY-MM-DDTHH:MM>") | "\(.id) \(.createdAt) \(.ref) \(.key)"'
 
-# Batch delete
-gh actions cache list --sort created --order desc --limit 100 \
-  --json key,createdAt \
-  | jq -r '.[] | select(.createdAt > "<exposure-start-iso>") | .key' \
-  | while read -r key; do gh actions cache delete "$key"; done
+# Delete them by id (one key can be shared by caches on several refs). Each pass
+# deletes the window's caches among the newest 1000, until a pass finds none.
+(
+  while :; do
+    ids=$(gh cache list --sort created_at --order desc --limit 1000 --json id,createdAt \
+      --jq '.[] | select(.createdAt >= "<YYYY-MM-DDTHH:MM>") | .id') || exit 1
+    [ -z "$ids" ] && exit 0
+    printf '%s\n' "$ids" | while read -r id; do gh cache delete "$id" || exit 1; done || exit 1
+  done
+) || { echo "Cache deletion failed: check 2 stays open. Fix the error and rerun." >&2; false; }
 ```
+
+One pass is not enough: with 2,500 caches in the window, a single `--limit 1000` listing left 1,500 and still exited 0. The listing above has the same limit, so if it prints 1,000 lines, raise `--limit` for the evidence.
 
 Also purge any registry mirror caches (Artifactory, Verdaccio, devpi) covering the window — cache nuke is incomplete without these.
 
 ## Persistence Hunt
 
-The payload may have written files that survive a `node_modules` or virtualenv rebuild.
+The payload may have written files that survive a `node_modules` or virtualenv rebuild. `find -newermt` takes a date (`-newer` takes a file). Write it as `"<YYYY-MM-DD HH:MM> UTC"`: BSD find (macOS) rejects ISO 8601 with `T` and `Z`, while GNU find accepts both.
 
 **npm:**
 ```bash
-# Bin shims modified during the window
-find node_modules/.bin -type f -newer <YYYY-MM-DD>
+# Entries in node_modules/.bin changed since the window opened. No -type f: the
+# shims are symlinks, and -type f (or -L, which checks the target) skips them.
+find node_modules/.bin -mindepth 1 -newermt "<YYYY-MM-DD HH:MM> UTC" -exec ls -l {} +
 # Unexpected .npmrc entries (e.g., custom registry, prepublish hooks)
 cat .npmrc ~/.npmrc 2>/dev/null
-# Suspicious postinstall in any direct or transitive dep
-jq -r '.. | objects | select(.scripts?.postinstall) | .name + ": " + .scripts.postinstall' node_modules/*/package.json
+# Every installed package with an install-time script, scoped packages included
+npm query ':attr(scripts, [preinstall]), :attr(scripts, [install]), :attr(scripts, [postinstall])' \
+  | jq -r '.[] | "\(.location): \(.scripts | tojson)"'
 ```
 
-**Python:**
+**Python:** for `.pth` files, use the PyPI `.pth` check in `supply-chain-ecosystem-quirks`. Then look for start-up hooks in each environment and in the user site directory, where `usercustomize.py` lives. Read files only: starting the suspect environment's Python runs these hooks and any `.pth` code.
 ```bash
-# .pth files that exec code at import (LiteLLM 1.82.8 pattern)
-SITE=$(python -c 'import site; print(site.getsitepackages()[0])')
-find "$SITE" -name "*.pth" -exec grep -lE '^(import|exec|os\.|subprocess)' {} \;
-# usercustomize/sitecustomize
-find "$SITE" -name 'sitecustomize.py' -o -name 'usercustomize.py'
+# <env-prefix>: the environment's root (.venv, .pixi/envs/<name>, a conda env)
+for d in "<env-prefix>" "$HOME/.local/lib" "$HOME/Library/Python"; do
+  [ -d "$d" ] && find "$d" \( -name sitecustomize.py -o -name usercustomize.py \)
+done
 ```
 
 **cargo:**
 ```bash
-# Recently-built build.rs invocations in target/
-find target -name 'build-script-build' -newer <YYYY-MM-DD>
+# Build scripts built since the window opened
+find target -name 'build-script-build' -newermt "<YYYY-MM-DD HH:MM> UTC"
 # Suspicious build.rs in vendored deps
 grep -rE 'Command::new|reqwest|curl' ~/.cargo/registry/src/*/<pkg>-*/build.rs 2>/dev/null
 ```

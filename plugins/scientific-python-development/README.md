@@ -637,7 +637,6 @@ Potential additions that would enhance this plugin:
 ## Questions or Feedback?
 
 - **Issues**: Open an issue on [GitHub](https://github.com/uw-ssec/savvy/issues) with the label `scientific-python-development`
-- **Discussions**: Start a discussion on [GitHub Discussions](https://github.com/uw-ssec/savvy/discussions)
 - **Pull Requests**: Submit improvements via [pull requests](https://github.com/uw-ssec/savvy/pulls)
 
 ## License

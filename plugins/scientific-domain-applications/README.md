@@ -542,7 +542,7 @@ aoi = ndvi_wgs84.rio.clip_box(minx=-122, miny=37, maxx=-121, maxy=38)
 - [Xarray Documentation](https://docs.xarray.dev/)
 - [Xarray Tutorial](https://tutorial.xarray.dev/)
 - [Dask Documentation](https://docs.dask.org/)
-- [rioxarray Documentation](https://corteva.github.io/rioxarray/)
+- [rioxarray Documentation](https://vylor.github.io/rioxarray/stable/)
 
 **Community:**
 - [Xarray GitHub Discussions](https://github.com/pydata/xarray/discussions)
@@ -550,7 +550,7 @@ aoi = ndvi_wgs84.rio.clip_box(minx=-122, miny=37, maxx=-121, maxy=38)
 
 **Geospatial Extensions:**
 - [xESMF](https://xesmf.readthedocs.io/) - Universal regridder
-- [Geocube](https://corteva.github.io/geocube/) - Vector to raster
+- [Geocube](https://vylor.github.io/geocube/stable/) - Vector to raster
 - [xarray-spatial](https://xarray-spatial.readthedocs.io/) - Spatial analytics
 - [Salem](https://salem.readthedocs.io/) - Geolocation operations
 

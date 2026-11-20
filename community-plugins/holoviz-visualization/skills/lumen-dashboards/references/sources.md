@@ -765,7 +765,7 @@ sources:
 
 ## References
 
-- [Lumen Sources Documentation](https://lumen.holoviz.org/user_guide/Sources.html)
+- [Lumen Sources Documentation](https://lumen.holoviz.org/en/docs/latest/configuration/sources/)
 - [Pandas I/O](https://pandas.pydata.org/docs/user_guide/io.html)
 - [SQLAlchemy Connection Strings](https://docs.sqlalchemy.org/en/14/core/engines.html)
 - [Intake Catalogs](https://intake.readthedocs.io/)

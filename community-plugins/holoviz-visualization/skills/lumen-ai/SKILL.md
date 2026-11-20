@@ -328,7 +328,7 @@ for agent in ui.agents:
 
 ### External Links
 
-- [Lumen AI Documentation](https://lumen.holoviz.org/lumen_ai/)
+- [Lumen AI Documentation](https://lumen.holoviz.org/en/docs/latest/)
 - [GitHub Repository](https://github.com/holoviz/lumen)
 - [Community Discourse](https://discourse.holoviz.org)
 

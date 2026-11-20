@@ -390,7 +390,7 @@ def load_data(url):
 
 ### External Resources
 
-- [Panel User Guide](https://panel.holoviz.org/user_guide/)
+- [Panel User Guide](https://panel.holoviz.org/how_to/index.html)
 - [HoloViews User Guide](https://holoviews.org/user_guide/)
 - [Python Best Practices](https://docs.python-guide.org/)
 - [Web Accessibility Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)

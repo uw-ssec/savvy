@@ -491,9 +491,9 @@ Test with actual screen readers:
 
 ### Scientific Python Specific
 - [Scientific Python Accessible Documentation](https://learn.scientific-python.org/documentation/accessible-documentation/)
-- [Matplotlib Accessibility](https://matplotlib.org/stable/users/explain/accessibility.html)
+- [Matplotlib Colorblind-Friendly Colormaps](https://matplotlib.org/stable/users/explain/colors/colormaps.html)
 - [Accessible Color Palettes for Data Visualization](https://www.nceas.ucsb.edu/sites/default/files/2022-06/Colorblind%20Safe%20Color%20Schemes.pdf)
 
 ### Documentation Framework Guides
-- [Sphinx Accessibility](https://www.sphinx-doc.org/en/master/usage/accessibility.html)
-- [MkDocs Material Accessibility](https://squidfunk.github.io/mkdocs-material/setup/accessibility/)
+- Sphinx Accessibility — no longer published by the Sphinx project; see the general [WCAG 2.1 Guidelines](https://www.w3.org/WAI/WCAG21/quickref/) instead
+- MkDocs Material Accessibility — not published by the project; see the general [A11y Project](https://www.a11yproject.com/) instead

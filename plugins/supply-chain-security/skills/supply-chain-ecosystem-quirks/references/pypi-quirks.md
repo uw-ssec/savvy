@@ -147,4 +147,4 @@ Plain `pip install -r requirements.txt` does not enforce hashes unless the requi
 - PEP 829 `.start` files: <https://peps.python.org/pep-0829/>
 - `site` module (`.pth` processing): <https://docs.python.org/3/library/site.html>
 - PyPI trusted publishing: <https://docs.pypi.org/trusted-publishers/>
-- uv lockfile: <https://docs.astral.sh/uv/concepts/projects/lock/>
+- uv lockfile: <https://docs.astral.sh/uv/concepts/projects/sync/>

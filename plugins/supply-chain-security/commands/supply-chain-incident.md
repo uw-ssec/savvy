@@ -33,7 +33,7 @@ If no argument is supplied, prompt for one before proceeding.
 - Use directly; do not fetch.
 
 **Branch 3: Campaign name**
-- Look for a campaign reference at `plugins/supply-chain-security/skills/supply-chain-threat-awareness/references/campaigns/<campaign>.md`.
+- Look for a campaign reference in the `supply-chain-threat-awareness` skill (its campaign files cover Shai-Hulud, TeamPCP, axios and LiteLLM `.pth`).
 - If present, load it for affected packages, exposure window, IoCs, and rotation guidance.
 - If not present, treat as a freeform query and proceed with best-effort lookup via `WebFetch`.
 

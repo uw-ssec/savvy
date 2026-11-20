@@ -1,106 +1,53 @@
 ---
 name: supply-chain-threat-awareness
-description: Supply chain threat posture assessment for projects and packages. Use when reviewing a project's .github/workflows/*.yml, package.json, pyproject.toml, requirements.txt, pixi.toml, or lockfiles for exposure to active 2025–2026 campaigns. Covers Shai-Hulud (500+ npm packages), TeamPCP (Trivy, Checkmarx, LiteLLM, Bitwarden CLI, SAP CAP via tag hijacking), axios (100M weekly downloads), and LiteLLM .pth persistence — all attack patterns CVE scanners miss.
+description: Use when running a supply-chain posture review or security audit of a repo, or when someone asks "are we exposed or affected?" about an attack campaign such as Shai-Hulud, TeamPCP, the axios compromise or the LiteLLM .pth backdoor. Also use when reviewing GitHub Actions for mutable action tags, or a project for npm install scripts, lockfile hygiene or dependency cooldown. Not for generating or signing SBOMs, or for handling a confirmed compromise.
 metadata:
-  references: references/campaigns/shai-hulud.md references/campaigns/teampcp.md references/campaigns/axios.md references/campaigns/litellm-pth.md references/posture-report-template.md
+  references: references/campaigns/shai-hulud.md references/campaigns/teampcp.md references/campaigns/axios.md references/campaigns/litellm-pth.md references/posture-report-template.md references/audit-commands.md
 ---
 
 # Supply Chain Threat Awareness
 
-## Threat Model
+## Overview
 
-Maintainer account takeover and release-tag hijacking of widely-trusted packages are the dominant supply-chain threats in 2025–2026.
+Recent campaigns shipped malware under trusted names: hijacked maintainer accounts, stolen publish tokens, force-pushed action tags. No CVE existed while the bad versions were live; a clean scan proves little. This audit checks the five weaknesses they used, tying each finding to a campaign.
 
-## CVE Scanner Limitations
+## When to Use
 
-Treat scanner-clean as necessary, not sufficient — the audit below covers what advisories miss.
+- A posture review or security audit of a repo, or "are we exposed to <campaign>?"
+- Reviewing workflows, manifests or lockfiles for supply-chain risk.
 
-## Active Campaigns
+Not for: confirmed compromises (`supply-chain-incident-response`), SBOMs and signing (`supply-chain-sbom-provenance`), or rewriting workflows (`supply-chain-hardened-ci-cd`).
 
-Each campaign has a deep-dive reference. Load on demand based on which applies to the project under review.
+## Campaigns (observed 2025–2026, verified 2026-11)
 
-- **Shai-Hulud** — 500+ npm packages compromised via maintainer account takeover. → `references/campaigns/shai-hulud.md`
-- **TeamPCP** — Trivy, Checkmarx, LiteLLM, Bitwarden CLI, SAP CAP via release-tag hijacking (March 2026). → `references/campaigns/teampcp.md`
-- **axios** — 100M weekly npm downloads; maintainer account compromise. → `references/campaigns/axios.md`
-- **LiteLLM 1.82.8** — Malicious `.pth` file for persistent Python execution. → `references/campaigns/litellm-pth.md`
+Read a campaign file only when a finding matches.
 
-## Audit Workflow
+- **Shai-Hulud** (npm, Sep 2025; second wave Nov 2025): an install-script worm; each stolen npm token spread it to the victim's other packages. `references/campaigns/shai-hulud.md`
+- **TeamPCP** (Mar–Apr 2026): force-pushed Trivy and Checkmarx action tags to steal CI secrets; malicious LiteLLM, Telnyx, Bitwarden CLI and SAP CAP releases followed. `references/campaigns/teampcp.md`
+- **axios** (npm, Mar 2026): a hijacked maintainer account published 1.14.1 and 0.30.4 with a dependency whose `postinstall` dropped a remote access trojan. `references/campaigns/axios.md`
+- **LiteLLM `.pth`** (PyPI, Mar 2026, part of TeamPCP): 1.82.8 shipped `litellm_init.pth`, which runs on every Python start. `references/campaigns/litellm-pth.md`
 
-Run this assessment in order. Each step has a verifying command. Stop and remediate before continuing if any FAIL is critical (lockfile not committed, no `--ignore-scripts`, mutable action refs).
+## Quick Reference
 
-### Step 1 — Lockfile hygiene
+Run all five steps, then report. FAILs in steps 1–3 are critical. Commands and PASS/FAIL details: `references/audit-commands.md`.
 
-```bash
-# Check which lockfiles exist and are committed
-git ls-files | grep -E '(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|poetry\.lock|uv\.lock|pixi\.lock|conda-lock\.yml|Cargo\.lock|go\.sum)$'
+If a `/supply-chain-*` command below isn't available, report the fix without it.
 
-# Check CI uses lockfile-respecting install commands
-grep -rnE '(npm ci|yarn install --frozen-lockfile|pnpm install --frozen-lockfile|uv sync --frozen|poetry install|pixi install|cargo build --locked)' .github/workflows/
-```
-
-- [ ] Each detected ecosystem has a committed lockfile (verify with `git ls-files`).
-- [ ] CI uses the lockfile-respecting install command — not bare `npm install` or `pip install`.
-- [ ] CI caches scoped to the lockfile hash (e.g., `key: deps-${{ hashFiles('package-lock.json') }}`).
-
-If any FAIL: STOP and fix before continuing — without lockfile hygiene, every other check is moot.
-
-### Step 2 — Action pinning
-
-```bash
-# Find all mutable uses: refs
-grep -nE '^\s*-?\s*uses:\s+[^@]+@[^a-f0-9]' .github/workflows/*.yml || echo "All uses: refs SHA-pinned"
-```
-
-- [ ] Every `uses:` ref is a 40-character commit SHA (not `@v4`, `@main`, `@latest`).
-- [ ] Trailing comment after SHA records the human-readable version (e.g., `uses: actions/checkout@<sha>  # v4.2.2`).
-
-If FAIL: run `/supply-chain-pin-actions` (dry-run first), then re-verify.
-
-### Step 3 — Install-time execution
-
-```bash
-# Check npm scripts that run on install
-test -f package.json && jq '.scripts | {preinstall, install, postinstall} // empty' package.json
-
-# Check for ignore-scripts discipline
-grep -rE '(npm ci.*--ignore-scripts|ignore-scripts\s*=\s*true)' .github/workflows/ .npmrc 2>/dev/null || echo "WARN: no --ignore-scripts found"
-
-# Python .pth scan (run only if Python is on PATH)
-command -v python >/dev/null && find "$(python -c 'import site; print(site.getsitepackages()[0])' 2>/dev/null)" -name "*.pth" -exec grep -lE '^(import|exec|os\.|subprocess)' {} \; 2>/dev/null
-```
-
-- [ ] `npm ci --ignore-scripts` in every CI install step OR `.npmrc` has `ignore-scripts=true`.
-- [ ] No `.pth` file in Python `site-packages` contains executable Python (only path additions).
-- [ ] `preinstall`/`postinstall` scripts in `package.json` are reviewed (or absent).
-
-If FAIL: see `references/campaigns/shai-hulud.md` (postinstall vector) or `references/campaigns/litellm-pth.md` (`.pth` vector).
-
-### Step 4 — Dependency velocity
-
-```bash
-# Last 10 lockfile updates with timestamps
-git log --follow --pretty=format:"%h %ai %s" -10 package-lock.json 2>/dev/null
-git log --follow --pretty=format:"%h %ai %s" -10 uv.lock 2>/dev/null
-git log --follow --pretty=format:"%h %ai %s" -10 pixi.lock 2>/dev/null
-```
-
-- [ ] Lockfile updates spaced ≥7 days apart on average — no rapid-fire adds without cooldown.
-- [ ] No unexpected version bumps without an explicit PR/changelog entry.
-
-If FAIL: hold new deps ≥7 days before merging (most malicious releases yanked within hours).
-
-### Step 5 — SBOM and provenance
-
-```bash
-# Check release workflow for SBOM/signing steps
-grep -rE '(syft|cyclonedx|spdx|cosign|sigstore|--provenance|attest-build-provenance)' .github/workflows/
-```
-
-- [ ] SBOM generated for releases (CycloneDX or SPDX).
-- [ ] Sigstore or npm provenance attestations applied.
-
-If FAIL: see `supply-chain-sbom-provenance` skill.
+| Step | FAIL when | Fix | Campaigns |
+|---|---|---|---|
+| 1. Lockfiles | No committed lockfile, or CI installs without it (`npm install`; `pixi install` or `uv sync` without `--locked`) | `npm ci`, `uv sync --locked`, `pixi install --locked`; `/supply-chain-lockfile-check` | all |
+| 2. Action pinning | Any `uses:` ref is not a full 40-character SHA, a local `./` path or an image digest | Full commit SHA plus a `# vX.Y.Z` comment; `/supply-chain-pin-actions` | TeamPCP |
+| 3. Install-time code | A CI npm install runs scripts, or a lifecycle script is unreviewed | `npm ci --ignore-scripts`. `.pth` files: use the PyPI `.pth` check in `supply-chain-ecosystem-quirks`. | Shai-Hulud, axios, LiteLLM |
+| 4. Cooldown | A newly adopted version was younger than the cooldown (default 7 days) when merged | Dependabot `cooldown`, Renovate `minimumReleaseAge` | all |
+| 5. Provenance | Releases have no SBOM or signature | `supply-chain-sbom-provenance` | none |
 
 ## Output: Posture Report
 
-When invoked for a posture review, produce the Markdown report defined in `references/posture-report-template.md`. The template specifies the required tables (campaign applicability, step results, top 3 priority actions) and the finding-entry rules (campaign name, `file:line`, blast radius, remediation command or skill).
+Fill in `references/posture-report-template.md`. Each finding gives the campaign, `file:line`, blast radius and fix.
+
+## Common Mistakes
+
+- **Finding mutable refs with `@[^a-f0-9]`.** It misses refs starting with a hex character (`@dev`, trivy-action's `@0.34.2`) and skips `.yaml` files. Exclude only full SHAs and `./` paths.
+- **Measuring cooldown as time between lockfile commits.** Commits ten days apart can adopt a 90-minute-old release. Compare each version's publish and merge times.
+- **Flagging every `.pth` line that starts with `import`.** setuptools ships such a file (`distutils-precedence.pth`).
+- **Accepting `pixi install` or `uv sync --frozen` as locked installs.** `pixi install` rewrites a stale `pixi.lock`; `--frozen` skips the lock-versus-manifest check.

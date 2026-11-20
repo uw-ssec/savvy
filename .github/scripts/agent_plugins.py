@@ -33,7 +33,7 @@ GitHub Copilot (CLI and VS Code) gets no generated files. With a root
 plugin.json, Copilot reads agents and commands only from its own extension
 directory, which this repo doesn't ship, so it loads skills and MCP only.
 Copilot-format agents and commands are tracked in
-https://github.com/uw-ssec/rse-plugins/issues/240.
+https://github.com/uw-ssec/savvy/issues/240.
 
 Package checks, for every plugin:
 

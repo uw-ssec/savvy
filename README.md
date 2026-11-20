@@ -1,18 +1,18 @@
-# RSE Plugins
+# savvy
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/uw-ssec/rse-plugins?quickstart=1)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/uw-ssec/savvy?quickstart=1)
 
 Custom AI agents and skills for Research Software Engineering (RSE) and Scientific Computing tasks, designed for use with [Claude Code](https://www.anthropic.com/claude/code) and compatible AI coding assistants.
 
 ## GitHub Codespaces
 
-Click the badge above to open a Codespace with all RSE plugins pre-installed. Claude Code and GitHub Copilot CLI are ready to use immediately.
+Click the badge above to open a Codespace with all savvy plugins pre-installed. Claude Code and GitHub Copilot CLI are ready to use immediately.
 
 ### Using a LiteLLM Gateway (Optional)
 
 To route Copilot through a custom LiteLLM-compatible gateway, you need to set two secrets. Because GitHub Codespaces secrets can only be scoped to repos you own, follow these steps:
 
-1. **Fork this repo** — Click **Fork** on [github.com/uw-ssec/rse-plugins](https://github.com/uw-ssec/rse-plugins).
+1. **Fork this repo** — Click **Fork** on [github.com/uw-ssec/savvy](https://github.com/uw-ssec/savvy).
 2. **Add secrets** — Go to your GitHub account settings: **Settings → Codespaces → Secrets**, then add:
    - `LITELLM_BASE_URL` — your gateway base URL
    - `LITELLM_API_KEY` — your gateway API key
@@ -183,7 +183,7 @@ Browse the [plugins directory](plugins/) and [community-plugins directory](commu
 ## Repository Structure
 
 ```
-rse-plugins/
+savvy/
 ├── .claude-plugin/
 │   └── marketplace.json                                # Plugin catalog (Claude Code, Copilot CLI, Codex)
 ├── .agents/plugins/
@@ -388,4 +388,4 @@ Developed and maintained by the University of Washington Scientific Software Eng
 
 ## Questions or Issues?
 
-Please open an issue on [GitHub](https://github.com/uw-ssec/rse-plugins/issues). Report security problems privately as described in [SECURITY.md](SECURITY.md), not in a public issue.
+Please open an issue on [GitHub](https://github.com/uw-ssec/savvy/issues). Report security problems privately as described in [SECURITY.md](SECURITY.md), not in a public issue.

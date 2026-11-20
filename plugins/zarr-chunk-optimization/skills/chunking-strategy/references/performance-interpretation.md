@@ -2,18 +2,18 @@
 
 | Section | Lines | Description |
 |---------|-------|-------------|
-| Understanding Benchmark Metrics | 14-89 | Wall-clock time, TTFB, peak memory, throughput, chunk utilization |
-| Performance Bias Metric | 91-154 | Formula, ranges, and interpretation from Nguyen et al. |
-| Reading Benchmark Reports | 156-202 | How to compare configurations, identifying winners |
-| Common Performance Patterns | 204-251 | Spatial-optimized, temporal-optimized, balanced configurations |
-| When Results Are Inconclusive | 253-313 | Noise, insufficient runs, environmental factors |
-| Translating Results to Recommendations | 315-381 | Choosing between configs, priority weighting |
+| Understanding Benchmark Metrics | 14-90 | Wall-clock time, TTFB, peak memory, throughput, chunk utilization |
+| Performance Bias Metric | 91-153 | Formula from Nguyen et al., plugin heuristic ranges, interpretation |
+| Reading Benchmark Reports | 154-201 | How to compare configurations, identifying winners |
+| Common Performance Patterns | 202-250 | Spatial-optimized, temporal-optimized, balanced configurations |
+| When Results Are Inconclusive | 251-312 | Noise, insufficient runs, environmental factors |
+| Translating Results to Recommendations | 313-379 | Choosing between configs, priority weighting |
 
 ---
 
 ## Understanding Benchmark Metrics
 
-Benchmark reports produced by this skill contain several metrics. Each measures a different aspect of read performance and matters for different use cases.
+Benchmark reports produced by this skill contain several metrics. Each measures a different aspect of read performance and matters for different use cases. `benchmark_runner.py` measures wall-clock time, peak memory, throughput, data size, Dask task count and an approximate HTTP request count. It does not measure TTFB or chunk utilization (both are `None` placeholders); compute utilization by hand from the chunk shape and the selection, as in the example below.
 
 ### Wall-Clock Time
 
@@ -114,6 +114,8 @@ PB = max(T_spatial, T_temporal, T_spectral) / min(T_spatial, T_temporal, T_spect
 
 ### Interpretation Ranges
 
+These bands are a heuristic used across this plugin (this skill, performance-reporting and the report template), not thresholds from Nguyen et al. (2023), who define the ratio but not the cut-offs.
+
 | PB Value | Interpretation | Use Case Fit |
 |----------|---------------|--------------|
 | 1.0 | Perfectly balanced | Ideal for mixed workloads |
@@ -146,11 +148,7 @@ When choosing between configurations:
 
 ### Limitations of PB
 
-- PB does not account for how frequently each access pattern is used. A weighted version may be more appropriate:
-  ```
-  Weighted PB = max(w_i * T_i) / min(w_i * T_i)
-  ```
-  where `w_i` is the relative frequency of pattern `i`.
+- PB does not account for how frequently each access pattern is used, and should not: it describes the layout, not the workload. Keep PB unweighted and put workload weights only in the weighted score (`Σ w_i × T_i`, see [Priority Weighting](#priority-weighting)).
 - PB treats all patterns equally. In practice, a 2x slowdown on a rarely-used pattern may be acceptable.
 
 ## Reading Benchmark Reports
@@ -164,7 +162,7 @@ The summary table ranks configurations by a primary metric (usually wall-clock t
 ```
 | Config | Spatial (s) | Temporal (s) | Spectral (s) | PB   | Peak Mem (GB) |
 |--------|-------------|--------------|--------------|------|---------------|
-| A      | 6.1 +/- 0.5| 18.4 +/- 1.2 | 12.7 +/- 0.8| 3.02 | 10.2          |
+| A      | 6.1 +/- 0.5| 18.4 +/- 1.2 | 12.7 +/- 0.8| 3.02 | 1.2           |
 | B      | 8.3 +/- 0.7| 11.2 +/- 0.9 | 10.1 +/- 0.6| 1.35 | 3.8           |
 | C      | 15.1 +/- 1.0| 5.8 +/- 0.4 | 9.3 +/- 0.5 | 2.60 | 5.1           |
 ```
@@ -180,22 +178,22 @@ There is rarely a single "best" configuration. Follow this decision process:
 
 ### Statistical Significance
 
-Two configurations are meaningfully different only if their confidence intervals do not overlap substantially:
+`mean +/- std` describes the spread of the runs; it is not a confidence interval. Overlapping ±1 std bands are a warning sign, not a test:
 
-- Config A: `6.1 +/- 0.5 s` (range: 5.6 - 6.6)
-- Config B: `6.8 +/- 0.6 s` (range: 6.2 - 7.4)
+- Config A: `6.1 +/- 0.5 s` (band: 5.6 - 6.6)
+- Config B: `6.8 +/- 0.6 s` (band: 6.2 - 7.4)
 
-These ranges overlap (6.2 - 6.6), so the difference may not be significant. Increase run count or use a statistical test (e.g., Mann-Whitney U) to confirm.
+These bands overlap (6.2 - 6.6), so check before declaring a winner. Either run a Mann-Whitney U test on the per-run `values` from the results JSON, or compute a 95% confidence interval of each mean as `mean ± t × s / √n` (t ≈ 2.78 for n = 5, 2.26 for n = 10; `s` is the sample standard deviation, ddof=1, while `benchmark_runner.py` reports ddof=0). If the result is unclear, increase the run count.
 
 ### Per-Pattern Detail Tables
 
-Each access pattern has its own detailed table showing all runs:
+Each access pattern has its own detailed table showing all runs (here: spatial access, one time step, chunks `(10, 1024, 1024)`, so each chunk read uses 1 of its 10 time steps):
 
 ```
 | Run | Wall Time (s) | Peak Mem (GB) | Chunks Read | Utilization |
 |-----|---------------|---------------|-------------|-------------|
-| 1   | 6.3           | 10.1          | 16          | 0.95        |
-| 2   | 5.8           | 10.2          | 16          | 0.95        |
+| 1   | 6.3           | 1.1           | 16          | 0.10        |
+| 2   | 5.8           | 1.2           | 16          | 0.10        |
 | ...                                                              |
 ```
 
@@ -245,7 +243,7 @@ Example: `(50, 512, 512)` for a `(time, y, x)` dataset.
 
 Unexpected results may indicate:
 
-- **Compression effects**: Highly compressible data may make larger chunks faster than expected (fewer objects after compression)
+- **Compression effects**: Highly compressible data may make larger chunks faster than expected (fewer bytes per object after compression; the object count does not change)
 - **Dask scheduling overhead**: Very many small chunks can overwhelm the Dask scheduler
 - **Network contention**: Cloud benchmarks may show irregular patterns due to shared infrastructure
 - **Cache contamination**: If caches were not properly cleared, repeated reads may appear artificially fast
@@ -369,7 +367,7 @@ Use chunk shape (50, 512, 512):
 Consider (10, 1024, 1024):
 - Spatial access: 6.1 s +/- 0.5 s (26% faster for spatial)
 - But temporal access degrades to 18.4 s (64% slower)
-- Peak memory: 10.2 GB (exceeds 8 GB laptop budget)
+- Peak memory: 1.2 GB (16 chunks of 40 MiB)
 ```
 
 ### When Not to Rechunk

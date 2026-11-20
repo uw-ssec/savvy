@@ -1,42 +1,51 @@
 {
-  "_description": "Template configuration for a chunking benchmark run. Copy this file, fill in your dataset details, and pass it to the benchmark runner. All array values should be adjusted to match your dataset dimensions.",
-  "dataset_path": "s3://my-bucket/datasets/example.zarr",
-  "candidate_chunks": [
-    {
-      "_description": "Spatial-optimized: large spatial dims, small time dim",
-      "chunk_shape": [1, 2048, 2048]
-    },
-    {
-      "_description": "Temporal-optimized: large time dim, small spatial dims",
-      "chunk_shape": [1000, 64, 64]
-    },
-    {
-      "_description": "Balanced: moderate size in all dimensions",
-      "chunk_shape": [50, 512, 512]
-    },
-    {
-      "_description": "Fine-grained: small chunks for high parallelism",
-      "chunk_shape": [10, 256, 256]
-    }
-  ],
+  "_description": "Planning sheet for a chunking benchmark session. benchmark_runner.py does not read this file: it benchmarks the existing layout of one store per call, and --configs is only a label. Build one store per candidate (rechunking or synthetic-data skill), then run command_template once per candidate. dim_index values refer to the order of dims.",
+  "dims": ["time", "y", "x"],
+  "shape": [4000, 2048, 2048],
+  "dtype": "float32",
+  "memory_budget_gb": 8.0,
+  "num_runs": 5,
   "access_patterns": [
     {
-      "_description": "Single time-step spatial slice",
+      "_description": "Map at one time step: fix time, read the y-x plane",
       "name": "spatial",
-      "selector": {"time": 0}
+      "pattern": "slice",
+      "dim_index": 0,
+      "weight": 0.6
     },
     {
-      "_description": "Time series at a single spatial point",
+      "_description": "Time series at one pixel: fix y and x, read the line along time",
       "name": "temporal",
-      "selector": {"y": 1024, "x": 1024}
-    },
-    {
-      "_description": "Spectral or band access across a subset",
-      "name": "spectral",
-      "selector": {"frequency": 0}
+      "pattern": "traverse",
+      "dim_index": 0,
+      "weight": 0.4
     }
   ],
-  "num_runs": 5,
-  "memory_budget_gb": 8.0,
-  "output_dir": "./benchmark_results"
+  "candidates": [
+    {
+      "_description": "Spatial-optimized: large spatial dims, small time dim (16.8 MB float32)",
+      "name": "c1x2048x2048",
+      "chunk_shape": [1, 2048, 2048],
+      "store": "s3://my-bucket/bench/c1x2048x2048.zarr"
+    },
+    {
+      "_description": "Temporal-optimized: large time dim, small spatial dims (16.4 MB float32)",
+      "name": "c1000x64x64",
+      "chunk_shape": [1000, 64, 64],
+      "store": "s3://my-bucket/bench/c1000x64x64.zarr"
+    },
+    {
+      "_description": "Balanced: moderate size in all dimensions (52.4 MB float32)",
+      "name": "c50x512x512",
+      "chunk_shape": [50, 512, 512],
+      "store": "s3://my-bucket/bench/c50x512x512.zarr"
+    },
+    {
+      "_description": "Fine-grained: smaller chunks for more parallelism (2.6 MB float32)",
+      "name": "c10x256x256",
+      "chunk_shape": [10, 256, 256],
+      "store": "s3://my-bucket/bench/c10x256x256.zarr"
+    }
+  ],
+  "command_template": "python scripts/benchmark_runner.py --dataset {store} --configs {chunk_shape_csv} --slice-dims 0 --traverse-dims 0 --runs {num_runs} --output results_{name}.json"
 }

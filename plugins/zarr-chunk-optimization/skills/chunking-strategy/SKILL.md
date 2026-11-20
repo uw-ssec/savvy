@@ -1,6 +1,6 @@
 ---
 name: chunking-strategy
-description: Benchmarks and optimizes Zarr chunking strategies for multi-dimensional scientific datasets, measuring wall-clock time, peak memory, and I/O metrics across spatial, time-series, and spectral access patterns following Nguyen et al. (2023) methodology. Use when the user asks about Zarr chunk sizing, storage layout optimization, benchmarking array access patterns, or choosing chunk configurations for scientific data on S3, GCS, or local storage.
+description: Use when choosing or tuning Zarr chunk shapes for a multi-dimensional scientific array on S3, GCS or local disk, when map reads or time-series reads from a Zarr store are slow or run out of memory, or when comparing candidate chunk configurations by wall-clock time, peak memory or performance bias (Nguyen et al. 2023) before rechunking.
 metadata:
   references: references/access-patterns.md references/memory-constraints.md references/nguyen-2023.md references/benchmarking-methodology.md references/cloud-storage-patterns.md references/performance-interpretation.md
   scripts: scripts/benchmark_runner.py
@@ -9,118 +9,85 @@ metadata:
 
 # Chunking Strategy Benchmarking
 
-Benchmark Zarr chunk configurations against real access patterns before committing to a rechunking operation. Based on Nguyen et al. (2023) ([DOI: 10.1002/essoar.10511054.2](https://doi.org/10.1002/essoar.10511054.2)).
+Benchmarks candidate Zarr chunk shapes against the reads a dataset actually serves, measuring wall-clock time and peak memory before any rechunk.
 
-## Required Inputs
+**Core principle:** a read fetches and decompresses every chunk it touches, whole. Map reads want chunks short in time and wide in space, time-series reads the opposite, so measure candidates instead of guessing. Method: Nguyen et al. (2023), [DOI: 10.1002/essoar.10511054.2](https://doi.org/10.1002/essoar.10511054.2).
 
-| Input | Example |
-|-------|---------|
-| Dataset path | `s3://bucket/data.zarr` or `/data/local.zarr` |
-| Dimension names | `['time', 'lat', 'lon']` |
-| Current chunk shape | `(1, 721, 1440)` (from `ds.chunks`) |
-| Access pattern priorities | `spatial`, `temporal`, `spectral`, or `mixed` |
-| Memory budget (optional) | `8 GB` — filters configs exceeding RAM |
-| Number of runs (optional) | `5` minimum; increase for high-variance networks |
+## When to Use
 
-## Benchmarking Workflow
+- Picking chunks for a new store, or a target layout before rechunking.
+- Maps load fast but time series crawl (or the reverse), small selections run out of memory, or reads issue thousands of tiny GETs.
 
-1. **Collect inputs** — gather dataset path, dimension names, current chunks, and access pattern weights.
-2. **Generate candidate configurations** — vary one dimension at a time across the dominant access dimension; add user-specified shapes.
-3. **Validate memory budget** — for each candidate, estimate chunk size × chunks-per-read. Discard any configuration that exceeds the memory budget before running a single benchmark.
-4. **Clear caches and run benchmarks** — clear OS and fsspec caches before every run; execute 5+ repetitions per configuration per access pattern.
-5. **Validate statistical stability** — if std/mean > 0.3 for any metric, increase run count or investigate variance source before interpreting results.
-6. **Generate report** — compute Performance Bias scores, select 1-3 recommendations, fill `assets/report-template.md`.
+**When NOT to use:**
+- Read patterns are still unknown or unweighted: use **access-pattern-analysis** first.
+- The shape is decided and the data must be rewritten: use **rechunking**.
+- No representative data to benchmark: use **synthetic-data** to generate stores.
+- Results exist and need a stakeholder report: use **performance-reporting**.
 
-**Validation gate after step 3:** No candidate exceeds the memory budget. If all candidates exceed budget, reduce spatial dimensions or sample a smaller time slice.
+## Quick Reference
 
-**Validation gate after step 5:** std/mean ≤ 0.3 for all reported metrics. If a metric fails, take recovery action (see Feedback Loops below).
+| Read pattern (dims `time, lat, lon`) | xarray (positional) | Script flag | Shape that favors it (float32) |
+|---|---|---|---|
+| Map at one time step | `da.isel(time=t)` | `--slice-dims 0` | `(1, 721, 1440)`, 4.2 MB |
+| Time series at one point | `da.isel(lat=i, lon=j)` | `--traverse-dims 0` | `(1000, 32, 32)`, 4.1 MB |
+| Spectrum (dims `time, freq, baseline`) | `da.isel(time=t, baseline=b)` | `--traverse-dims 1` | `(8, 2048, 64)`, 4.2 MB |
 
-## Running the Benchmark Script
+- **Size:** aim for compressed chunk objects of 1–100 MB on object storage. KB-sized chunks are latency-bound (each GET pays ~20–100 ms).
+- **Memory per read:** up to uncompressed chunk bytes × chunks the selection touches, plus 1.5–2× overhead.
+- **PB** (Nguyen et al.) = max / min of mean wall time across patterns for one config. Plugin heuristic bands: < 1.5 balanced, 1.5–3 moderate, 3–10 biased, > 10 extreme.
+- **Weighted score** = Σ wᵢ × Tᵢ over patterns (weights from access-pattern-analysis); rank by it. Keep PB unweighted.
+- `mean ± std` is run spread (ddof=0), not a confidence interval.
+
+## Running the Benchmark
+
+`scripts/benchmark_runner.py` times reads of the store's **existing** layout. `--configs` is only a label copied into the output; it does not rechunk. Each candidate needs its own store (a sample rechunked with **rechunking**, or generated with **synthetic-data**) and its own run:
 
 ```bash
-# Single configuration, all default access patterns
 python scripts/benchmark_runner.py \
-  --dataset s3://bucket/data.zarr \
-  --configs "50,512,512" \
-  --runs 5
-
-# Multiple configurations, explicit access pattern dimensions
-python scripts/benchmark_runner.py \
-  --dataset /local/era5.zarr \
-  --configs "1,721,1440" "50,256,256" "100,128,128" \
-  --slice-dims 0 \
-  --traverse-dims 1 2 \
-  --runs 10
-
-# Output: JSON results file + prints mean±std for each metric per config
+  --dataset /scratch/era5_sample_c1000x32x32.zarr \
+  --configs "1000,32,32" \
+  --slice-dims 0 --traverse-dims 0 \
+  --runs 5 --output results_c1000x32x32.json
 ```
 
-See `scripts/benchmark_runner.py` docstring for full argument reference.
+- `slice` (`--slice-dims d`): fix the middle index along dim *d*, read the whole hyperplane.
+- `traverse` (`--traverse-dims d`): fix every other dim at its middle, read the 1-D line along *d*.
+- Both default to every dim. `--runs` must be at least 5. Only the first data variable is read.
+- `--warmup` is parsed but not applied: one warm-up run always happens.
+- A failed benchmark is an entry with only an `error` field and the script still exits 0; check before trusting the JSON ([output format](references/benchmarking-methodology.md#script-output)).
+- On a local store every timed run follows a warm-up read of the same selection, so the OS page cache is warm: results show decode cost, not disk I/O. Benchmark on the production object store when I/O is the question.
 
-## Cache Clearing (Critical)
+## Workflow
 
-Clear caches between every run to measure cold-cache performance.
+1. Map each weighted read pattern to `slice` or `traverse` plus a dim index.
+2. Pick 3–5 candidates (current layout, one per dominant pattern, one balanced), varying one dim at a time. Drop any over the memory budget.
+3. Build one store per candidate on a sample where every pattern touches 10+ chunks.
+4. Benchmark each store. If std/mean > 0.3, rerun with `--runs 10` or more before comparing.
+5. Compute PB and weighted score; fill `assets/report-template.md` or hand off to **performance-reporting**.
 
-**macOS:** `sudo purge`
+## Common Mistakes
 
-**Linux:** `sync && sudo sh -c 'echo 3 > /proc/sys/vm/drop_caches'`
+| Mistake | Fix |
+|---|---|
+| Passing several `--configs` against one store and reading the differences as chunk effects | Every run reads the same layout. One store per candidate |
+| `--traverse-dims 1 2` on `(time, lat, lon)` to get time series | That reads lines along lat and lon. A time series is `--traverse-dims 0` |
+| `ds.sel(time=42)` for "time step 42" | `sel` matches labels: `KeyError` on datetime coords. Use `isel(time=42)` |
+| `sel(lat=slice(30, 60), lon=slice(-120, -60))` on ERA5-style grids | Latitude descends and longitude is 0–360, so both return empty. Use `lat=slice(60, 30), lon=slice(240, 300)` |
+| `ds.chunk({...}).to_zarr(...)` to build a candidate store | The source's `encoding["chunks"]` wins and the old layout is written. Delete `encoding["chunks"]` and `encoding["preferred_chunks"]` per variable first |
+| Treating a Zarr v3 shard as the read unit | The inner chunk is the read unit; the shard is the storage object. Size and benchmark inner chunks for reads |
+| Expecting Kerchunk or VirtualiZarr to provide a second layout | They reference existing chunks only. A new layout needs a rechunk |
 
-**fsspec (all platforms):**
-```python
-fsspec.config.conf['cache_storage'] = None  # disable between runs
-```
+## References
 
-## Measurement Code
-
-**Timing** — use `time.perf_counter()`, not `time.time()`:
-```python
-start = time.perf_counter()
-result = ds.sel(time=42).compute()
-wall_time = time.perf_counter() - start
-```
-
-**Peak memory** — always report peak, not mean:
-```python
-import tracemalloc
-tracemalloc.start()
-result = ds.sel(time=42).compute()
-_, peak = tracemalloc.get_traced_memory()
-tracemalloc.stop()
-```
-
-Report **mean ± std** and **[min, max]** across all runs. Minimum 5 runs per configuration per access pattern.
-
-## Performance Bias Score
-
-Performance Bias (PB) = max(pattern times) / min(pattern times) for a given configuration.
-
-- **PB ≈ 1.0–1.5** — balanced; suitable for mixed workloads.
-- **PB > 2.0** — specialized; good for a single dominant pattern but penalizes others.
-- **PB > 5.0** — highly specialized; only acceptable when one pattern represents ≥ 90% of access.
-
-## Feedback Loops
-
-| Situation | Recovery Action |
-|-----------|----------------|
-| std/mean > 0.3 | Increase runs to 10+; check for background network I/O; test at a different time |
-| Configuration OOM mid-run | Remove it from the candidate set; reduce spatial dimensions by 2× |
-| All candidates show similar performance | Widen the search grid (double or halve one dimension); check if data is already cached |
-| Results inconclusive (PB ≈ 1.0 for all) | Current chunk shape may already be near-optimal; validate with real workload profiling |
-| Cloud read times dominate | See [cloud-storage-patterns.md](references/cloud-storage-patterns.md) for request batching and prefetch tuning |
-
-## Progressive Disclosure References
-
-| Reference | Load When |
-|-----------|----------|
-| [access-patterns.md](references/access-patterns.md) | User needs to define or understand access pattern types |
-| [memory-constraints.md](references/memory-constraints.md) | Memory budget filtering or all-or-nothing constraint questions |
-| [benchmarking-methodology.md](references/benchmarking-methodology.md) | Statistical validity, reproducibility, pitfall avoidance |
-| [cloud-storage-patterns.md](references/cloud-storage-patterns.md) | S3/GCS-specific latency, caching, or cost optimization |
-| [performance-interpretation.md](references/performance-interpretation.md) | Reading results tables, PB scores, translating to recommendations |
-| [nguyen-2023.md](references/nguyen-2023.md) | Methodology justification or research basis questions |
+| Reference | Load when |
+|---|---|
+| [access-patterns.md](references/access-patterns.md) | Mapping workflows to spatial, time-series and spectral reads |
+| [memory-constraints.md](references/memory-constraints.md) | Memory budgets, OOM, all-or-nothing chunk reads |
+| [benchmarking-methodology.md](references/benchmarking-methodology.md) | Run counts, cache clearing, building candidate stores, pitfalls |
+| [cloud-storage-patterns.md](references/cloud-storage-patterns.md) | S3/GCS latency, request cost, sharding, caching |
+| [performance-interpretation.md](references/performance-interpretation.md) | Reading results, PB, weighted scores, recommendations |
+| [nguyen-2023.md](references/nguyen-2023.md) | Research basis for the method |
 
 ## Limitations
 
-- Read performance only — does not benchmark write or rechunk operations.
-- Sample-based — full dataset performance may differ slightly from sampled benchmarks.
-- No compression benchmarking — assumes codec is already chosen.
+Read performance only (no write, rechunk or codec benchmarking), one variable per store.

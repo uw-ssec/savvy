@@ -136,9 +136,25 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # !cancelled(): publish what finished even when a skill failed.
+      # Reports are uploaded and later committed, so refuse any that contain the key.
+      - name: Check reports for the API key
+        id: keycheck
+        if: ${{ always() }}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.LITELLM_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::API key is empty; cannot check the reports for it"
+            exit 1
+          fi
+          if [ -d "$RUNNER_TEMP/reports" ] && grep -rqF -- "$ANTHROPIC_API_KEY" "$RUNNER_TEMP/reports"; then
+            echo "::error::API key found in benchmark output"
+            exit 1
+          fi
+
+      # always(): a timeout still uploads the partial reports, unless the key check failed.
       - name: Upload reports
-        if: ${{ !cancelled() }}
+        if: ${{ always() && steps.keycheck.outcome != 'failure' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: skill-benchmarks-${{ github.run_id }}
@@ -148,7 +164,7 @@ jobs:
 
   publish:
     needs: run
-    if: ${{ !cancelled() && needs.run.result != 'skipped' }}
+    if: ${{ needs.run.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

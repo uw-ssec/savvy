@@ -272,3 +272,11 @@ def test_scan_step_keeps_going_past_a_failing_scan(tmp_path):
     calls = (temp / "calls.txt").read_text(encoding="utf-8").splitlines()
     assert len(calls) == 2
     assert all("skill-security-scan" in c for c in calls)
+
+
+def test_select_step_fails_when_skill_selection_crashes(tmp_path):
+    work, temp, env = step_env(tmp_path, [])
+    (work / ".github/scripts/skill-quality.py").write_text("import sys\nsys.exit(3)\n", encoding="utf-8")
+    env = {**env, "BASE_SHA": "a", "HEAD_SHA": "b"}
+    proc, _ = run_step(workflow_step("skill-quality-check.yml", "Select changed pilot skills"), work, env)
+    assert proc.returncode != 0

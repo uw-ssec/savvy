@@ -134,6 +134,8 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
+          # A failed `select` must fail the step, not read as "no pilot skills".
+          set -o pipefail
           python3 .github/scripts/skill-quality.py select --base "$BASE_SHA" --head "$HEAD_SHA" \
             | python3 .github/scripts/skill_trust.py select-pilot > "$RUNNER_TEMP/pilot.txt"
           echo "count=$(grep -c . "$RUNNER_TEMP/pilot.txt" || true)" >> "$GITHUB_OUTPUT"

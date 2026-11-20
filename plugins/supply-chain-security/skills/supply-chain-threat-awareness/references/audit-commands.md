@@ -73,13 +73,13 @@ jq -r '.packages | to_entries[] | select(.key != "" and .value.hasInstallScript)
 
 # Every npm install in CI
 grep -rnE --include='*.yml' --include='*.yaml' '(^|[^[:alnum:]])npm (ci|install|i)([[:space:]]|$)' .github/
-# Anything in CI that turns scripts back on (--ignore-scripts=false, npm_config_ignore_scripts)
-grep -rniE --include='*.yml' --include='*.yaml' "ignore[-_]scripts([[:space:]]*[=:][[:space:]]*|[[:space:]]+)[\"']?false" .github/
+# Anything in CI that turns scripts back on (--no-ignore-scripts, --ignore-scripts=false, npm_config_ignore_scripts)
+grep -rniE --include='*.yml' --include='*.yaml' "no-ignore-scripts|ignore[-_]scripts([[:space:]]*[=:][[:space:]]*|[[:space:]]+)[\"']?false" .github/
 # The repo-wide setting
 grep -nE '^ignore-scripts[[:space:]]*=' .npmrc
 ```
 
-PASS when scripts are off for every listed install after overrides, and someone has reviewed each listed script. Scripts are off when the command passes a bare `--ignore-scripts`, or when `.npmrc` sets `ignore-scripts=true` and nothing from the second grep applies to that install. `--ignore-scripts=false`, `--ignore-scripts false` and `npm_config_ignore_scripts=false` (any case) all override `.npmrc`; a bare `--ignore-scripts` flag beats the environment variable (checked with npm 11.20.0).
+PASS when scripts are off for every listed install after overrides, and someone has reviewed each listed script. Scripts are off when the command passes a bare `--ignore-scripts`, or when `.npmrc` sets `ignore-scripts=true` and nothing from the second grep applies to that install. `--no-ignore-scripts`, `--ignore-scripts=false`, `--ignore-scripts false` and `npm_config_ignore_scripts=false` (any case) all override `.npmrc`; a bare `--ignore-scripts` flag beats the environment variable (checked with npm 11.20.0).
 
 For `.pth` files, use the PyPI `.pth` check in `supply-chain-ecosystem-quirks`.
 

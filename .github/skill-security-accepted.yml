@@ -4,4 +4,11 @@
 # and reason (why the finding is safe). An entry that stops matching a finding
 # fails the gate, and a changed line is a new finding. CODEOWNERS reviews
 # every change to this file.
-[]
+- skill: plugins/ai-research-workflows/skills/validating-implementations
+  check_name: Anti-Refusal Statement (AR2)
+  file_path: SKILL.md
+  line_content: "- No memory of implementation decisions; reconstruct from git and artifacts.\n- Focus\
+    \ on observable facts: does the code match the plan, do tests pass, are\n  success criteria met?\n\
+    - Don't speculate abo"
+  reason: 'False positive: describes the context of a fresh review session (no prior memory), not an instruction
+    to suppress warnings or refusals.'

@@ -74,7 +74,7 @@ Skills in the trust pilot (`ai-research-workflows` for now) carry evidence you c
 | File | What it holds |
 | --- | --- |
 | `skill-card.md` | What the skill does, who it's for, what credentials it needs, and its risks and mitigations. A person reviewed it. |
-| `evals/evals.json` | The test cases a benchmark runs, including at least one case where the skill should not trigger. They are the input to the verdict, not evidence on their own. |
+| `evals/evals.json` | Where a skill's public eval set lives once it is added. None of the pilot skills has one yet. It holds the test cases a benchmark runs, including at least one case where the skill should not trigger. They are the input to the verdict, not evidence on their own. |
 | `BENCHMARK.md` | The result of running the evals with and without the skill. It's written by the manually run [benchmark workflow](../.github/workflows/benchmark-skills.yml), then reviewed and merged by a person, so git history shows when it was run. |
 
 Not every skill has all three yet. A missing `BENCHMARK.md` means no benchmark has been run for it.

@@ -55,13 +55,15 @@ None. The version is the current date (see `docs/versioning.md`).
    skills:
 
    ```bash
-   gh workflow run benchmark-skills.yml -f skills=<plugin/skill,...>
+   gh workflow run benchmark-skills.yml -f skills=plugins/ai-research-workflows/skills/<skill>,...
    ```
 
-   See the workflow's inputs for `skills`, `model` and `attempts`. The run
+   `skills` takes full skill directories, comma-separated; an empty value runs
+   all pilot skills. See the workflow for `model` and `attempts`. The run
    pushes each skill's `BENCHMARK.md` to a `benchmarks/<run_id>-<run_attempt>`
    branch. Open a pull request from it, review it, and merge it before
-   tagging. Publish a FAIL or INCONCLUSIVE result as it is; a maintainer note
+   tagging, then `git pull origin main` so the commits and tag below start from
+   the merged result. Publish a FAIL or INCONCLUSIVE result as it is; a maintainer note
    on why is optional.
 
 6. Read `CHANGELOG.md` and check that the `[Unreleased]` section has content.

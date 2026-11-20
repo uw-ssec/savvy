@@ -16,7 +16,7 @@ BSD-3-Clause (as declared in the plugin manifest, `plugins/ai-research-workflows
 
 ## Use Case
 
-Developers and researchers who need to understand how existing code works, or what prior work and tools exist, before planning or changing something. Typical triggers: "how does X work", "where is X implemented", "what libraries exist for X", "has this been done before".
+Developers and researchers who need to understand how existing code works, or what prior work and tools exist, before planning or changing something. Typical triggers: "research how X works before changing it", "what libraries exist for X", "has this been done before". A question that only asks how existing code works, with no change planned, is answered directly without this skill.
 
 ## Deployment Geography
 

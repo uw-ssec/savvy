@@ -82,6 +82,11 @@ First tagged release. Plugin versions move to this release for every plugin belo
 
 - Initial tagged release.
 
+#### Fixed
+
+- `performance-reporting` now reads the JSON that `benchmark_runner.py` actually writes, with a tested loader, and stops reporting TTFB and chunk utilization, which the runner never measures.
+- `performance-reporting` drops the weighted pattern-bias score, which rated equal times as unbalanced, and corrects the example numbers, table sorting and ranking rules to match `chunking-strategy`.
+
 ### zarr-data-format
 
 #### Added

@@ -1,285 +1,307 @@
 # Common Issues and Solutions
 
+Error messages are from zarr-python 3.1 and xarray 2026.9.
+
 ## Contents
 
 | Section | Lines | Description |
 |---------|-------|-------------|
-| Issue 1: Chunk Size Mismatch Between Dask and Zarr | 18–80 | Silent performance degradation from misaligned chunks |
-| Issue 2: Conflicting Sizes When Appending | 81–140 | ValueError from shape or coordinate mismatches on append |
-| Issue 3: Encoding Not Applied | 141–200 | Compression or dtype settings ignored during write |
-| Issue 4: Memory Blow-Up on to_zarr | 201–260 | OOM when writing large Dask-backed Datasets |
-| Issue 5: Consolidated Metadata Stale After Append | 261–315 | Old metadata causes missing or incorrect data after appends |
-| Issue 6: Coordinate Variables Written as Data Variables | 316–370 | Coordinates appear in data_vars instead of coords after roundtrip |
-| Issue 7: dtype Mismatch Between In-Memory and On-Disk | 371–430 | Unexpected type promotion or precision loss |
+| Issue 1: Dask and Zarr Chunks Don't Line Up | 21–53 | Read warnings, write errors, stale encoding |
+| Issue 2: Append Fails or Damages the Store | 57–97 | Size errors, replaced coordinates, unreadable stores |
+| Issue 3: Wrong Timestamps After Appending | 101–124 | Time units fixed by the first write |
+| Issue 4: Encoding Rejected or Not Applied | 128–160 | Dict chunks, wrong names, codec keys |
+| Issue 5: Region Write Errors | 164–192 | Variables outside the region, partial chunks, new variables |
+| Issue 6: Memory Blow-Up on to_zarr | 196–225 | NumPy-backed data, oversized chunks |
+| Issue 7: Consolidated Metadata Stale | 229–251 | Old shapes after writes that skipped consolidation |
+| Issue 8: dtype, Fill Values and Strings | 255–284 | NaN as 0, precision, Zarr v3 string types |
+| Issue 9: Empty Selection on ERA5-Style Grids | 288–307 | Descending latitude, 0–360 longitude |
 
 ---
 
-## Issue 1: Chunk Size Mismatch Between Dask and Zarr
+## Issue 1: Dask and Zarr Chunks Don't Line Up
 
 **Symptoms:**
-- Reads are much slower than expected
-- Dask task graph has many more tasks than expected
-- Memory usage per worker is higher than the chunk size suggests
-- Profile shows time spent in "rechunking" or redundant reads
+- On open: `UserWarning: The specified chunks separate the stored chunks along dimension "time" starting at index 45. This could degrade performance.`
+- On write: `ValueError: Specified Zarr chunks encoding['chunks']=(30, 90, 180) for variable named 't' would overlap multiple Dask chunks.`
+- `ds.chunk({...}).to_zarr(...)` succeeds but the store keeps the source's chunk shape
 
-**Cause:** Dask chunks are not aligned with Zarr chunks. For example, if Zarr chunks are `(30, 90, 180)` and Dask chunks are `(45, 90, 180)`, each Dask task must read two Zarr chunks (0–30 and 30–60) and discard the unused portion.
+**Cause:** Each Dask chunk must cover whole Zarr chunks (or whole shards, for sharded v3 arrays). Dask chunks smaller than the Zarr chunk fail too. Data opened from Zarr also keeps `encoding["chunks"]` and `encoding["preferred_chunks"]`, and `to_zarr` uses them after `.chunk()`.
 
 **Solution:**
 
 ```python
-import xarray as xr
-
-# ── Diagnose: Check alignment ──
-ds = xr.open_zarr("data.zarr", chunks={"time": 45})
-for var in ds.data_vars:
-    zarr_c = ds[var].encoding.get("chunks", "unknown")
-    dask_c = ds[var].data.chunksize
-    print(f"{var}: zarr={zarr_c}, dask={dask_c}")
-
-# ── Fix 1: Use chunks={} to auto-match Zarr layout ──
-ds = xr.open_zarr("data.zarr", chunks={})
-
-# ── Fix 2: Use exact multiples ──
-# Zarr chunks = (30, 90, 180)
-ds = xr.open_zarr("data.zarr", chunks={"time": 60, "lat": 90, "lon": 360})
-
-# ── Fix 3: Rechunk before computation ──
-ds = xr.open_zarr("data.zarr", chunks={"time": 45})
-ds = ds.chunk({"time": 30})  # realign to Zarr chunks
-```
-
----
-
-## Issue 2: Conflicting Sizes When Appending
-
-**Symptoms:**
-- `ValueError: conflicting sizes for dimension 'lat': length X on the data but length Y on variable 'lat'`
-- `ValueError: variable 'temperature' already exists with different shape`
-
-**Cause:** The new data being appended has different non-append dimensions than the existing store, or coordinate values don't match along non-append dimensions.
-
-**Solution:**
-
-```python
-import xarray as xr
 import numpy as np
+import xarray as xr
 
-# ── Diagnose: Compare shapes ──
-ds_existing = xr.open_zarr("timeseries.zarr")
-print(f"Existing dims: {dict(ds_existing.dims)}")
-print(f"Existing lat: {ds_existing.lat.values[:3]}...")
+xr.Dataset({"t": (("time", "lat", "lon"), np.random.rand(90, 180, 360))}).to_zarr(
+    "data.zarr", mode="w", encoding={"t": {"chunks": (30, 90, 180)}})
 
-# ── Fix 1: Ensure non-append dimensions match exactly ──
-ds_new = xr.Dataset(
-    {"temperature": (["time", "lat", "lon"], new_data)},
-    coords={
-        "time": new_times,
-        "lat": ds_existing.lat.values,  # reuse exact coordinates
-        "lon": ds_existing.lon.values,
-    },
-)
-ds_new.to_zarr("timeseries.zarr", append_dim="time")
+ds = xr.open_zarr("data.zarr", chunks={})                     # Dask chunks == Zarr chunks
+ds = xr.open_zarr("data.zarr", chunks={"time": 60, "lat": 180})  # whole multiples
 
-# ── Fix 2: Ensure variables match ──
-# The new dataset must have the same data variables
-print(f"Existing vars: {list(ds_existing.data_vars)}")
-# Do not include extra variables in the append
+# Writing a new layout: remove the stale encoding first.
+out = xr.open_zarr("data.zarr").chunk({"time": 90, "lat": 45, "lon": 90})
+for var in out.variables.values():
+    for key in ("chunks", "preferred_chunks", "shards"):
+        var.encoding.pop(key, None)
+out.to_zarr("relayout.zarr", mode="w")
 
-# ── Fix 3: Check dtypes match ──
-for var in ds_existing.data_vars:
-    print(f"{var}: existing={ds_existing[var].dtype}, new={ds_new[var].dtype}")
+# Keeping the target layout but fixing misaligned Dask chunks:
+xr.open_zarr("data.zarr").chunk({"time": 45}).to_zarr("aligned.zarr", mode="w", align_chunks=True)
 ```
+
+`ds.chunk((30, 90, 180))` on a Dataset is a different error (`ValueError: Chunks do not add up to shape`, after a `FutureWarning`); pass a dict. `safe_chunks=False` silences the overlap error, but concurrent writes to a shared chunk can lose data.
 
 ---
 
-## Issue 3: Encoding Not Applied
+## Issue 2: Append Fails or Damages the Store
 
 **Symptoms:**
-- On-disk dtype is float64 despite specifying float32 in encoding
-- Chunks on disk differ from what was specified
-- Compression ratio is lower than expected
-- `encoding` dict keys don't match variable names
+- `ValueError: variable 't' already exists with different dimension sizes: {'lat': 18, 'lon': 36} != {'lat': 9, 'lon': 36}. to_zarr() only supports changing dimension sizes when explicitly appending`
+- `ValueError: variable 't' already exists, but encoding was provided`
+- The append succeeds, then `open_zarr` raises `conflicting sizes for dimension 'time': length 120 on 't' and length 60 on {'time': 'q', 'lat': 'q', 'lon': 'q'}`
+- The store's lat/lon values changed, or the time index has duplicates
 
-**Cause:** Common mistakes: (1) encoding dict keys don't match Dataset variable names exactly; (2) using `chunks` as a tuple instead of a dict; (3) encoding parameter passed to the wrong function.
+**Cause:** xarray checks the sizes of non-append dimensions but not their values. With the default `mode="a"` it rewrites every variable without `append_dim`, including `lat` and `lon`, so new values relabel the existing data. A batch with an extra variable creates that variable at the batch's length, and a batch missing one leaves it short. Overlapping times are appended as duplicates. On append the store's encoding is reused, so passing `encoding` is an error.
 
-**Solution:**
-
-```python
-import xarray as xr
-
-# ── Diagnose: Check what encoding was actually applied ──
-ds = xr.open_zarr("output.zarr")
-for var in ds.data_vars:
-    print(f"{var}: {ds[var].encoding}")
-
-# ── Fix 1: Ensure encoding keys match variable names ──
-print(f"Dataset variables: {list(ds.data_vars)}")
-# encoding keys must be in this list
-
-encoding = {
-    "temperature": {"chunks": {"time": 30, "lat": 90, "lon": 180}, "dtype": "float32"},
-    # ✗ "temp" would be silently ignored if the variable is named "temperature"
-}
-
-# ── Fix 2: Use dict for chunks (not tuple) in xarray ──
-encoding = {
-    "temperature": {
-        "chunks": {"time": 30, "lat": 90, "lon": 180},  # ✓ dict
-        # "chunks": (30, 90, 180),  # also works but less clear
-    },
-}
-
-# ── Fix 3: Pass encoding to to_zarr, not to_netcdf ──
-ds.to_zarr("output.zarr", encoding=encoding)  # ✓
-```
-
----
-
-## Issue 4: Memory Blow-Up on to_zarr
-
-**Symptoms:**
-- `MemoryError` or OOM kill when calling `ds.to_zarr()`
-- System memory fills up rapidly during write
-- Dask dashboard shows all tasks being executed simultaneously
-
-**Cause:** If the Dataset is backed by Dask arrays and the Dask scheduler tries to materialize too many chunks in memory at once. This commonly happens with the default threaded scheduler on a machine with limited RAM.
-
-**Solution:**
+**Solution:** check the batch before appending (the full helper is Pattern 3 in [patterns.md](patterns.md)):
 
 ```python
+import numpy as np
+import pandas as pd
 import xarray as xr
 
-# ── Fix 1: Use the distributed scheduler with memory limits ──
-from dask.distributed import Client
-client = Client(memory_limit="4GB")  # per worker
-ds.to_zarr("output.zarr")
 
-# ── Fix 2: Write in stages using region writes ──
-ds_template = ds.isel(time=slice(0, 1)).broadcast_like(ds)
-ds_template.to_zarr("output.zarr", compute=False)
-
-chunk_size = 30
-for start in range(0, len(ds.time), chunk_size):
-    end = min(start + chunk_size, len(ds.time))
-    ds.isel(time=slice(start, end)).to_zarr(
-        "output.zarr", region={"time": slice(start, end)}
+def batch(start, lat=np.linspace(-85, 85, 18)):
+    return xr.Dataset(
+        {"t": (("time", "lat", "lon"), np.ones((30, 18, 36), "float32"))},
+        coords={"time": pd.date_range(start, periods=30), "lat": lat, "lon": np.linspace(5, 355, 36)},
     )
 
-# ── Fix 3: Rechunk to smaller pieces before writing ──
-ds_small_chunks = ds.chunk({"time": 10, "lat": 45, "lon": 90})
-ds_small_chunks.to_zarr("output.zarr")
+
+batch("2024-01-01").to_zarr("timeseries.zarr", mode="w")
+new = batch("2024-01-31")
+
+existing = xr.open_zarr("timeseries.zarr")
+assert existing.indexes["lat"].equals(new.indexes["lat"])
+assert existing.indexes["lon"].equals(new.indexes["lon"])
+assert set(new.data_vars) == set(existing.data_vars)
+assert new.time.values[0] > existing.time.values[-1]
+new.to_zarr("timeseries.zarr", append_dim="time")
+
+# mode="a-" appends only variables that have append_dim, leaving lat/lon untouched.
+batch("2024-03-01").to_zarr("timeseries.zarr", append_dim="time", mode="a-")
+print(xr.open_zarr("timeseries.zarr").sizes["time"])  # 90
 ```
+
+To recover a store that no longer opens because of a stray variable, open with `xr.open_zarr(path, drop_variables=["q"])`, or delete it with `del zarr.open_group(path, mode="a")["q"]` and then run `zarr.consolidate_metadata(path)`.
 
 ---
 
-## Issue 5: Consolidated Metadata Stale After Append
+## Issue 3: Wrong Timestamps After Appending
 
 **Symptoms:**
-- After appending data, `xr.open_zarr(..., consolidated=True)` shows old shape
-- New time steps are missing from the opened Dataset
-- `KeyError` on new variables added after consolidation
+- `UserWarning: Times can't be serialized faithfully to int64 with requested units 'days since 2024-06-01'. Serializing with units 'hours since 2024-06-01' instead.`
+- Hourly steps appended to the store read back one day apart
 
-**Cause:** `consolidated=True` reads metadata from a single `.zmetadata` file that was written at consolidation time. Appending data updates the actual chunk metadata but does not update `.zmetadata`.
+**Cause:** The first write picks the time units from its own data. One daily step, or a daily series, gets `days since ...`. Appends must use the store's units, so finer times are written in other units under the old label.
+
+**Solution:** set units fine enough for every future append on the first write:
+
+```python
+import pandas as pd
+import xarray as xr
+
+first = xr.Dataset({"v": ("time", [1.0])}, coords={"time": pd.DatetimeIndex(["2024-06-01 00:00"])})
+first.to_zarr("obs.zarr", mode="w",
+              encoding={"time": {"units": "seconds since 1970-01-01", "dtype": "int64"}})
+for hour in (1, 2, 3):
+    step = xr.Dataset({"v": ("time", [1.0])}, coords={"time": pd.DatetimeIndex([f"2024-06-01 {hour:02d}:00"])})
+    step.to_zarr("obs.zarr", append_dim="time")
+print(xr.open_zarr("obs.zarr").time.values[-1])  # 2024-06-01T03:00
+```
+
+Check an existing store's units with `xr.open_zarr(path).time.encoding["units"]`. Non-standard calendars (`noleap`, `360_day`) decode to `cftime` objects; to force that for standard calendars, pass `decode_times=xr.coders.CFDatetimeCoder(use_cftime=True)`, which replaces the deprecated `use_cftime=True`.
+
+---
+
+## Issue 4: Encoding Rejected or Not Applied
+
+**Symptoms:**
+- ``TypeError: zarr chunk sizes specified in `encoding['chunks']` must be an int or a tuple of ints. Instead found encoding['chunks']=('time', 'lat', 'lon')``
+- `KeyError: 'temp'`
+- `ValueError: unexpected encoding parameters for zarr backend` naming `['compressor']`
+- `TypeError: Expected a BytesBytesCodec. Got <class 'numcodecs.blosc.Blosc'> instead.`
+- Chunks on disk differ from what you asked for
+
+**Cause:** `encoding["chunks"]` takes a tuple in the variable's dimension order, and a dict is read as its keys. Every encoding key must name a variable in the dataset. With zarr-python 3 the codec key is `compressors` (plural) for both formats; v3 arrays take `zarr.codecs` objects and v2 arrays take numcodecs. Chunks that differ from the request usually come from the stale encoding in Issue 1.
 
 **Solution:**
 
 ```python
+import numpy as np
 import xarray as xr
 import zarr
 
-# ── Fix: Re-consolidate after every append ──
-ds_new.to_zarr("data.zarr", append_dim="time")
-zarr.consolidate_metadata("data.zarr")  # update .zmetadata
+ds = xr.Dataset({"temperature": (("time", "lat", "lon"), np.random.rand(60, 90, 180))})
+print(list(ds.data_vars))  # encoding keys must come from this list
 
-# ── Or: Read without consolidated metadata ──
-ds = xr.open_zarr("data.zarr", consolidated=False)
-
-# ── Best practice: consolidate in the write pipeline ──
-def append_and_consolidate(ds_new, store_path, append_dim="time"):
-    ds_new.to_zarr(store_path, append_dim=append_dim)
-    zarr.consolidate_metadata(store_path)
-```
-
----
-
-## Issue 6: Coordinate Variables Written as Data Variables
-
-**Symptoms:**
-- After writing to Zarr and reading back, coordinates appear in `ds.data_vars` instead of `ds.coords`
-- `ds.lat` raises `KeyError` but `ds["lat"]` works
-- CF-compliant coordinate metadata is lost
-
-**Cause:** xarray determines coordinate vs. data variable status from the `coordinates` encoding attribute or from dimension coordinates. If this metadata is lost during the Zarr roundtrip, variables may be reclassified.
-
-**Solution:**
-
-```python
-import xarray as xr
-
-# ── Diagnose ──
-ds = xr.open_zarr("data.zarr")
-print(f"Coords: {list(ds.coords)}")
-print(f"Data vars: {list(ds.data_vars)}")
-
-# ── Fix 1: Set coordinates explicitly when writing ──
-ds = ds.set_coords(["lat", "lon", "time"])
-ds.to_zarr("data.zarr", mode="w")
-
-# ── Fix 2: Use the coordinates encoding attribute ──
-ds.to_zarr("data.zarr", mode="w")
-# xarray should preserve this automatically, but verify:
-ds_check = xr.open_zarr("data.zarr")
-assert "lat" in ds_check.coords
-
-# ── Fix 3: Restore coordinates on read ──
-ds = xr.open_zarr("data.zarr")
-ds = ds.set_coords(["lat", "lon"])
-```
-
----
-
-## Issue 7: dtype Mismatch Between In-Memory and On-Disk
-
-**Symptoms:**
-- Values are slightly different after writing and reading back
-- Float precision loss (float64 → float32 silently)
-- Integer overflow for large values
-- `_FillValue` comparisons fail due to type mismatch
-
-**Cause:** The encoding dict specifies a different dtype than the in-memory array, causing implicit casting. Or, xarray's CF decoding converts types during read.
-
-**Solution:**
-
-```python
-import xarray as xr
-import numpy as np
-
-# ── Diagnose: Compare in-memory vs on-disk dtypes ──
-ds = xr.open_zarr("data.zarr")
-for var in ds.data_vars:
-    mem_dtype = ds[var].dtype
-    disk_dtype = ds[var].encoding.get("dtype", "unknown")
-    print(f"{var}: memory={mem_dtype}, disk={disk_dtype}")
-
-# ── Fix 1: Explicit dtype in encoding ──
-encoding = {
-    "temperature": {"dtype": "float32"},  # intentional downcast
-    "count": {"dtype": "int32"},
-}
-ds.to_zarr("output.zarr", encoding=encoding)
-
-# ── Fix 2: Cast before writing to avoid surprises ──
-ds["temperature"] = ds["temperature"].astype("float32")
-ds.to_zarr("output.zarr")
-
-# ── Fix 3: Disable CF decoding if it causes type changes ──
-ds = xr.open_zarr("data.zarr", decode_cf=False)
-
-# ── Fix 4: Match fill values to the on-disk dtype ──
 encoding = {
     "temperature": {
+        "chunks": (30, 90, 180),
         "dtype": "float32",
-        "_FillValue": np.float32(-9999.0),  # match dtype
+        "compressors": [zarr.codecs.BloscCodec(cname="zstd", clevel=5, shuffle="bitshuffle")],
     },
 }
+ds.to_zarr("output.zarr", mode="w", encoding=encoding)
+
+applied = xr.open_zarr("output.zarr")["temperature"].encoding
+print(applied["chunks"], applied["dtype"], applied["compressors"])
+```
+
+---
+
+## Issue 5: Region Write Errors
+
+**Symptoms:**
+- ``ValueError: when setting `region` explicitly in to_zarr(), all variables in the dataset to write must have at least one dimension in common with the region's dimensions ['time']``
+- `ValueError: ... would overlap multiple Dask chunks`, naming a region slice such as `slice(np.int64(60), np.int64(75), None)`
+- `ValueError: dataset contains non-pre-existing variables ['u'], which is not allowed in` ... `with mode='r+'`
+- Concurrent workers lose each other's data, with no error
+
+**Cause:** An explicit `region` needs every variable in the dataset to share a region dimension. Dask-backed regions must start and end on Zarr chunk boundaries in the default `mode="r+"`, which also can't create variables. NumPy-backed regions are not checked at all, so concurrent workers whose regions share a chunk overwrite each other.
+
+**Solution:**
+
+```python
+import dask.array as da
+import numpy as np
+import pandas as pd
+import xarray as xr
+
+times = pd.date_range("2024-01-01", periods=120)
+coords = {"time": times, "lat": np.linspace(-85, 85, 18), "lon": np.linspace(5, 355, 36)}
+template = xr.Dataset({"t": (("time", "lat", "lon"), da.zeros((120, 18, 36), chunks=(30, 18, 36)))}, coords=coords)
+template.to_zarr("regions.zarr", mode="w", compute=False)
+
+part = xr.Dataset({"t": (("time", "lat", "lon"), np.ones((30, 18, 36)))}, coords={**coords, "time": times[30:60]})
+part.to_zarr("regions.zarr", region="auto")                                       # infers time=slice(30, 60)
+part.drop_vars(["lat", "lon"]).to_zarr("regions.zarr", region={"time": slice(30, 60)})  # explicit form
+```
+
+Keep region edges on multiples of the chunk (or shard) size. Writing a partial chunk is allowed with `mode="a"`, but only safe when no other writer touches that chunk.
+
+---
+
+## Issue 6: Memory Blow-Up on to_zarr
+
+**Symptoms:**
+- `MemoryError` or an OOM kill during `ds.to_zarr()`
+- Memory grows to the full dataset size before anything is written
+
+**Cause:** The data isn't Dask-backed (it was loaded, built from NumPy, or opened with `chunks=None`), so the whole array is in memory. Or the Dask chunks are so large that a few concurrent tasks exceed RAM.
+
+**Solution:**
+
+```python
+import numpy as np
+import pandas as pd
+import xarray as xr
+
+ds = xr.Dataset({"t": (("time", "lat", "lon"), np.random.rand(120, 180, 360))},
+                coords={"time": pd.date_range("2024-01-01", periods=120)})
+
+# Fix 1: make it Dask-backed with moderate chunks (tens to hundreds of MB), aligned with the encoding.
+print(ds.chunks)  # empty mapping → NumPy-backed
+ds = ds.chunk({"time": 30, "lat": 90, "lon": 180})
+ds.to_zarr("output.zarr", mode="w", encoding={"t": {"chunks": (30, 90, 180)}})
+
+# Fix 2: write in stages, one time block per call.
+ds.to_zarr("staged.zarr", mode="w", compute=False, encoding={"t": {"chunks": (30, 90, 180)}})
+for start in range(0, ds.sizes["time"], 30):
+    ds.isel(time=slice(start, start + 30)).to_zarr("staged.zarr", region="auto")
+```
+
+On a cluster, `dask.distributed.Client(memory_limit="4GB")` caps each worker's memory and spills to disk instead of being killed.
+
+---
+
+## Issue 7: Consolidated Metadata Stale
+
+**Symptoms:**
+- After an append, a v2 store opens with the old shape and no warning
+- A v3 store warns `RuntimeWarning: Failed to open Zarr store with consolidated metadata, but successfully read with non-consolidated metadata`, or raises `Consolidated metadata requested with 'use_consolidated=True' but not found` with `consolidated=True`
+
+**Cause:** `to_zarr` re-consolidates after every write by default, so this only happens after a write with `consolidated=False` or a change made with zarr-python directly. v2 then serves the old `.zmetadata`; v3 drops the consolidated block from `zarr.json`.
+
+**Solution:**
+
+```python
+import numpy as np
+import xarray as xr
+import zarr
+
+xr.Dataset({"v": ("time", np.arange(10.0))}).to_zarr("data.zarr", mode="w", zarr_format=2)
+xr.Dataset({"v": ("time", np.arange(10.0))}).to_zarr("data.zarr", append_dim="time", consolidated=False)
+print(xr.open_zarr("data.zarr").sizes["time"])  # 10 (stale)
+
+zarr.consolidate_metadata("data.zarr")
+print(xr.open_zarr("data.zarr").sizes["time"])  # 20
+print(xr.open_zarr("data.zarr", consolidated=False).sizes["time"])  # 20: bypasses consolidated metadata
+```
+
+---
+
+## Issue 8: dtype, Fill Values and Strings
+
+**Symptoms:**
+- `SerializationWarning: saving variable ... with floating point data as an integer dtype without any _FillValue to use for NaNs`, then NaNs read back as 0
+- Values differ slightly after a roundtrip (float64 written as float32)
+- A float64 batch appended to a float32 store comes back float32
+- `UnstableSpecificationWarning: The data type (FixedLengthUTF32(length=8, ...)) does not have a Zarr V3 specification`
+- Missing (`None`) strings read back as `""`
+
+**Cause:** The encoding `dtype`, or the store's dtype on append, wins. Integer types need a `_FillValue` to hold NaN. String coordinates built from a Python list become fixed-width NumPy `<U` strings, a type without a Zarr v3 spec; object arrays are written as variable-length strings, which can't hold `None`.
+
+**Solution:**
+
+```python
+import numpy as np
+import xarray as xr
+
+ds = xr.Dataset(
+    {"count": ("station", np.array([1.0, np.nan, 3.0]))},
+    coords={"station": np.array(["STN-0000", "STN-0001", "STN-0002"], dtype=object)},  # variable-length
+)
+encoding = {"count": {"dtype": "int16", "_FillValue": np.int16(-1)}}
+ds.to_zarr("output.zarr", mode="w", encoding=encoding)
+
+back = xr.open_zarr("output.zarr")
+print(back["count"].values)                                       # [ 1. nan  3.]
+print(xr.open_zarr("output.zarr", decode_cf=False)["count"].values)  # [ 1 -1  3]: raw on-disk values
+```
+
+`zarr_format=2` writes fixed-width strings without the warning if older readers need the store.
+
+---
+
+## Issue 9: Empty Selection on ERA5-Style Grids
+
+**Symptoms:**
+- `ds.sel(latitude=slice(-30, 30))` returns zero latitudes, with no error
+- A box across the Greenwich meridian, such as `slice(-20, 20)`, returns only its eastern half
+
+**Cause:** ERA5 and many reanalysis grids store latitude from 90 to -90 and longitude from 0 to 359.75. Label slices follow the stored order.
+
+**Solution:**
+
+```python
+import numpy as np
+import xarray as xr
+
+ds = xr.Dataset(coords={"latitude": np.linspace(90, -90, 721), "longitude": np.arange(0, 360, 0.25)})
+print(ds.sel(latitude=slice(30, -30)).sizes["latitude"])  # 241: slice in stored (descending) order
+ds = ds.sortby("latitude")                                 # or sort once, then slice ascending
+ds = ds.assign_coords(longitude=((ds.longitude + 180) % 360) - 180).sortby("longitude")
+print(ds.sel(longitude=slice(-20, 20)).sizes["longitude"])  # 161
 ```

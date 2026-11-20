@@ -2,13 +2,13 @@
 
 | Section | Lines | Description |
 |---------|-------|-------------|
-| Object Store Fundamentals | 15-51 | S3/GCS semantics, eventual consistency, request pricing |
-| Zarr on Cloud Storage | 53-109 | How Zarr maps chunks to objects, key naming conventions |
-| Latency vs Throughput | 111-167 | Per-request overhead, optimal request size, parallel reads |
-| Authentication and Configuration | 169-253 | boto3/s3fs config, GCS credentials, fsspec setup |
-| Caching Strategies | 255-313 | fsspec cache, block cache, local staging |
-| Cost Optimization | 315-362 | Request minimization, storage class selection, egress |
-| Benchmarking on Cloud vs Local | 364-429 | Network variability, warm-up effects, region selection |
+| Object Store Fundamentals | 15-52 | S3/GCS semantics, eventual consistency, request pricing |
+| Zarr on Cloud Storage | 53-123 | How Zarr maps chunks to objects, v2 and v3 key layouts, sharding |
+| Latency vs Throughput | 124-183 | Per-request overhead, optimal request size, parallel reads |
+| Authentication and Configuration | 184-267 | boto3/s3fs config, GCS credentials, fsspec setup |
+| Caching Strategies | 268-319 | fsspec caching protocols, OS page cache, local staging, no chunk cache in zarr-python 3 |
+| Cost Optimization | 320-374 | Request minimization, storage class selection, egress |
+| Benchmarking on Cloud vs Local | 375-440 | Network variability, warm-up effects, region selection |
 
 ---
 
@@ -81,22 +81,26 @@ Chunk keys use `.` as the dimension separator by default in Zarr v2:
 {dim0_index}.{dim1_index}.{dim2_index}
 ```
 
-Zarr v3 uses `/` as the separator, creating a deeper key hierarchy:
+Zarr v3 (the default in zarr-python 3) uses `/` as the separator under a `c/` prefix, creating a deeper key hierarchy:
 
 ```
-c/0/0/0
-c/0/0/1
+s3://bucket/data.zarr/
+  zarr.json          # Group metadata
+  t2m/zarr.json      # Array metadata: shape, chunk grid, codecs, dimension_names
+  t2m/c/0/0/0        # Chunk at index (0, 0, 0)
+  t2m/c/0/0/1
 ```
 
 ### Metadata Objects
 
-- **`.zarray`**: JSON containing shape, chunks, dtype, fill_value, order, compressor, and filters. Read once at array open time.
-- **`.zattrs`**: JSON containing arbitrary user metadata. Also read once at open time.
-- **`.zgroup`**: For Zarr groups (directories), identifies a group node.
+- **Zarr v2:** `.zarray` (shape, chunks, dtype, fill_value, order, compressor, filters), `.zattrs` (user attributes), `.zgroup` (marks a group).
+- **Zarr v3:** one `zarr.json` per node holds all of that, attributes included.
+
+Either way, metadata is read once at open time.
 
 ### Impact on LIST Operations
 
-Opening a Zarr dataset triggers LIST operations to discover available arrays and groups. With many arrays or deeply nested groups, this can add significant latency at open time. Consolidating metadata with `zarr.consolidate_metadata()` reduces this to a single GET for the `.zmetadata` file.
+Opening a Zarr dataset triggers LIST operations to discover available arrays and groups. With many arrays or deeply nested groups, this can add significant latency at open time. `zarr.consolidate_metadata()` reduces this to a single GET: for v2 it writes `.zmetadata`; for v3, zarr-python embeds the consolidated metadata in the root `zarr.json` (not yet part of the v3 spec, so other implementations may ignore it).
 
 ### Chunk Size on Disk
 
@@ -107,6 +111,15 @@ The on-disk (in-object) size of a chunk depends on:
 3. **Typical range**: Scientific data often compresses 2x-10x
 
 For cloud storage, target chunk objects between **1 MB and 100 MB** after compression. This balances per-request overhead against parallelism.
+
+### Sharding (Zarr v3)
+
+The sharding codec packs many inner chunks into one storage object (a shard) with an index. A reader fetches the index, then a byte range for each inner chunk it needs.
+
+- **The inner chunk is the read unit.** It sets bytes fetched, decompression work and memory per read. Size and benchmark inner chunks against the access patterns.
+- **The shard is the storage object.** It sets the object count (PUT and LIST cost, file-count quotas on HPC). Shards can be hundreds of MB without slowing reads.
+- **Sharding does not cut the request count of a read.** zarr-python fetches each needed inner chunk with its own ranged GET, so KB-sized inner chunks stay latency-bound.
+- **Writes are whole shards.** Align write jobs (Dask chunks) to shard boundaries.
 
 ## Latency vs Throughput
 
@@ -126,17 +139,19 @@ This means a 1 KB chunk and a 10 MB chunk both pay the same ~50 ms overhead befo
 
 ### Optimal Request Size
 
-Based on S3 benchmarks (including Nguyen et al. 2023):
+For one request on one connection, using the model in [Bandwidth Estimation](#bandwidth-estimation) (50 ms latency, 100 MB/s per connection):
 
-| Chunk Size (compressed) | Overhead Fraction | Throughput Efficiency |
-|--------------------------|-------------------|----------------------|
-| 10 KB | ~80% overhead | ~20% efficient |
-| 100 KB | ~50% overhead | ~50% efficient |
-| 1 MB | ~10% overhead | ~90% efficient |
-| 10 MB | ~1% overhead | ~99% efficient |
-| 100 MB | ~0.1% overhead | ~99.9% efficient |
+| Chunk Size (compressed) | Transfer Time | Latency Share of Request | Throughput Efficiency |
+|--------------------------|---------------|--------------------------|----------------------|
+| 10 KB | 0.1 ms | ~99.8% | ~0.2% |
+| 100 KB | 1 ms | ~98% | ~2% |
+| 1 MB | 10 ms | ~83% | ~17% |
+| 10 MB | 100 ms | ~33% | ~67% |
+| 100 MB | 1 s | ~5% | ~95% |
 
-**Rule of thumb**: Aim for compressed chunk sizes of at least 1 MB to achieve good throughput efficiency.
+Readers hide much of the latency by issuing requests concurrently (zarr-python 3 fetches chunks concurrently, and Dask adds more), which is why 1–100 MB objects work well in practice. Concurrency cannot rescue KB-sized chunks: the request count and per-request cost still dominate.
+
+**Rule of thumb**: Aim for compressed chunk sizes of at least 1 MB; benchmark to find where above that your access patterns land.
 
 ### Parallel Reads
 
@@ -192,13 +207,14 @@ fs = s3fs.S3FileSystem(profile='my-profile')
 ### S3 Performance Tuning
 
 ```python
-import botocore.config
+import s3fs
 
-config = botocore.config.Config(
-    max_pool_connections=50,       # Increase connection pool
-    retries={'max_attempts': 3},   # Retry on transient failures
-    s3={'addressing_style': 'virtual'},  # Virtual-hosted addressing
-)
+# config_kwargs is passed to botocore.config.Config
+fs = s3fs.S3FileSystem(config_kwargs={
+    'max_pool_connections': 50,          # Increase connection pool
+    'retries': {'max_attempts': 3},      # Retry on transient failures
+    's3': {'addressing_style': 'virtual'},
+})
 ```
 
 ### GCS Configuration
@@ -232,12 +248,9 @@ fs = fsspec.filesystem('gcs', token='cloud')
 # Local (for comparison benchmarks)
 fs = fsspec.filesystem('file')
 
-# Open Zarr with any backend
+# Open Zarr with any backend: pass the URL and filesystem options
 import xarray as xr
-ds = xr.open_zarr(
-    fsspec.get_mapper('s3://bucket/data.zarr', anon=False),
-    consolidated=True
-)
+ds = xr.open_zarr('s3://bucket/data.zarr', storage_options={'anon': False})
 ```
 
 ### Region Configuration
@@ -300,17 +313,9 @@ This isolates chunking effects from network variability but does not reflect pro
 
 ### Zarr Chunk Cache
 
-Zarr itself can cache decompressed chunks in memory via `zarr.LRUStoreCache`:
+zarr-python 2 offered `zarr.LRUStoreCache` and `zarr.storage.FSStore`. Neither exists in zarr-python 3, which does not cache chunk data on its own: caching comes only from a caching fsspec protocol (`simplecache::`, `blockcache::`) or a store wrapper you add.
 
-```python
-import zarr
-
-store = zarr.storage.FSStore('s3://bucket/data.zarr')
-cache = zarr.LRUStoreCache(store, max_size=2**30)  # 1 GB cache
-root = zarr.open(cache, mode='r')
-```
-
-**For benchmarking**: Do not use LRU caching. Each run should read from storage.
+**For benchmarking**: Do not add a cache layer. Each run should read from storage.
 
 ## Cost Optimization
 
@@ -324,15 +329,15 @@ Fewer, larger chunks reduce the number of GET requests:
 Cost per access = (num_chunks_read * cost_per_GET) + (bytes_read * cost_per_GB)
 ```
 
-Example for reading a single time slice from a 3D dataset:
+Example for reading a single time slice (2048 × 2048 float32, 16.8 MB) from a 3D dataset, at $0.0004 per 1,000 GETs and $0.09/GB internet egress:
 
-| Chunk Shape | Chunks Read | GET Cost | Data Cost | Total |
-|-------------|-------------|----------|-----------|-------|
-| (1, 2048, 2048) | 1 | $0.0000004 | $0.000015 | $0.000015 |
-| (1, 512, 512) | 16 | $0.0000064 | $0.000015 | $0.000022 |
-| (1, 64, 64) | 1,024 | $0.0004 | $0.000015 | $0.000415 |
+| Chunk Shape | Chunks Read | GET Cost | Egress (out of AWS) | Total out of AWS | Total in-region |
+|-------------|-------------|----------|---------------------|------------------|-----------------|
+| (1, 2048, 2048) | 1 | $0.0000004 | $0.0015 | $0.0015 | $0.0000004 |
+| (1, 512, 512) | 16 | $0.0000064 | $0.0015 | $0.0015 | $0.0000064 |
+| (1, 64, 64) | 1,024 | $0.00041 | $0.0015 | $0.0019 | $0.00041 |
 
-At scale (millions of accesses), these differences become significant.
+Reading in-region transfers data for free, so request cost is the whole bill and the 16 KB chunks cost 1,024× more per read. Out of region, egress dominates. At scale (millions of accesses), these differences become significant.
 
 ### Storage Class Selection
 
@@ -353,10 +358,16 @@ Data leaving a cloud provider incurs egress charges ($0.05-0.09/GB on AWS). Stra
 
 ### Cost-Benefit of Rechunking
 
-Rechunking has a one-time cost (read all data + write all data). Calculate break-even:
+Rechunking has a one-time cost: it reads every source chunk and writes every target chunk. Uploads (ingress) are free, and in-region reads have no transfer charge, so the bill is requests, compute and the temporary second copy; egress applies only when compute runs outside the bucket's region. Calculate break-even:
 
 ```python
-rechunk_cost = 2 * dataset_size_gb * egress_cost_per_gb  # read + write
+rechunk_cost = (
+    source_chunks * get_cost            # $0.0004 per 1,000 GETs (S3 Standard)
+    + target_chunks * put_cost          # $0.005 per 1,000 PUTs (S3 Standard)
+    + compute_hours * instance_hourly_rate
+    + extra_storage_cost                # both copies exist until the swap
+    + (dataset_size_gb * egress_cost_per_gb if compute_out_of_region else 0)
+)
 savings_per_access = old_access_cost - new_access_cost
 break_even_accesses = rechunk_cost / savings_per_access
 ```

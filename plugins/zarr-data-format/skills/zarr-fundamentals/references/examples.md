@@ -7,7 +7,7 @@
 | 1. Scientific Dataset from Scratch | Climate-like dataset with coordinates and CF metadata |
 | 2. Reading a Remote Zarr Store | Access public cloud-hosted data and extract subsets |
 | 3. Hierarchical Multi-Instrument Store | Organize multi-resolution, multi-instrument data |
-| 4. Structured and Ragged Arrays | Compound dtypes and variable-length data |
+| 4. Structured Arrays | Compound dtypes (record-like rows) |
 
 ---
 
@@ -125,9 +125,11 @@ print(root.tree())
 
 ---
 
-## Example 4: Structured and Ragged Arrays
+## Example 4: Structured Arrays
 
-**Problem:** Store tabular-like data with compound dtypes and handle variable-length records.
+**Problem:** Store tabular-like data with a compound dtype.
+
+In Zarr format 3, zarr-python writes structured dtypes with an `UnstableSpecificationWarning`: no v3 spec covers them yet, so other Zarr readers may fail on the store. Pass `zarr_format=2`, or store one array per field, when other tools must read it.
 
 ```python
 import zarr
@@ -147,8 +149,10 @@ data["value"] = rng.normal(0, 1, 10000)
 data["quality_flag"] = rng.integers(0, 4, 10000, dtype="uint8")
 z[:] = data
 
-# Read individual fields
-x_coords = z["x"]
-high_quality = z[:][z[:]["quality_flag"] == 0]
+# Read records, then select fields from the NumPy result.
+# z["x"] raises TypeError in zarr 3.1.5.
+records = z[:]
+x_coords = records["x"]
+high_quality = records[records["quality_flag"] == 0]
 print(f"High-quality observations: {len(high_quality)}")
 ```

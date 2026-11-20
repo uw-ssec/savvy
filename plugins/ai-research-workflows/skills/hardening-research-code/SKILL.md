@@ -5,6 +5,12 @@ description: >-
   regression-safe, and numerically stable. Triggers: harden this code, is this
   numerically correct, add regression tests vs known results, make the research
   code robust.
+metadata:
+  capability-network: none
+  capability-shell: runs-commands
+  capability-file: write
+  capability-environment: none
+  capability-mcp: none
 ---
 
 # Hardening Research Code

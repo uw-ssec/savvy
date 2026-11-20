@@ -4,6 +4,12 @@ description: >-
   Use when a feature, refactor, or multi-file change needs to be designed before
   coding. Triggers: plan X, design the implementation, how should we build X,
   create an implementation plan.
+metadata:
+  capability-network: none
+  capability-shell: none
+  capability-file: write
+  capability-environment: none
+  capability-mcp: none
 ---
 
 # Planning Implementations

@@ -4,6 +4,12 @@ description: >-
   Use when an approved implementation plan (a docs/rse/specs/plan-*.md file) exists
   and the next step is writing the code. Triggers: implement the plan, execute
   the plan, start building, run the plan.
+metadata:
+  capability-network: none
+  capability-shell: runs-commands
+  capability-file: write
+  capability-environment: none
+  capability-mcp: none
 ---
 
 # Implementing Plans

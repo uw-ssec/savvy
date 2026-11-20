@@ -4,6 +4,12 @@ description: >-
   Use when the best technical approach is genuinely uncertain and a head-to-head
   prototype comparison is needed before committing to a design. Triggers: should
   I use X or Y, compare approaches, benchmark, which is faster or simpler.
+metadata:
+  capability-network: none
+  capability-shell: runs-commands
+  capability-file: write
+  capability-environment: none
+  capability-mcp: none
 ---
 
 # Running Experiments

@@ -212,6 +212,17 @@ Some rules matter to clients other than Claude Code:
 - **MCP servers** need both files. `.mcp.json` is for Claude Code. `mcp.json` is the portable version that Codex, Copilot and Cursor read: it has the Agent Plugins `$schema`, an explicit `type` on each server, and no other top-level fields. Cursor doesn't expand `${PLUGIN_ROOT}` or `${PLUGIN_DATA}`, so avoid them in `mcp.json`.
 - **Agent `skills:`** must be a YAML list (`skills:` then `  - name`), even for one skill. Claude Code accepts a string, but Copilot CLI silently skips an agent whose `skills` is a plain string, so `check` requires a list.
 - **Skill `metadata` values** must be strings, as the [Agent Skills spec](https://agentskills.io/specification) requires. List files space-separated (`references: references/a.md references/b.md`), and quote dates (`last-verified: '2026-10-27'`), because YAML otherwise reads them as dates. `check` fails on any other type.
+- **Skill capability declarations** (trust pilot, `ai-research-workflows` only for now): put five keys under `metadata`, each with one allowed value.
+
+  | Key | Allowed values |
+  | --- | --- |
+  | `capability-network` | `none`, `read`, `write` |
+  | `capability-shell` | `none`, `runs-commands` |
+  | `capability-file` | `none`, `read`, `write` |
+  | `capability-environment` | `none`, `read` |
+  | `capability-mcp` | `none`, `uses` |
+
+  A value states what the skill **directs the agent to do**, not what code it ships. `network: read` means it tells the agent to fetch pages or packages. `write` means it tells the agent to publish or upload. `environment: read` means it tells the agent to read environment variables or credentials. CI checks that the keys are present and the values are allowed; a reviewer, not CI, checks that the values match the skill's content.
 - **Agents and commands** load only in Claude Code and Cursor. Put anything other clients need in a skill, and update the matrix in [docs/install.md](docs/install.md) when client support changes.
 
 ## 📚 Skill Catalog

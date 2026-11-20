@@ -7,6 +7,12 @@ description: >-
   check", before editing, or before answering "how does X work". Triggers:
   research workflow, which skill should I use, where do I start, guide me through
   the workflow, structured development.
+metadata:
+  capability-network: none
+  capability-shell: none
+  capability-file: write
+  capability-environment: none
+  capability-mcp: none
 ---
 
 # Using Research Workflows

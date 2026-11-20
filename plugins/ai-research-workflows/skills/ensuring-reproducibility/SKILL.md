@@ -4,6 +4,12 @@ description: >-
   Use when a result, experiment, or analysis must be reproducible by others or
   by a future session. Triggers: make this reproducible, capture provenance, pin
   the environment for this result, why can't I reproduce X.
+metadata:
+  capability-network: read
+  capability-shell: runs-commands
+  capability-file: write
+  capability-environment: none
+  capability-mcp: none
 ---
 
 # Ensuring Reproducibility

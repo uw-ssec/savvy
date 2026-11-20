@@ -4,6 +4,12 @@ description: >-
   Use when an existing implementation plan needs changes before or during
   execution. Triggers: update the plan, change the plan, add a phase, revise
   scope, incorporate experiment results.
+metadata:
+  capability-network: none
+  capability-shell: runs-commands
+  capability-file: write
+  capability-environment: none
+  capability-mcp: none
 ---
 
 # Iterating Plans

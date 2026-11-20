@@ -643,7 +643,7 @@ The MCP server enables:
 ## Quality Assurance
 
 ### Validation Checklist
-- ✅ Plugin structure follows rse-plugins pattern
+- ✅ Plugin structure follows savvy pattern
 - ✅ All required metadata present
 - ✅ Naming conventions correct (kebab-case)
 - ✅ Documentation comprehensive

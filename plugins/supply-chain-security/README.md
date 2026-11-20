@@ -124,4 +124,4 @@ supply-chain-security/
 
 ## License
 
-This plugin is part of the RSE Plugins project and is licensed under the BSD-3-Clause License. See [LICENSE](../../LICENSE) for details.
+This plugin is part of the savvy project and is licensed under the BSD-3-Clause License. See [LICENSE](../../LICENSE) for details.

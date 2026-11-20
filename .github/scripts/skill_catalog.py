@@ -13,7 +13,9 @@ Sources:
   catalog can't promise a trigger the skill doesn't declare.
 - ``<plugin>/commands/*.md`` and ``<plugin>/agents/*.md`` frontmatter.
 - ``docs/catalog.yml``: what the frontmatter doesn't carry. Each plugin's tier
-  and maintainer, and an example prompt for every skill.
+  and maintainer, and an example prompt for every skill. A plugin marked
+  ``released: false`` is not ready to ship: it is validated like any other
+  but left off the page (agent_plugins.py keeps it out of the marketplaces).
 
 How the description is split:
 
@@ -163,6 +165,9 @@ def load(root: Path) -> tuple[dict, list[dict], list[str]]:
         maintainer = pmeta.get("maintainer")
         if not maintainer:
             errors.append(f"{METADATA}: plugin {name}: maintainer is required")
+        released = pmeta.get("released", True)
+        if not isinstance(released, bool):
+            errors.append(f"{METADATA}: plugin {name}: released must be true or false")
         skill_meta = pmeta.get("skills") or {}
 
         skills = []
@@ -209,6 +214,8 @@ def load(root: Path) -> tuple[dict, list[dict], list[str]]:
                             "description": first_sentence(fm.get("description") or "")})
             return out
 
+        if released is False:
+            continue
         plugins.append({"name": name, "path": rel, "tier": tier, "maintainer": maintainer,
                         "skills": skills, "commands": listing("commands"), "agents": listing("agents")})
 
@@ -231,7 +238,7 @@ def render(meta: dict, plugins: list[dict]) -> str:
         "",
         "# Skill catalog",
         "",
-        f"Every skill, command, and agent in this repository: {n_skills} skills, "
+        f"Every skill, command, and agent in a released plugin: {n_skills} skills, "
         f"{n_cmds} commands, and {n_agents} agents across {len(plugins)} plugins.",
         "",
         "Skills activate on their own. Claude reads each skill's `description` and loads the skill when",
@@ -258,7 +265,7 @@ def render(meta: dict, plugins: list[dict]) -> str:
         out.append(f"| {p['tier']} | [{p['name']}](#{anchor(p['name'])}) | {len(p['skills'])} | "
                    f"{len(p['commands'])} | {len(p['agents'])} | {cell(p['maintainer'])} |")
 
-    for tier in tiers:
+    for tier in (t for t in tiers if any(p["tier"] == t for p in ordered)):
         out += ["", f"## {tier} plugins"]
         for p in (p for p in ordered if p["tier"] == tier):
             out += ["", f"### {p['name']}", "",

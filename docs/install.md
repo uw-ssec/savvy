@@ -34,7 +34,7 @@ Every plugin README carries a note saying the same thing. If a client doesn't lo
 
 🟡 cells follow the client's documentation but haven't been run against this repository. For MCP, ✅ means the client found the server configuration; the server itself wasn't started.
 
-Replace `scientific-python-development` in the examples below with any plugin from the [skill catalog](catalog.md).
+Replace `ai-research-workflows` in the examples below with any plugin from the [skill catalog](catalog.md).
 
 ## Install by client
 
@@ -42,16 +42,16 @@ Replace `scientific-python-development` in the examples below with any plugin fr
 
 ```bash
 claude plugin marketplace add uw-ssec/savvy
-claude plugin install scientific-python-development@savvy
+claude plugin install ai-research-workflows@savvy
 ```
 
-Inside Claude Code, the same commands are `/plugin marketplace add uw-ssec/savvy` and `/plugin install scientific-python-development@savvy`. Claude Code reads `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`, and loads skills, agents, commands and MCP servers. The marketplace is named `savvy`, which is why plugin names end in `@savvy`.
+Inside Claude Code, the same commands are `/plugin marketplace add uw-ssec/savvy` and `/plugin install ai-research-workflows@savvy`. Claude Code reads `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`, and loads skills, agents, commands and MCP servers. The marketplace is named `savvy`, which is why plugin names end in `@savvy`.
 
 ### GitHub Copilot CLI
 
 ```bash
 copilot plugin marketplace add uw-ssec/savvy
-copilot plugin install scientific-python-development@savvy
+copilot plugin install ai-research-workflows@savvy
 ```
 
 Copilot reads the root `plugin.json` and the marketplace in `.claude-plugin/marketplace.json`, and loads each plugin's skills and MCP servers. It doesn't load our agents or commands yet: those are written for Claude Code, and Copilot-format versions for Copilot CLI and VS Code are tracked in [#240](https://github.com/uw-ssec/savvy/issues/240). The [Codespace](codespaces.md) installs every plugin this way.
@@ -72,7 +72,7 @@ Then install plugins from the marketplace. See [Configure plugin marketplaces](h
 
 ```bash
 codex plugin marketplace add uw-ssec/savvy
-codex plugin add scientific-python-development@savvy
+codex plugin add ai-research-workflows@savvy
 ```
 
 Codex reads `.agents/plugins/marketplace.json` and loads skills and MCP servers. It doesn't load agents or commands.
@@ -84,7 +84,7 @@ Cursor's public marketplace is curated, so this repository isn't listed there. T
 ```bash
 git clone https://github.com/uw-ssec/savvy.git
 mkdir -p ~/.cursor/plugins/local
-cp -R savvy/plugins/scientific-python-development ~/.cursor/plugins/local/
+cp -R savvy/plugins/ai-research-workflows ~/.cursor/plugins/local/
 ```
 
 Cursor picks up the new folder on its own. If the plugin doesn't appear under **Customize**, restart Cursor or run **Developer: Reload Window**. Cursor documents a plugin with a root `plugin.json` as skills and MCP servers only, but it also loads our agents as subagents and our commands in the `/` menu. Teams and Enterprise plans can also add the repository to a team marketplace (`.cursor-plugin/marketplace.json`) instead of copying. See [Cursor plugins](https://cursor.com/docs/plugins). Tested with Cursor 3.28.7; the team marketplace hasn't been tested. To use skills without the plugin, copy them as in [Copy skills into any client](#copy-skills-into-any-client).
@@ -92,11 +92,11 @@ Cursor picks up the new folder on its own. If the plugin doesn't appear under **
 ### Antigravity CLI
 
 ```bash
-agy plugin install https://github.com/uw-ssec/savvy/tree/main/plugins/scientific-python-development
+agy plugin install https://github.com/uw-ssec/savvy/tree/main/plugins/ai-research-workflows
 agy plugin list
 ```
 
-Antigravity's plugin marketplace lists only Google's official catalog, so install a plugin from its folder on GitHub, as above, or from a local clone (`agy plugin install ./savvy/plugins/scientific-python-development`). Plugins are installed for your user, in `~/.gemini/config/plugins/`. To see what a plugin will load before you install it, run `agy plugin validate` on its folder.
+Antigravity's plugin marketplace lists only Google's official catalog, so install a plugin from its folder on GitHub, as above, or from a local clone (`agy plugin install ./savvy/plugins/ai-research-workflows`). Plugins are installed for your user, in `~/.gemini/config/plugins/`. To see what a plugin will load before you install it, run `agy plugin validate` on its folder.
 
 Antigravity loads the plugin's skills and agents; `agy agents` lists the agents. It skips agents that set `model: sonnet`, which leaves out nine of the ten `uiux-design-team` agents ([#306](https://github.com/uw-ssec/savvy/issues/306)). It doesn't load commands. The install summary says they were converted to skills, but they don't show up in a session, and where a command shares its name with a skill, you get the skill.
 
@@ -115,7 +115,7 @@ OpenCode doesn't install plugin packages, but it discovers skills. Copy the skil
 ```bash
 git clone https://github.com/uw-ssec/savvy.git
 mkdir -p ~/.config/opencode/skills
-cp -R savvy/plugins/scientific-python-development/skills/* ~/.config/opencode/skills/
+cp -R savvy/plugins/ai-research-workflows/skills/* ~/.config/opencode/skills/
 ```
 
 Agents and commands aren't available in OpenCode. To use the HoloViz MCP server, add it to your `opencode.json` yourself:
@@ -141,11 +141,11 @@ git clone https://github.com/uw-ssec/savvy.git
 
 # For one project (run from the project root)
 mkdir -p .agents/skills
-cp -R savvy/plugins/scientific-python-development/skills/* .agents/skills/
+cp -R savvy/plugins/ai-research-workflows/skills/* .agents/skills/
 
 # Or for your user, in every project
 mkdir -p ~/.agents/skills
-cp -R savvy/plugins/scientific-python-development/skills/* ~/.agents/skills/
+cp -R savvy/plugins/ai-research-workflows/skills/* ~/.agents/skills/
 ```
 
 Claude Code doesn't read `.agents/skills/`. Use `.claude/skills/` or `~/.claude/skills/` instead, or install the plugin, which also brings its agents and commands. Antigravity CLI reads `.agents/skills/` in a project but not `~/.agents/skills/`. For your user, copy into `~/.gemini/config/skills/` instead.

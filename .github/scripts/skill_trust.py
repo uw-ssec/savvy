@@ -31,6 +31,31 @@ FIELDS = ("skill", "check_name", "file_path", "line_content", "file_sha256", "re
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
 
 
+# What a skill directs the agent to do (not what code it ships), declared under
+# `metadata` in SKILL.md frontmatter. A reviewer checks the values against the content.
+CAPABILITIES: dict[str, frozenset[str]] = {
+    "capability-network": frozenset({"none", "read", "write"}),
+    "capability-shell": frozenset({"none", "runs-commands"}),
+    "capability-file": frozenset({"none", "read", "write"}),
+    "capability-environment": frozenset({"none", "read"}),
+    "capability-mcp": frozenset({"none", "uses"}),
+}
+
+
+def check_capabilities(frontmatter: dict) -> list[str]:
+    """Errors for a skill's frontmatter: each capability key must exist under metadata with an allowed value."""
+    metadata = frontmatter.get("metadata")
+    if not isinstance(metadata, dict):
+        metadata = {}
+    errors = []
+    for key, allowed in CAPABILITIES.items():
+        if key not in metadata:
+            errors.append(f"metadata.{key}: missing (one of {sorted(allowed)})")
+        elif metadata[key] not in allowed:
+            errors.append(f"metadata.{key}: {metadata[key]!r} is not one of {sorted(allowed)}")
+    return errors
+
+
 def report_name(skill_dir: str) -> str:
     """Report subdirectory for a skill; matches skill-quality.py."""
     return skill_dir.replace("/", "__")

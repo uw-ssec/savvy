@@ -280,3 +280,45 @@ def test_select_step_fails_when_skill_selection_crashes(tmp_path):
     env = {**env, "BASE_SHA": "a", "HEAD_SHA": "b"}
     proc, _ = run_step(workflow_step("skill-quality-check.yml", "Select changed pilot skills"), work, env)
     assert proc.returncode != 0
+
+
+GOOD_CAPS = {
+    "capability-network": "read",
+    "capability-shell": "runs-commands",
+    "capability-file": "write",
+    "capability-environment": "none",
+    "capability-mcp": "none",
+}
+
+
+def test_capabilities_all_present_valid(st):
+    assert st.check_capabilities({"name": "x", "metadata": dict(GOOD_CAPS)}) == []
+
+
+def test_capability_missing_key(st):
+    caps = {k: v for k, v in GOOD_CAPS.items() if k != "capability-mcp"}
+    errors = st.check_capabilities({"metadata": caps})
+    assert len(errors) == 1 and "capability-mcp" in errors[0]
+
+
+def test_capability_missing_metadata(st):
+    assert len(st.check_capabilities({"name": "x"})) == 5
+
+
+def test_capability_bad_value(st):
+    errors = st.check_capabilities({"metadata": {**GOOD_CAPS, "capability-shell": "yes"}})
+    assert len(errors) == 1 and "capability-shell" in errors[0]
+
+
+def test_capabilities_with_folded_description(st):
+    import yaml
+
+    text = (
+        "---\nname: x\ndescription: >-\n  Use when a long folded\n  description wraps.\n"
+        "metadata:\n  references: references/a.md\n"
+        + "".join(f"  {k}: {v}\n" for k, v in GOOD_CAPS.items())
+        + "---\n\n# X\n"
+    )
+    fm = yaml.safe_load(text.split("---\n")[1])
+    assert all(isinstance(v, str) for v in fm["metadata"].values())
+    assert st.check_capabilities(fm) == []

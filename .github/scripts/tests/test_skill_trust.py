@@ -322,3 +322,99 @@ def test_capabilities_with_folded_description(st):
     fm = yaml.safe_load(text.split("---\n")[1])
     assert all(isinstance(v, str) for v in fm["metadata"].values())
     assert st.check_capabilities(fm) == []
+
+
+# --- evidence check: skill card + capabilities ---------------------------------
+
+
+def card_text(sections, decorate=lambda s: s):
+    return "# Card\n\n" + "".join(f"## {decorate(s)}\n\nText.\n\n" for s in sections)
+
+
+def make_skill(root, name, sections=None, caps=GOOD_CAPS, plugin="ai-research-workflows", card=True):
+    d = root / "plugins" / plugin / "skills" / name
+    d.mkdir(parents=True)
+    meta = "".join(f"  {k}: {v}\n" for k, v in (caps or {}).items())
+    d.joinpath("SKILL.md").write_text(f"---\nname: {name}\ndescription: >-\n  Use when x.\nmetadata:\n{meta}---\n\n# X\n", encoding="utf-8")
+    if card:
+        d.joinpath("skill-card.md").write_text(card_text(sections or SECTIONS), encoding="utf-8")
+    return d
+
+
+SECTIONS = (
+    "Owner",
+    "License",
+    "Use Case",
+    "Deployment Geography",
+    "Credentials",
+    "Risks and Mitigations",
+    "Output",
+    "Version",
+    "Ethics",
+)
+
+
+def test_card_sections_constant(st):
+    assert st.SKILL_CARD_SECTIONS == SECTIONS
+
+
+def test_card_missing_section(st, tmp_path):
+    d = make_skill(tmp_path, "a", sections=[s for s in SECTIONS if s != "Ethics"])
+    errors = st.check_card(d)
+    assert len(errors) == 1 and "Ethics" in errors[0]
+
+
+def test_card_complete(st, tmp_path):
+    assert st.check_card(make_skill(tmp_path, "a")) == []
+
+
+def test_card_headings_case_insensitive_and_decorated(st, tmp_path):
+    d = make_skill(tmp_path, "a")
+    d.joinpath("skill-card.md").write_text(card_text([s.upper() for s in SECTIONS], lambda s: s + ": <br>"), encoding="utf-8")
+    assert st.check_card(d) == []
+
+
+def test_card_h3_does_not_count(st, tmp_path):
+    d = make_skill(tmp_path, "a")
+    d.joinpath("skill-card.md").write_text(card_text(SECTIONS).replace("## Ethics", "### Ethics"), encoding="utf-8")
+    assert any("Ethics" in e for e in st.check_card(d))
+
+
+def test_card_missing_file(st, tmp_path):
+    errors = st.check_card(make_skill(tmp_path, "a", card=False))
+    assert len(errors) == 1 and "skill-card.md" in errors[0]
+
+
+def test_check_skill_reports_capabilities_and_card(st, tmp_path):
+    d = make_skill(tmp_path, "a", caps={}, card=False)
+    errors = st.check_skill(d, require_evals=False)
+    assert sum("capability-" in e for e in errors) == 5 and any("skill-card.md" in e for e in errors)
+
+
+def test_check_skill_unreadable_frontmatter(st, tmp_path):
+    d = make_skill(tmp_path, "a")
+    d.joinpath("SKILL.md").write_text("# no frontmatter\n", encoding="utf-8")
+    assert any("frontmatter" in e for e in st.check_skill(d, require_evals=False))
+
+
+def test_check_skill_clean(st, tmp_path):
+    assert st.check_skill(make_skill(tmp_path, "a"), require_evals=False) == []
+
+
+def test_check_cli_reports_every_skill(st, tmp_path, capsys):
+    make_skill(tmp_path, "good")
+    make_skill(tmp_path, "broken", sections=[s for s in SECTIONS if s != "Ethics"])
+    make_skill(tmp_path, "other-plugin-skill", plugin="not-in-pilot", card=False)
+    assert st.main(["check", "--no-evals", "--root", str(tmp_path)]) == 1
+    err = capsys.readouterr().err
+    assert "broken" in err and "Ethics" in err
+    assert "good" not in err and "other-plugin-skill" not in err
+
+
+def test_check_cli_passes(st, tmp_path):
+    make_skill(tmp_path, "good")
+    assert st.main(["check", "--no-evals", "--root", str(tmp_path)]) == 0
+
+
+def test_check_cli_no_skills_fails(st, tmp_path):
+    assert st.main(["check", "--no-evals", "--root", str(tmp_path)]) == 1

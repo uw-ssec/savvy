@@ -9,8 +9,13 @@ gate          Read each skill's skillevaluator-output-*.json and print a Markdow
               matches, an incomplete scan, or a missing/unreadable report.
               Exits 1 if any skill fails.
 
+check         Check every pilot skill's trust evidence: the five capability
+              declarations and a skill-card.md with every required section.
+              Exits 1 if any skill has an error.
+
 Usage:
     python skill_trust.py select-pilot < skills.txt
+    python skill_trust.py check [--no-evals]
     python skill_trust.py gate --reports <dir> --skills <file> --accepted .github/skill-security-accepted.yml
 """
 
@@ -54,6 +59,53 @@ def check_capabilities(frontmatter: dict) -> list[str]:
         elif metadata[key] not in allowed:
             errors.append(f"metadata.{key}: {metadata[key]!r} is not one of {sorted(allowed)}")
     return errors
+
+
+# Required H2 headings of a skill card (matched case-insensitively), following
+# NVIDIA's Skill Card template (NVIDIA/Trustworthy-AI).
+SKILL_CARD_SECTIONS: tuple[str, ...] = (
+    "Owner",
+    "License",
+    "Use Case",
+    "Deployment Geography",
+    "Credentials",
+    "Risks and Mitigations",
+    "Output",
+    "Version",
+    "Ethics",
+)
+CARD_FILE = "skill-card.md"
+H2_RE = re.compile(r"^##[ \t]+(.+?)[ \t]*$", re.MULTILINE)
+
+
+def read_frontmatter(skill_md: Path) -> dict | None:
+    """Parsed YAML frontmatter of a SKILL.md, or None if absent or unreadable."""
+    try:
+        parts = skill_md.read_text(encoding="utf-8").split("---\n", 2)
+        fm = yaml.safe_load(parts[1]) if len(parts) == 3 and parts[0] == "" else None
+    except (OSError, yaml.YAMLError):
+        return None
+    return fm if isinstance(fm, dict) else None
+
+
+def check_card(skill_dir: Path) -> list[str]:
+    """Errors for a skill's skill-card.md: it must exist and carry every required H2 section."""
+    try:
+        text = (skill_dir / CARD_FILE).read_text(encoding="utf-8")
+    except OSError:
+        return [f"{CARD_FILE}: missing or unreadable"]
+    headings = {re.sub(r"(\s*(<br>|:))+\s*$", "", h).strip().casefold() for h in H2_RE.findall(text)}
+    return [f"{CARD_FILE}: missing section '## {s}'" for s in SKILL_CARD_SECTIONS if s.casefold() not in headings]
+
+
+def check_skill(skill_dir: Path, require_evals: bool = True) -> list[str]:
+    """All trust-evidence errors for one skill. Task 7 adds the evals check behind require_evals."""
+    frontmatter = read_frontmatter(skill_dir / "SKILL.md")
+    if frontmatter is None:
+        errors = ["SKILL.md: frontmatter missing or unreadable"]
+    else:
+        errors = check_capabilities(frontmatter)
+    return errors + check_card(skill_dir)
 
 
 def report_name(skill_dir: str) -> str:
@@ -203,8 +255,24 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("--skills", type=Path, required=True, help="file with one skill directory per line")
     g.add_argument("--accepted", type=Path, required=True, help="accepted-findings YAML file")
     g.add_argument("--root", type=Path, default=Path("."), help="repo root that skill directories are relative to")
+    c = sub.add_parser("check")
+    c.add_argument("--no-evals", action="store_true", help="skip the evals check")
+    c.add_argument("--root", type=Path, default=Path("."), help="repo root that plugins/ is under")
     args = ap.parse_args(argv)
 
+    if args.cmd == "check":
+        skill_dirs = sorted(d for p in PILOT_PLUGINS for d in (args.root / "plugins" / p / "skills").glob("*/") if d.is_dir())
+        if not skill_dirs:
+            print("error: no pilot skills found", file=sys.stderr)
+            return 1
+        failed = 0
+        for d in skill_dirs:
+            errors = check_skill(d, require_evals=not args.no_evals)
+            for e in errors:
+                print(f"{d.relative_to(args.root)}: {e}", file=sys.stderr)
+            failed += bool(errors)
+        print(f"trust-check: {len(skill_dirs) - failed}/{len(skill_dirs)} pilot skills pass")
+        return 1 if failed else 0
     if args.cmd == "select-pilot":
         pilot = [s for s in (line.strip() for line in sys.stdin) if s and is_pilot(s)]
         if pilot:

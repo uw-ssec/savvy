@@ -72,7 +72,8 @@ links-check = { cmd = "lychee --config lychee.toml --no-progress --hidden .", de
 test-scripts = { cmd = "pytest .github/scripts/tests -q", description = "Run the CI script tests" }
 catalog-sync = { cmd = "python .github/scripts/skill_catalog.py sync", description = "Regenerate docs/catalog.md from SKILL.md frontmatter and docs/catalog.yml" }
 catalog-check = { cmd = "python .github/scripts/skill_catalog.py check", description = "Check docs/catalog.md is current and every skill has a catalog entry (CI gate)" }
-check-all = { depends-on = ["plugins-check", "catalog-check", "test-scripts"], description = "Run the offline CI gates: plugins-check, catalog-check and test-scripts" }
+trust-check = { cmd = "python .github/scripts/skill_trust.py check --no-evals", description = "Check each pilot skill's capability declarations and skill card (CI gate; evals check pending)" }
+check-all = { depends-on = ["plugins-check", "catalog-check", "trust-check", "test-scripts"], description = "Run the offline CI gates: plugins-check, catalog-check, trust-check and test-scripts" }
 skill-quality-check = { cmd = "skillevaluator quality-check --min-score 70", description = "Run SkillEvaluator's quality-check on a skill, e.g. `pixi run -e ci skill-quality-check plugins/<plugin>/skills/<skill>`" }
 # The scanner paths below assume POSIX (Linux and macOS; CI is ubuntu) and
 # will not resolve on Windows.

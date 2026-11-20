@@ -50,7 +50,7 @@ Owners come from the `RECORD` files of installed wheels and, in a conda or pixi 
 |------|------------|-----------|------------------------------------------|
 | `distutils-precedence.pth` | setuptools >= 49.3 | `import os; ... 'SETUPTOOLS_USE_DISTUTILS' ... add_shim();` | `setuptools` only |
 | `_virtualenv.pth` | `uv venv`, virtualenv 20.x | `import _virtualenv` | no package, in a venv whose `pyvenv.cfg` has a `uv` or `virtualenv` key |
-| `__editable__.<dist>-<ver>.pth` | setuptools editable install (finder mode) | `import __editable___<dist>_<ver>_finder; ...install()` | one package whose `direct_url.json` has `"editable": true` |
+| `__editable__.<dist>-<ver>.pth` | setuptools editable install (finder mode) | `import __editable___<dist>_<ver>_finder; ...install()` | one package whose `direct_url.json` has `"editable": true` and a `file://` URL to a source tree outside the environment (with `pyproject.toml`, `setup.py` or `setup.cfg`, and a matching `[project] name`). A wheel from an index can ship its own `direct_url.json`, so the flag alone proves nothing |
 | `_editable_impl_<dist>.pth` | `editables` (hatchling `dev-mode-exact`) | `import _editable_impl_<dist>` | same |
 | `_editable_skbc_<dist>.pth` / `.start` | scikit-build-core editable install | `import _editable_skbc_<dist>` / `_editable_skbc_<dist>:entrypoint` | same |
 | `<dist>-editable.pth` / `.start` | meson-python editable install | `import _<dist>_editable_loader; ...init()` / `..._loader:init` | same |

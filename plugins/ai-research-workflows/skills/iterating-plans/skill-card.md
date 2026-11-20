@@ -52,7 +52,7 @@ Mitigation: the skill specifies surgical edits and lists whole-plan rewrites as 
 
 ## Version
 
-0.2.0 (the `ai-research-workflows` plugin manifest version; this skill is not versioned separately).
+Released with the `ai-research-workflows` plugin; see its `plugin.json` version.
 
 ## Ethics
 

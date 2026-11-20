@@ -261,7 +261,7 @@ Every pull request adds its entry to [`CHANGELOG.md`](CHANGELOG.md) under `## [U
 
 ## 📊 Evaluating Skills
 
-On every pull request that changes a skill, **Skill quality check** runs [SkillEvaluator](https://github.com/NVIDIA/SkillEvaluator)'s keyless `quality-check` (pinned to 1.0.1) on each changed skill. It fails if a skill scores below 70, and lists every changed skill's score and grade in the job summary. It scores quality only. To check a skill locally before pushing, using the same pinned version as CI:
+On every pull request that changes a skill, **Skill quality check** runs [SkillEvaluator](https://github.com/NVIDIA/SkillEvaluator)'s keyless `quality-check` (pinned to commit 707fb9a, which reports 1.0.1) on each changed skill. It fails if a skill scores below 70, and lists every changed skill's score and grade in the job summary. It scores quality only. To check a skill locally before pushing, using the same pinned version as CI:
 
 ```bash
 pixi run -e ci skill-quality-check plugins/<plugin>/skills/<skill>
@@ -280,7 +280,7 @@ skillevaluator quality-check plugins/<plugin>/skills/<skill> --min-score 70
 pixi run -e ci skill-security-scan plugins/<plugin>/skills/<skill> -o <dir>
 ```
 
-Each accepted finding names the skill, check, file, flagged line, a `reason`, and the `file_sha256` of the flagged file. The digest pins the acceptance to that exact file content, so any edit to an accepted file needs a new digest and a fresh review. Compute it with `shasum -a 256 <file>` (or `sha256sum <file>`). The acceptance file and `.github/scripts/skill_trust.py`, which decides what an acceptance can waive, are covered by [`CODEOWNERS`](.github/CODEOWNERS), so changes to them need maintainer review.
+Each accepted finding names the skill, check, file, flagged line, a `reason`, and the `file_sha256` of the flagged file. The digest pins the acceptance to that exact file content, so any edit to an accepted file needs a new digest and a fresh review. Compute it with `shasum -a 256 <file>` (or `sha256sum <file>`). The acceptance file and `.github/scripts/skill_trust.py`, which decides what an acceptance can waive, are covered by [`CODEOWNERS`](.github/CODEOWNERS), so changes to them need maintainer review. `CODEOWNERS` also covers `.github/skillevaluator-policy.yml` (its `severity_overrides` can downgrade any finding, so it is a waiver channel) and the two workflows that run the scans. The scan's flags live in the `skill-security-scan` task in `pixi.toml`, so a change to that task changes the gate and needs the same careful review. A change to any gate input (the script, the acceptance file, the policy, the workflow, `pixi.toml` or `pixi.lock`) re-scans every pilot skill, not only the changed ones. `CODEOWNERS` only binds once **Require review from Code Owners** is enabled for `main` in the repository's branch protection.
 
 Two manually triggered workflows measure skills (**Actions → workflow → Run workflow**). Neither runs on pull requests.
 

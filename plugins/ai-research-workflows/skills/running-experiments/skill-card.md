@@ -52,7 +52,7 @@ Mitigation: the skill's rule is that every compared approach must be built and r
 
 ## Version
 
-0.2.0 (the `ai-research-workflows` plugin manifest version; this skill is not versioned separately).
+Released with the `ai-research-workflows` plugin; see its `plugin.json` version.
 
 ## Ethics
 

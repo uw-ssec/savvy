@@ -36,18 +36,14 @@ None. The version is the current date (see `docs/versioning.md`).
    - `git pull origin main` — must be up to date
    - Warn and stop if not on `main` or if there are uncommitted changes
 
-4. Compute the set of changed plugins **before editing any manifest**:
+4. Compute the set of changed plugins. This only reads; edit nothing yet:
 
    ```bash
    pixi run -e ci python .github/scripts/skill_trust.py changed-plugins <previous-tag>
    ```
 
    If no previous tag exists (the first release), skip the command: every
-   plugin takes the new version.
-
-   Set each listed plugin's `version` in its `plugin.json` to the new version
-   (without the `v`), run `pixi run plugins-sync`, and commit the bumps before
-   tagging. Plugins not listed keep their version.
+   plugin takes the new version. Keep the list for steps 5 and 6.
 
 5. Benchmark the changed pilot skills. Benchmarks report; they never gate the
    release. If `changed-plugins` (step 4) lists `ai-research-workflows`, or this
@@ -62,18 +58,23 @@ None. The version is the current date (see `docs/versioning.md`).
    all pilot skills. See the workflow for `model` and `attempts`. The run
    pushes each skill's `BENCHMARK.md` to a `benchmarks/<run_id>-<run_attempt>`
    branch. Open a pull request from it, review it, and merge it before
-   tagging, then `git pull origin main` so the commits and tag below start from
-   the merged result. Publish a FAIL or INCONCLUSIVE result as it is; a maintainer note
+   tagging, then `git pull origin main` so the version bumps, commits and tag
+   below start from the merged result. Publish a FAIL or INCONCLUSIVE result as it is; a maintainer note
    on why is optional.
 
-6. Read `CHANGELOG.md` and check that the `[Unreleased]` section has content.
+6. Bump versions. Set each plugin listed in step 4's `changed-plugins` output
+   (every plugin, on the first release) to the new version: edit its
+   `version` in `plugin.json` (without the `v`), run `pixi run plugins-sync`, and
+   commit the bumps before tagging. Plugins not listed keep their version.
 
-7. Update `CHANGELOG.md`:
+7. Read `CHANGELOG.md` and check that the `[Unreleased]` section has content.
+
+8. Update `CHANGELOG.md`:
 
    - Rename `[Unreleased]` to `[YY.M.MICRO] -- YYYY-MM-DD` (today's date)
    - Add a new empty `[Unreleased]` section above it
 
-8. Commit the changelog update:
+9. Commit the changelog update:
 
    ```bash
    git add CHANGELOG.md
@@ -83,19 +84,19 @@ None. The version is the current date (see `docs/versioning.md`).
    The trailer follows the `commit` skill's AI Attribution section. Omit it
    entirely if the release was cut without AI assistance.
 
-9. Create the git tag:
+10. Create the git tag:
 
    ```bash
    git tag -a vYY.M.MICRO -m "vYY.M.MICRO"
    ```
 
-10. Push the commit and tag:
+11. Push the commit and tag:
 
    ```bash
    git push origin main --follow-tags
    ```
 
-11. Build plugin zip assets:
+12. Build plugin zip assets:
 
     - For each directory in `plugins/` except `ai-research-workflows`, create a
       zip archive. `ai-research-workflows` is a trust-pilot plugin: its signed
@@ -115,7 +116,7 @@ None. The version is the current date (see `docs/versioning.md`).
       ```
     - Exclude unnecessary files from zip: `.DS_Store`, `__pycache__`, `*.pyc`
 
-12. Create a GitHub release with plugin zips as assets:
+13. Create a GitHub release with plugin zips as assets:
 
     ```bash
     gh release create vYY.M.MICRO --title "vYY.M.MICRO" \
@@ -145,9 +146,9 @@ None. The version is the current date (see `docs/versioning.md`).
       plugin_name_MM_DD_YYYY.zip
     ```
 
-13. Clean up zip files from the repo root after successful upload.
+14. Clean up zip files from the repo root after successful upload.
 
-14. Confirm signing. Publishing triggers `release-sign.yml`:
+15. Confirm signing. Publishing triggers `release-sign.yml`:
 
     ```bash
     gh run list --workflow release-sign.yml --limit 3
@@ -159,7 +160,7 @@ None. The version is the current date (see `docs/versioning.md`).
     failed, read the run log, fix the cause, and re-run it with
     `gh run rerun <run-id>`; re-running replaces the assets.
 
-15. Confirm: "Released vYY.M.MICRO — <release URL>"
+16. Confirm: "Released vYY.M.MICRO — <release URL>"
 
 ## Zip Naming Rules
 

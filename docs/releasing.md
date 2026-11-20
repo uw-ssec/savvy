@@ -21,9 +21,9 @@ Zenodo archives each published GitHub Release and mints a DOI for it. It takes t
 
 The skills in the trust-pilot plugin (`ai-research-workflows` for now) ship as signed archives instead of a plugin zip. The [`release` skill](../.agents/skills/release/SKILL.md) builds no zip for them.
 
-[`release-sign.yml`](../.github/workflows/release-sign.yml) runs when a release is **published**, not when it's drafted. For each pilot skill it stages a copy of the skill directory, signs it with [OpenSSF model signing](https://github.com/sigstore/model-transparency) using Sigstore keyless signing (the workflow's own GitHub identity, no stored key), and packs it as `<plugin>--<skill>-<version>.tar.gz`. The version has no `v`. Each archive has the root folder `<plugin>--<skill>/` and contains the signature, `skill.oms.sig`. The job verifies one archive, then uploads all of them to the release.
+[`release-sign.yml`](../.github/workflows/release-sign.yml) runs when a release is **published**, not when it's drafted. For each pilot skill it stages a copy of the skill directory, signs it with [OpenSSF model signing](https://github.com/sigstore/model-transparency) using Sigstore keyless signing (the workflow's own GitHub identity, no stored key), and packs it as `<plugin>--<skill>-<version>.tar.gz`. The version has no `v`. Each archive has the root folder `<plugin>--<skill>/` and contains the signature, `skill.oms.sig`. The job unpacks every archive and verifies its signature against the workflow's identity, then uploads all of them to the release. A failed verification stops the job before any upload.
 
-The first signed release is the first one tagged after the pilot lands. `v26.11.0` ships unsigned.
+Signing starts with the first release cut after the pilot merges. Releases cut before that carry no signed archives.
 
 **To confirm after publishing:**
 

@@ -57,7 +57,7 @@ Mitigation: the skill records provenance (plan, commit, date) in the report, and
 
 ## Version
 
-0.2.0 (the `ai-research-workflows` plugin manifest version; this skill is not versioned separately).
+Released with the `ai-research-workflows` plugin; see its `plugin.json` version.
 
 ## Ethics
 

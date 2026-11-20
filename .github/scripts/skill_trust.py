@@ -135,14 +135,62 @@ def check_card(skill_dir: Path) -> list[str]:
     return [f"{CARD_FILE}: missing section '## {s}'" for s in SKILL_CARD_SECTIONS if s.casefold() not in headings]
 
 
+EVALS_FILE = "evals/evals.json"
+EVAL_CASE_FIELDS = ("prompt", "expected_output", "assertions")
+MIN_POSITIVE_CASES = 5
+
+
+def check_evals(skill_dir: Path) -> list[str]:
+    """Errors for a skill's evals/evals.json (agentskills.io object form with trigger and near-miss cases)."""
+    try:
+        data = json.loads((skill_dir / EVALS_FILE).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return [f"{EVALS_FILE}: missing or not valid JSON"]
+    if not isinstance(data, dict) or not isinstance(data.get("evals"), list):
+        return [f"{EVALS_FILE}: must be an object with an 'evals' list"]
+    name = skill_dir.name
+    errors = []
+    if data.get("skill_name") != name:
+        errors.append(f"{EVALS_FILE}: skill_name must be '{name}'")
+    seen: set[str] = set()
+    positives = negatives = 0
+    for i, case in enumerate(data["evals"]):
+        if not isinstance(case, dict):
+            errors.append(f"{EVALS_FILE}: case {i} is not an object")
+            continue
+        cid = case.get("id")
+        label = cid if isinstance(cid, str) and cid else f"case {i}"
+        if not isinstance(cid, str) or not cid:
+            errors.append(f"{EVALS_FILE}: case {i} has no id")
+        elif cid in seen:
+            errors.append(f"{EVALS_FILE}: duplicate id '{cid}'")
+        else:
+            seen.add(cid)
+            if re.fullmatch(re.escape(name) + r"-neg-\d{3}", cid):
+                negatives += 1
+            elif re.fullmatch(re.escape(name) + r"-\d{3}", cid):
+                positives += 1
+            else:
+                errors.append(f"{EVALS_FILE}: id '{cid}' must be '{name}-NNN' or '{name}-neg-NNN'")
+        for field_name in EVAL_CASE_FIELDS:
+            if not case.get(field_name):
+                errors.append(f"{EVALS_FILE}: {label} needs a non-empty '{field_name}'")
+    if positives < MIN_POSITIVE_CASES:
+        errors.append(f"{EVALS_FILE}: needs at least {MIN_POSITIVE_CASES} '{name}-NNN' should-trigger cases, found {positives}")
+    if negatives < 1:
+        errors.append(f"{EVALS_FILE}: needs at least 1 '{name}-neg-NNN' should-not-trigger case")
+    return errors
+
+
 def check_skill(skill_dir: Path, require_evals: bool = True) -> list[str]:
-    """All trust-evidence errors for one skill. Task 7 adds the evals check behind require_evals."""
+    """All trust-evidence errors for one skill; the evals check is skipped when require_evals is False."""
     frontmatter = read_frontmatter(skill_dir / "SKILL.md")
     if frontmatter is None:
         errors = ["SKILL.md: frontmatter missing or unreadable"]
     else:
         errors = check_capabilities(frontmatter)
-    return errors + check_card(skill_dir)
+    errors += check_card(skill_dir)
+    return errors + check_evals(skill_dir) if require_evals else errors
 
 
 def report_name(skill_dir: str) -> str:

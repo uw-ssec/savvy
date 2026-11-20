@@ -407,6 +407,87 @@ def test_check_skill_clean(st, tmp_path):
     assert st.check_skill(make_skill(tmp_path, "a"), require_evals=False) == []
 
 
+def write_evals(d, name=None, cases=None, raw=None):
+    name = name or d.name
+    if cases is None:
+        cases = [case(f"{name}-{i:03d}") for i in range(1, 6)] + [case(f"{name}-neg-001")]
+    (d / "evals").mkdir(exist_ok=True)
+    text = raw if raw is not None else json.dumps({"skill_name": name, "evals": cases})
+    (d / "evals" / "evals.json").write_text(text, encoding="utf-8")
+
+
+def case(id_, **kw):
+    return {"id": id_, "prompt": "p", "expected_output": "o", "assertions": ["a"], **kw}
+
+
+def test_evals_valid(st, tmp_path):
+    d = make_skill(tmp_path, "a")
+    write_evals(d)
+    assert st.check_evals(d) == []
+
+
+def test_evals_missing_file(st, tmp_path):
+    assert any("evals.json" in e for e in st.check_evals(make_skill(tmp_path, "a")))
+
+
+def test_evals_malformed_json(st, tmp_path):
+    d = make_skill(tmp_path, "a")
+    write_evals(d, raw="{not json")
+    assert any("evals.json" in e for e in st.check_evals(d))
+
+
+def test_evals_no_negative(st, tmp_path):
+    d = make_skill(tmp_path, "a")
+    write_evals(d, cases=[case(f"a-{i:03d}") for i in range(1, 6)])
+    assert any("neg" in e for e in st.check_evals(d))
+
+
+def test_evals_too_few_positives(st, tmp_path):
+    d = make_skill(tmp_path, "a")
+    write_evals(d, cases=[case(f"a-{i:03d}") for i in range(1, 5)] + [case("a-neg-001")])
+    assert any("at least 5" in e for e in st.check_evals(d))
+
+
+def test_evals_wrong_skill_name(st, tmp_path):
+    d = make_skill(tmp_path, "a")
+    write_evals(d, name="b", cases=[case(f"a-{i:03d}") for i in range(1, 6)] + [case("a-neg-001")])
+    assert any("skill_name" in e for e in st.check_evals(d))
+
+
+def test_evals_duplicate_id(st, tmp_path):
+    d = make_skill(tmp_path, "a")
+    write_evals(d, cases=[case(f"a-{i:03d}") for i in range(1, 6)] + [case("a-001"), case("a-neg-001")])
+    assert any("duplicate" in e for e in st.check_evals(d))
+
+
+@pytest.mark.parametrize("drop", ["prompt", "expected_output", "assertions"])
+def test_evals_case_missing_field(st, tmp_path, drop):
+    d = make_skill(tmp_path, "a")
+    bad = case("a-001")
+    del bad[drop]
+    write_evals(d, cases=[bad] + [case(f"a-{i:03d}") for i in range(2, 6)] + [case("a-neg-001")])
+    assert any(drop in e for e in st.check_evals(d))
+
+
+def test_evals_empty_assertions(st, tmp_path):
+    d = make_skill(tmp_path, "a")
+    write_evals(d, cases=[case("a-001", assertions=[])] + [case(f"a-{i:03d}") for i in range(2, 6)] + [case("a-neg-001")])
+    assert any("assertions" in e for e in st.check_evals(d))
+
+
+def test_evals_foreign_id(st, tmp_path):
+    d = make_skill(tmp_path, "a")
+    write_evals(d, cases=[case("zzz-001")] + [case(f"a-{i:03d}") for i in range(1, 6)] + [case("a-neg-001")])
+    assert any("zzz-001" in e for e in st.check_evals(d))
+
+
+def test_check_skill_requires_evals(st, tmp_path):
+    d = make_skill(tmp_path, "a")
+    assert any("evals.json" in e for e in st.check_skill(d))
+    write_evals(d)
+    assert st.check_skill(d) == []
+
+
 def test_check_cli_reports_every_skill(st, tmp_path, capsys):
     make_skill(tmp_path, "good")
     make_skill(tmp_path, "broken", sections=[s for s in SECTIONS if s != "Ethics"])

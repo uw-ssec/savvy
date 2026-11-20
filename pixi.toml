@@ -18,6 +18,8 @@ pyyaml = "6.0.3.*"
 pytest = "9.2.0.*"
 check-jsonschema = "0.38.2.*"
 lychee = "0.24.2.*"
+# model-signing 1.1.1 imports OpenSSL but does not declare pyopenssl.
+pyopenssl = ">=26.4.0,<27"
 
 # The single pin for SkillEvaluator's version: skill-quality-check.yml runs
 # the checker through pixi (the skill-quality-check task below), so bumping
@@ -28,6 +30,10 @@ lychee = "0.24.2.*"
 # when every caveat is a non-fatal missing reference; older revs flag it incomplete.
 [feature.ci.pypi-dependencies]
 skillevaluator = { git = "https://github.com/NVIDIA/SkillEvaluator.git", rev = "707fb9a8cbfaf6c8f766506f43bb699212234f01" }
+# OpenSSF model signing (Sigstore), used by release-sign.yml and the tamper test.
+# Not on conda-forge, so PyPI, pinned exactly. It solves alongside the other ci
+# dependencies, so it stays in `ci` rather than getting its own environment.
+model-signing = "==1.1.1"
 
 # SkillEvaluator's full Tier 1 `validate` shells out to SkillSpector, Semgrep
 # and Gitleaks, and reports `incomplete` when one is missing. Where each lives:

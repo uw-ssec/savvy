@@ -24,23 +24,35 @@ collect-benchmarks  Copy each skill's <reports>/<report_name>/BENCHMARK.md to
               <skill>/BENCHMARK.md. A skill without one is listed as missing and
               left untouched (benchmarks are advisory, so this is not an error).
 
+stage         Copy each pilot skill directory to <out>/<plugin>--<skill>/ (files only;
+              a symlink inside a skill is an error). The release workflow signs
+              each staged directory, then packs it.
+
+pack          Write <out>/<plugin>--<skill>-<version>.tar.gz from a signed staged
+              directory (it must hold skill.oms.sig). Deterministic: sorted
+              members, zero mtime/uid/gid, fixed gzip header.
+
 Usage:
     python skill_trust.py select-pilot < skills.txt
     python skill_trust.py list-pilot [--skills a,b]
     python skill_trust.py collect-benchmarks --reports <dir> [--skills a,b]
     python skill_trust.py check [--no-evals]
     python skill_trust.py changed-plugins <previous-tag>
+    python skill_trust.py stage --out DIR
+    python skill_trust.py pack --staged DIR --version 26.11.0 --out DIR
     python skill_trust.py gate --reports <dir> --skills <file> --accepted .github/skill-security-accepted.yml
 """
 
 import argparse
 import fnmatch
+import gzip
 import hashlib
 import json
 import re
 import shutil
 import subprocess
 import sys
+import tarfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -329,6 +341,54 @@ def changed_plugins(root: Path, since: str) -> list[str]:
     return sorted(changed)
 
 
+SIGNATURE_NAME = "skill.oms.sig"
+# Calendar tag without the leading `v` (docs/versioning.md): YY.M.MICRO, month 1-12 with no padding.
+VERSION_RE = re.compile(r"\d{2}\.(?:[1-9]|1[0-2])\.(?:0|[1-9]\d*)")
+
+
+def stage(root: Path, out: Path) -> list[Path]:
+    """Copy each pilot skill directory to out/<plugin>--<skill>/ and return the staged directories.
+
+    Files only: a symlink anywhere in a skill is an error, so nothing outside the skill is copied.
+    """
+    staged = []
+    for plugin in PILOT_PLUGINS:
+        for skill_dir in sorted((root / "plugins" / plugin / "skills").glob("*/")):
+            if not skill_dir.is_dir():
+                continue
+            for path in [skill_dir, *skill_dir.rglob("*")]:
+                if path.is_symlink():
+                    raise ValueError(f"{path.relative_to(root)}: symlink in a skill; refusing to stage it")
+            dest = out / f"{plugin}--{skill_dir.name}"
+            shutil.copytree(skill_dir, dest, symlinks=True)
+            staged.append(dest)
+    return staged
+
+
+def pack(staged: Path, version: str, out: Path) -> Path:
+    """Write out/<staged name>-<version>.tar.gz with archive root <staged name>/ and return its path."""
+    if not VERSION_RE.fullmatch(version):
+        raise ValueError(f"version {version!r} is not a calendar version like 26.11.0")
+    if not (staged / SIGNATURE_NAME).is_file():
+        raise ValueError(f"{staged}: {SIGNATURE_NAME} is missing; sign the directory before packing")
+    out.mkdir(parents=True, exist_ok=True)
+    archive = out / f"{staged.name}-{version}.tar.gz"
+    with open(archive, "wb") as raw, gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0) as gz:
+        with tarfile.open(fileobj=gz, mode="w", format=tarfile.PAX_FORMAT) as tar:
+            for path in [staged, *sorted(staged.rglob("*"))]:
+                info = tar.gettarinfo(str(path), arcname=f"{staged.name}/{path.relative_to(staged)}".removesuffix("/."))
+                info.uid = info.gid = 0
+                info.uname = info.gname = ""
+                info.mtime = 0
+                info.mode = 0o755 if path.is_dir() else 0o644
+                if path.is_file():
+                    with open(path, "rb") as fh:
+                        tar.addfile(info, fh)
+                else:
+                    tar.addfile(info)
+    return archive
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -351,7 +411,34 @@ def main(argv: list[str] | None = None) -> int:
     cb.add_argument("--reports", type=Path, required=True, help="directory of per-skill report subdirectories")
     cb.add_argument("--skills", default="", help="comma-separated skill directories (empty = all pilot skills)")
     cb.add_argument("--root", type=Path, default=Path("."), help="repo root that skill directories are relative to")
+    sg = sub.add_parser("stage")
+    sg.add_argument("--out", type=Path, required=True, help="directory to stage the pilot skills into")
+    sg.add_argument("--root", type=Path, default=Path("."), help="repo root")
+    pk = sub.add_parser("pack")
+    pk.add_argument("--staged", type=Path, required=True, help="directory holding the signed staged skill directories")
+    pk.add_argument("--version", required=True, help="release version without the leading v, e.g. 26.11.0")
+    pk.add_argument("--out", type=Path, required=True, help="directory for the archives")
     args = ap.parse_args(argv)
+
+    if args.cmd == "stage":
+        try:
+            for d in stage(args.root, args.out):
+                print(d)
+        except (ValueError, FileExistsError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+        return 0
+    if args.cmd == "pack":
+        try:
+            dirs = sorted(d for d in args.staged.iterdir() if d.is_dir())
+            if not dirs:
+                raise ValueError(f"{args.staged}: no staged skill directories")
+            for d in dirs:
+                print(pack(d, args.version, args.out))
+        except (ValueError, OSError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+        return 0
 
     if args.cmd in ("list-pilot", "collect-benchmarks"):
         try:

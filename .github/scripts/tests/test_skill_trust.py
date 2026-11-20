@@ -601,3 +601,136 @@ def test_benchmark_select_step_rejects_bad_inputs(tmp_path, env):
     proc, _ = run_select(tmp_path, **env)
     assert proc.returncode == 1
     assert "::error::" in proc.stdout
+
+
+# --- release staging and packing ---------------------------------------------
+
+PILOT_SKILL = "plugins/ai-research-workflows/skills/alpha"
+
+
+@pytest.fixture
+def release_root(tmp_path):
+    """Repo root with two pilot skills, one non-pilot plugin skill, and a nested skill file."""
+    root = tmp_path / "repo"
+    for rel, body in {
+        f"{PILOT_SKILL}/SKILL.md": "alpha\n",
+        f"{PILOT_SKILL}/references/notes.md": "notes\n",
+        f"{PILOT_SKILL}/.gitignore": "x\n",
+        "plugins/ai-research-workflows/skills/beta/SKILL.md": "beta\n",
+        "plugins/other/skills/gamma/SKILL.md": "gamma\n",
+    }.items():
+        path = root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(body, encoding="utf-8")
+    return root
+
+
+def test_stage_copies_only_pilot(st, release_root, tmp_path):
+    out = tmp_path / "staged"
+    staged = st.stage(release_root, out)
+    assert sorted(p.name for p in staged) == ["ai-research-workflows--alpha", "ai-research-workflows--beta"]
+    assert sorted(p.name for p in out.iterdir()) == [p.name for p in sorted(staged)]
+    alpha = out / "ai-research-workflows--alpha"
+    assert (alpha / "SKILL.md").read_text(encoding="utf-8") == "alpha\n"
+    assert (alpha / "references" / "notes.md").read_text(encoding="utf-8") == "notes\n"
+    assert (alpha / ".gitignore").exists()
+
+
+def test_stage_rejects_symlinks(st, release_root, tmp_path):
+    (release_root / PILOT_SKILL / "link.md").symlink_to(release_root / "plugins/other/skills/gamma/SKILL.md")
+    with pytest.raises(ValueError, match="symlink"):
+        st.stage(release_root, tmp_path / "staged")
+
+
+def staged_skill(st, release_root, tmp_path, sign=True):
+    staged = st.stage(release_root, tmp_path / "staged")
+    alpha = next(p for p in staged if p.name.endswith("--alpha"))
+    if sign:
+        (alpha / "skill.oms.sig").write_text("sig\n", encoding="utf-8")
+    return alpha
+
+
+def test_pack_requires_signature(st, release_root, tmp_path):
+    alpha = staged_skill(st, release_root, tmp_path, sign=False)
+    with pytest.raises(ValueError, match="skill.oms.sig"):
+        st.pack(alpha, "26.11.0", tmp_path / "dist")
+
+
+def test_pack_layout(st, release_root, tmp_path):
+    import tarfile
+
+    alpha = staged_skill(st, release_root, tmp_path)
+    archive = st.pack(alpha, "26.11.0", tmp_path / "dist")
+    assert archive == tmp_path / "dist" / "ai-research-workflows--alpha-26.11.0.tar.gz"
+    with tarfile.open(archive) as tar:
+        names = tar.getnames()
+        assert all(n == "ai-research-workflows--alpha" or n.startswith("ai-research-workflows--alpha/") for n in names)
+        assert "ai-research-workflows--alpha/skill.oms.sig" in names
+        assert "ai-research-workflows--alpha/references/notes.md" in names
+        assert all(m.uid == 0 and m.gid == 0 and m.mtime == 0 for m in tar.getmembers())
+
+
+def test_pack_is_deterministic(st, release_root, tmp_path):
+    alpha = staged_skill(st, release_root, tmp_path)
+    first = st.pack(alpha, "26.11.0", tmp_path / "d1").read_bytes()
+    second = st.pack(alpha, "26.11.0", tmp_path / "d2").read_bytes()
+    assert first == second
+
+
+@pytest.mark.parametrize("version", ["26.11.0", "26.4.1", "27.12.10"])
+def test_pack_accepts_calendar_versions(st, release_root, tmp_path, version):
+    alpha = staged_skill(st, release_root, tmp_path)
+    assert st.pack(alpha, version, tmp_path / "dist").name.endswith(f"-{version}.tar.gz")
+
+
+@pytest.mark.parametrize(
+    "version", ["", "v26.11.0", "26.04.0", "../26.11.0", "26.11.0/x", "26.13.0", "26.11", "26.11.0-rc1"]
+)
+def test_pack_rejects_bad_versions(st, release_root, tmp_path, version):
+    alpha = staged_skill(st, release_root, tmp_path)
+    with pytest.raises(ValueError, match="version"):
+        st.pack(alpha, version, tmp_path / "dist")
+
+
+def model_signing_cmd():
+    import shutil
+    import sys
+    from pathlib import Path
+
+    return shutil.which("model_signing") or str(Path(sys.executable).parent / "model_signing")
+
+
+def test_signature_detects_tamper(st, release_root, tmp_path):
+    pytest.importorskip("model_signing")
+    ec = pytest.importorskip("cryptography.hazmat.primitives.asymmetric.ec")
+    ser = pytest.importorskip("cryptography.hazmat.primitives.serialization")
+    key = ec.generate_private_key(ec.SECP256R1())
+    private = tmp_path / "priv.pem"
+    public = tmp_path / "pub.pem"
+    private.write_bytes(key.private_bytes(ser.Encoding.PEM, ser.PrivateFormat.PKCS8, ser.NoEncryption()))
+    public.write_bytes(key.public_key().public_bytes(ser.Encoding.PEM, ser.PublicFormat.SubjectPublicKeyInfo))
+
+    alpha = staged_skill(st, release_root, tmp_path, sign=False)
+    sig = alpha / "skill.oms.sig"
+    common = ["--signature", str(sig), "--no-ignore-git-paths"]
+
+    def run(*args):
+        return subprocess.run([model_signing_cmd(), *args], capture_output=True, text=True)
+
+    signed = run("sign", "key", str(alpha), *common, "--private_key", str(private))
+    assert signed.returncode == 0, signed.stderr
+
+    def verify():
+        return run("verify", "key", str(alpha), *common, "--public_key", str(public))
+
+    assert verify().returncode == 0, "untouched skill must verify"
+    skill_md = alpha / "SKILL.md"
+    skill_md.write_text("tampered\n", encoding="utf-8")
+    assert verify().returncode != 0, "edited file must fail"
+    skill_md.write_text("alpha\n", encoding="utf-8")
+    assert verify().returncode == 0, "restored file must verify again"
+    (alpha / "extra.md").write_text("added\n", encoding="utf-8")
+    assert verify().returncode != 0, "added file must fail"
+    (alpha / "extra.md").unlink()
+    (alpha / ".gitignore").write_text("changed\n", encoding="utf-8")
+    assert verify().returncode != 0, "edited dotfile must fail (not ignored)"

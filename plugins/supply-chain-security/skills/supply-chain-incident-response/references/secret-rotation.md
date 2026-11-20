@@ -24,6 +24,8 @@ For every credential type below: **issue the new credential first, deploy it to 
 
 ## npm Tokens
 
+The granular `npm token create` flags below need npm 11.6.3 or later (`npm --version`); npm 10 and npm 11.6.2 and earlier don't have them. On an older client, create the granular token on npmjs.com instead (profile picture → **Access Tokens** → **Generate New Token**) with the same package, permission and expiry.
+
 ```bash
 # List all tokens for the account
 npm token list

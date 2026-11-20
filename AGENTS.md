@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Guidance for AI assistants (Claude Code, Codex, Cursor, Copilot, Gemini CLI, and
+Guidance for AI assistants (Claude Code, Codex, Cursor, Copilot, Antigravity CLI, and
 any other agent harness) working with this repository.
 
 **This file is the entry point and is deliberately short.** It carries only what

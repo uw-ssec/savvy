@@ -5,7 +5,7 @@ A full design organization inside Claude Code. Ten specialist agents, 22 skills,
 This is not a collection of prompts. It is a structured knowledge system that gives Claude deep, specific expertise in UI/UX design by encoding the frameworks, principles, and case studies that professional designers spend years learning.
 
 > [!NOTE]
-> **Claude Code and Cursor only:** this plugin's agents and commands are written for Claude Code. Cursor loads them too, but GitHub Copilot, Codex, Gemini CLI and OpenCode don't. Its skills follow the [Agent Skills](https://agentskills.io/) format and work in all of these clients. See [Installing the plugins](https://github.com/uw-ssec/savvy/blob/main/docs/install.md) for what each client loads.
+> **Client-specific parts:** this plugin's agents and commands are written for Claude Code. Cursor loads them too, Antigravity CLI loads only the `ux-design-lead` agent until [#306](https://github.com/uw-ssec/savvy/issues/306) is fixed and none of the commands, and GitHub Copilot, Codex and OpenCode load neither. Its skills follow the [Agent Skills](https://agentskills.io/) format and work in all of these clients. See [Installing the plugins](https://github.com/uw-ssec/savvy/blob/main/docs/install.md) for what each client loads.
 
 ## Why This Exists
 

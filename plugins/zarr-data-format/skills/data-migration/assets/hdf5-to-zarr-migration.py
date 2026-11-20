@@ -4,20 +4,22 @@ HDF5 to Zarr Migration Demo
 ============================
 
 Demonstrates the complete HDF5-to-Zarr migration workflow:
-1. Create a sample HDF5 file with h5py
+1. Create a sample HDF5 file with h5py, with dimension scales so xarray
+   sees named dimensions (without them it reports phony_dim_0, phony_dim_1, ...)
 2. Convert to Zarr via xarray
-3. Validate the conversion (shape, dtype, values)
-4. Print a validation report
+3. Validate the conversion (dimensions, variables, dtype, chunks, values, attributes)
+4. Print a validation report and exit 1 if any check failed
 
-Requirements:
-    pip install zarr xarray h5py numpy netCDF4
-    # or: pixi add zarr xarray h5py numpy netcdf4
+Requirements (zarr-python 3):
+    pip install "zarr>=3" xarray dask h5py h5netcdf numpy
+    # or: pixi add zarr xarray dask h5py h5netcdf numpy
 
 Usage:
-    python hdf5-to-zarr-migration.py
+    python assets/hdf5-to-zarr-migration.py
 """
 
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 
@@ -43,13 +45,15 @@ def main():
         f.attrs["title"] = "Sample Climate Dataset"
         f.attrs["source"] = "Synthetic data for migration demo"
 
-        # Coordinate arrays
+        # Coordinate arrays, registered as HDF5 dimension scales
         f.create_dataset("time", data=np.arange(n_time, dtype="float64"))
         f["time"].attrs["units"] = "days since 2024-01-01"
         f.create_dataset("lat", data=np.linspace(-89.5, 89.5, n_lat))
         f["lat"].attrs["units"] = "degrees_north"
         f.create_dataset("lon", data=np.linspace(0.5, 359.5, n_lon))
         f["lon"].attrs["units"] = "degrees_east"
+        for dim in ("time", "lat", "lon"):
+            f[dim].make_scale(dim)
 
         # Data variables
         temp = rng.normal(15.0, 10.0, (n_time, n_lat, n_lon)).astype("float32")
@@ -62,6 +66,10 @@ def main():
         f["precipitation"].attrs["units"] = "mm/day"
         f["precipitation"].attrs["long_name"] = "Daily Precipitation"
 
+        for var in ("temperature", "precipitation"):
+            for axis, dim in enumerate(("time", "lat", "lon")):
+                f[var].dims[axis].attach_scale(f[dim])
+
     print(f"  Created: {h5_path}")
     print(f"  Size: {h5_path.stat().st_size / 1e6:.1f} MB")
     print()
@@ -71,12 +79,14 @@ def main():
     print("2. Convert HDF5 to Zarr")
     print("=" * 60)
     ds = xr.open_dataset(h5_path, engine="h5netcdf", chunks={"time": 30})
-    print(f"  Source dataset: {dict(ds.dims)}")
+    print(f"  Source dataset: {dict(ds.sizes)}")
     print(f"  Variables: {list(ds.data_vars)}")
 
+    # encoding["chunks"] is a tuple in the variable's dimension order
+    target_chunks = (30, 90, 180)
     encoding = {
-        "temperature": {"chunks": {"time": 30, "lat": 90, "lon": 180}, "dtype": "float32"},
-        "precipitation": {"chunks": {"time": 30, "lat": 90, "lon": 180}, "dtype": "float32"},
+        "temperature": {"chunks": target_chunks, "dtype": "float32"},
+        "precipitation": {"chunks": target_chunks, "dtype": "float32"},
     }
     ds.to_zarr(zarr_path, mode="w", encoding=encoding)
     print(f"  Wrote Zarr store: {zarr_path}")
@@ -92,11 +102,11 @@ def main():
     checks_failed = 0
 
     # Check dimensions
-    if dict(ds.dims) == dict(ds_zarr.dims):
-        print(f"  PASS: Dimensions match: {dict(ds.dims)}")
+    if dict(ds.sizes) == dict(ds_zarr.sizes):
+        print(f"  PASS: Dimensions match: {dict(ds.sizes)}")
         checks_passed += 1
     else:
-        print(f"  FAIL: Dimensions differ: {dict(ds.dims)} vs {dict(ds_zarr.dims)}")
+        print(f"  FAIL: Dimensions differ: {dict(ds.sizes)} vs {dict(ds_zarr.sizes)}")
         checks_failed += 1
 
     # Check variables
@@ -106,6 +116,16 @@ def main():
     else:
         print(f"  FAIL: Variables differ")
         checks_failed += 1
+
+    # Check dtype and on-disk chunk shape
+    for var in ds.data_vars:
+        dtype, chunks = ds_zarr[var].dtype, ds_zarr[var].encoding.get("chunks")
+        if dtype == ds[var].dtype and chunks == target_chunks:
+            print(f"  PASS: {var} dtype={dtype}, chunks={chunks}")
+            checks_passed += 1
+        else:
+            print(f"  FAIL: {var} dtype={dtype}, chunks={chunks}")
+            checks_failed += 1
 
     # Check values
     for var in ds.data_vars:
@@ -139,7 +159,8 @@ def main():
     shutil.rmtree(work_dir)
     print(f"Cleaned up {work_dir}")
     print("Done.")
+    return 1 if checks_failed else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -4,7 +4,7 @@ Project lifecycle management — onboarding, documentation quality, handoff
 readiness, and community health for research software projects in any language.
 
 > [!NOTE]
-> **Claude Code and Cursor only:** this plugin's agents and commands are written for Claude Code. Cursor loads them too, but GitHub Copilot, Codex, Gemini CLI and OpenCode don't. Its skills follow the [Agent Skills](https://agentskills.io/) format and work in all of these clients. See [Installing the plugins](https://github.com/uw-ssec/savvy/blob/main/docs/install.md) for what each client loads.
+> **Client-specific parts:** this plugin's agents and commands are written for Claude Code. Cursor loads them too, Antigravity CLI loads the agents but not the commands, and GitHub Copilot, Codex and OpenCode load neither. Its skills follow the [Agent Skills](https://agentskills.io/) format and work in all of these clients. See [Installing the plugins](https://github.com/uw-ssec/savvy/blob/main/docs/install.md) for what each client loads.
 
 ## Purpose
 

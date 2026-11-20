@@ -4,69 +4,78 @@
 
 | Section | Lines | Description |
 |---------|-------|-------------|
-| Pattern 1: S3 Backend with fsspec | 14–75 | Read and write Zarr on S3 with anonymous and authenticated access |
-| Pattern 2: GCS Backend with fsspec | 76–135 | Access Zarr stores on Google Cloud Storage |
-| Pattern 3: Azure Blob Backend with fsspec | 136–195 | Work with Zarr on Azure Blob Storage |
-| Pattern 4: High-Performance Cloud I/O with obstore | 196–270 | Use the Rust-based obstore library for maximum throughput |
-| Pattern 5: Icechunk Versioned Storage on S3 | 271–365 | Version-controlled Zarr datasets with branching and time-travel |
-| Pattern 6: Read-Through Caching for Remote Stores | 366–430 | Cache cloud data locally for repeated reads |
+| Pattern 1: S3 Backend with fsspec | 16–80 | Anonymous, requester-pays, profile and S3-compatible (MinIO) access |
+| Pattern 2: GCS Backend with fsspec | 82–120 | Anonymous, service account and application default credentials |
+| Pattern 3: Azure Blob Backend with fsspec | 122–157 | Environment credentials, managed identity, public containers |
+| Pattern 4: High-Performance Cloud I/O with obstore | 159–216 | The Rust-based obstore library through `zarr.storage.ObjectStore` |
+| Pattern 5: Icechunk Versioned Storage on S3 | 218–269 | Commits, branches, tags and time-travel reads |
+| Pattern 6: Read-Through Caching for Remote Stores | 271–306 | What caches through zarr-python 3, and what does not |
 
 ---
 
 ## Pattern 1: S3 Backend with fsspec
 
-**Description:** Access Zarr stores on Amazon S3 using the fsspec/s3fs backend. Supports anonymous access for public datasets, environment-based credentials, named profiles, and explicit keys.
+**Description:** Access Zarr stores on Amazon S3 using the fsspec/s3fs backend. Supports anonymous access for public datasets, the standard AWS credential chain (environment variables, profiles, IAM roles), requester-pays buckets and S3-compatible endpoints.
 
 **When to use:**
-- Reading public datasets hosted on S3 (NOAA, NASA, Pangeo, CMIP6)
+- Reading public datasets hosted on S3 (Pangeo CMIP6, NOAA, NASA)
 - Writing research outputs to an S3 bucket
 - Standard AWS credential chain (env vars, profiles, IAM roles)
 
 **Code example:**
 
 ```python
+import numpy as np
 import zarr
 from zarr.storage import FsspecStore
-import numpy as np
 
-# ── Read a public dataset anonymously ──
+# ── Read a public Zarr store anonymously (Pangeo CMIP6, Zarr v2, us-west-2) ──
 store = FsspecStore.from_url(
-    "s3://noaa-goes16/ABI-L2-CMIPF/2024/001/00/",
+    "s3://cmip6-pds/CMIP6/CMIP/NOAA-GFDL/GFDL-ESM4/historical/r1i1p1f1/Omon/tos/gn/v20190726/",
     storage_options={"anon": True},
+    read_only=True,
 )
 root = zarr.open_group(store=store, mode="r")
-print(root.tree())
+for name, arr in root.arrays():
+    print(name, arr.shape, arr.chunks, arr.dtype)
 
-# ── Write to a private bucket (credentials from environment) ──
+# ── Write to a private bucket (credentials from the AWS credential chain) ──
 store = FsspecStore.from_url("s3://my-research-bucket/experiment-001.zarr")
 root = zarr.open_group(store=store, mode="w")
 arr = root.create_array(
     "results",
     shape=(10000, 500),
-    chunks=(1000, 500),
+    chunks=(1000, 500),  # 4 MB float64 chunks
     dtype="float64",
 )
 arr[:] = np.random.randn(10000, 500)
 root.attrs["experiment"] = "turbulence-sim-001"
 print(f"Wrote {arr.nbytes / 1e6:.1f} MB to S3")
 
-# ── Read with a named AWS profile ──
+# ── Read with a named AWS profile (~/.aws/config) ──
 store = FsspecStore.from_url(
     "s3://shared-bucket/team-data.zarr",
     storage_options={"profile": "research-team"},
+    read_only=True,
 )
-root = zarr.open_group(store=store, mode="r")
+
+# ── Requester-pays bucket: you are billed for the requests; needs credentials ──
+store = FsspecStore.from_url(
+    "s3://requester-pays-bucket/data.zarr",
+    storage_options={"requester_pays": True},
+    read_only=True,
+)
 
 # ── S3-compatible endpoint (MinIO, Ceph, etc.) ──
+# Keys come from AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY in the environment,
+# never from source code.
 store = FsspecStore.from_url(
     "s3://local-bucket/data.zarr",
-    storage_options={
-        "key": "minioadmin",
-        "secret": "minioadmin",
-        "client_kwargs": {"endpoint_url": "http://localhost:9000"},
-    },
+    storage_options={"endpoint_url": "http://localhost:9000"},
 )
 ```
+
+`FsspecStore.from_url` defaults to `read_only=False`; pass `read_only=True` for stores you only read.
 
 ---
 
@@ -84,15 +93,16 @@ store = FsspecStore.from_url(
 import zarr
 from zarr.storage import FsspecStore
 
-# ── Anonymous access to public data ──
+# ── Anonymous access to public data (gcsfs uses token="anon"; it ignores anon=True) ──
 store = FsspecStore.from_url(
     "gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3",
     storage_options={"token": "anon"},
+    read_only=True,
 )
 root = zarr.open_group(store=store, mode="r")
-print(root.tree())
+print(sorted(root.array_keys())[:10])
 
-# ── Service account JSON key ──
+# ── Service account JSON key (path to the file, not its contents) ──
 store = FsspecStore.from_url(
     "gs://my-project-bucket/output.zarr",
     storage_options={"token": "/path/to/service-account.json"},
@@ -111,7 +121,7 @@ arr = root.create_array("data", shape=(5000, 5000), chunks=(500, 500), dtype="fl
 
 ## Pattern 3: Azure Blob Backend with fsspec
 
-**Description:** Access Zarr stores on Azure Blob Storage using the fsspec/adlfs backend. Supports connection strings, account keys, SAS tokens, and managed identity.
+**Description:** Access Zarr stores on Azure Blob Storage using the fsspec/adlfs backend. adlfs reads `AZURE_STORAGE_CONNECTION_STRING`, `AZURE_STORAGE_ACCOUNT_NAME`, `AZURE_STORAGE_ACCOUNT_KEY` and `AZURE_STORAGE_SAS_TOKEN` from the environment. With none of those set, it falls back to `DefaultAzureCredential` (managed identity, `az login`, service principal env vars).
 
 **When to use:**
 - Reading or writing Zarr data in Azure Blob containers
@@ -123,84 +133,69 @@ arr = root.create_array("data", shape=(5000, 5000), chunks=(500, 500), dtype="fl
 import zarr
 from zarr.storage import FsspecStore
 
-# ── Connection string (from Azure Portal) ──
-store = FsspecStore.from_url(
-    "az://my-container/data.zarr",
-    storage_options={
-        "connection_string": "DefaultEndpointsProtocol=https;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net"
-    },
-)
+# ── Connection string, account key or SAS token from the environment ──
+# export AZURE_STORAGE_CONNECTION_STRING=...   (or ACCOUNT_NAME + ACCOUNT_KEY / SAS_TOKEN)
+store = FsspecStore.from_url("az://my-container/data.zarr", read_only=True)
 root = zarr.open_group(store=store, mode="r")
 
-# ── Account name + key ──
-store = FsspecStore.from_url(
-    "az://my-container/data.zarr",
-    storage_options={
-        "account_name": "mystorageaccount",
-        "account_key": "base64key==",
-    },
-)
-
-# ── SAS token ──
-store = FsspecStore.from_url(
-    "az://my-container/data.zarr",
-    storage_options={
-        "account_name": "mystorageaccount",
-        "sas_token": "sv=2021-06-08&ss=b&srt=sco&sp=rl&se=...",
-    },
-)
-
-# ── Managed identity (Azure VM, AKS) ──
+# ── Managed identity or az login (DefaultAzureCredential) ──
 store = FsspecStore.from_url(
     "az://my-container/data.zarr",
     storage_options={"account_name": "mystorageaccount", "anon": False},
 )
+
+# ── Public container ──
+store = FsspecStore.from_url(
+    "az://public-container/data.zarr",
+    storage_options={"account_name": "publicaccount", "anon": True},
+    read_only=True,
+)
 ```
+
+Passing `connection_string`, `account_key` or `sas_token` in `storage_options` also works, but load the value from a secret store or environment variable rather than writing it into code.
 
 ---
 
 ## Pattern 4: High-Performance Cloud I/O with obstore
 
-**Description:** Use the Rust-based obstore library for maximum throughput when reading or writing large Zarr datasets on cloud storage. obstore provides native async I/O, automatic connection pooling, and lower per-request overhead than Python-based fsspec implementations.
+**Description:** Use the Rust-based obstore library through `zarr.storage.ObjectStore`. obstore has its own HTTP stack and reads `AWS_*`, `GOOGLE_*` and `AZURE_*` environment variables in every constructor. Request parallelism is still capped by zarr's `async.concurrency` setting (default 10).
 
 **When to use:**
 - Large-scale analysis pipelines that are I/O bound
-- Need lower latency per request (Rust-native HTTP stack)
 - Already using obstore in other parts of a pipeline (e.g., with GeoParquet)
 
 **Code example:**
 
 ```python
-import zarr
 import numpy as np
-from obstore.store import S3Store, GCSStore, AzureStore
+import zarr
+from obstore.store import AzureStore, GCSStore, S3Store
 
-# ── S3 with obstore ──
-obs_s3 = S3Store.from_url(
-    "s3://my-bucket/data.zarr",
-    config={"AWS_REGION": "us-west-2"},
+# ── Public S3 data: skip request signing ──
+obs = S3Store.from_url(
+    "s3://cmip6-pds/CMIP6/CMIP/NOAA-GFDL/GFDL-ESM4/historical/r1i1p1f1/Omon/tos/gn/v20190726",
+    region="us-west-2",
+    skip_signature=True,
 )
-store = zarr.storage.ObjectStore(obs_s3, read_only=True)
-root = zarr.open_group(store=store, mode="r")
+root = zarr.open_group(store=zarr.storage.ObjectStore(obs, read_only=True), mode="r")
 
-# ── GCS with obstore ──
+# ── Private S3 (credentials from the environment) ──
+obs_s3 = S3Store.from_url("s3://my-bucket/data.zarr", config={"AWS_REGION": "us-west-2"})
+store = zarr.storage.ObjectStore(obs_s3, read_only=True)
+
+# ── GCS with a service account key file ──
 obs_gcs = GCSStore.from_url(
     "gs://my-bucket/data.zarr",
     config={"GOOGLE_SERVICE_ACCOUNT": "/path/to/key.json"},
 )
 store = zarr.storage.ObjectStore(obs_gcs, read_only=True)
-root = zarr.open_group(store=store, mode="r")
 
-# ── Azure with obstore ──
+# ── Azure (account key or SAS token from AZURE_STORAGE_* env vars) ──
 obs_az = AzureStore.from_url(
     "az://my-container/data.zarr",
-    config={
-        "AZURE_STORAGE_ACCOUNT_NAME": "mystorageaccount",
-        "AZURE_STORAGE_ACCOUNT_KEY": "base64key==",
-    },
+    config={"AZURE_STORAGE_ACCOUNT_NAME": "mystorageaccount"},
 )
 store = zarr.storage.ObjectStore(obs_az, read_only=True)
-root = zarr.open_group(store=store, mode="r")
 
 # ── Write with obstore ──
 obs_w = S3Store.from_url("s3://my-bucket/output.zarr")
@@ -216,74 +211,76 @@ obs = S3Store.from_url(
 )
 ```
 
+Config keys are case-insensitive (`AWS_REGION` and `region` both work). A `GOOGLE_SERVICE_ACCOUNT` path is read when the store is constructed, so a wrong path fails immediately.
+
 ---
 
 ## Pattern 5: Icechunk Versioned Storage on S3
 
-**Description:** Use Icechunk to create version-controlled Zarr stores on cloud object storage. Icechunk adds Git-like semantics — commits, branches, tags, and time-travel reads — on top of standard cloud backends.
+**Description:** Icechunk adds Git-like semantics (commits, branches, tags, time-travel reads) to Zarr on object storage. A `Repository` holds the history; each write happens in a `Session` whose `.store` you pass to zarr. Shown with the Icechunk 1.x/2.x API; the 0.1 names `StorageConfig` and `IcechunkStore.open_or_create` no longer exist.
 
 **When to use:**
 - Datasets that are updated incrementally and you need to track each revision
-- Collaborative workflows where multiple writers need atomic commits
-- Regulatory or reproducibility requirements (read data as it was at a specific time)
+- Several writers that need atomic commits
+- Reproducibility requirements (read data as it was at a specific snapshot)
 
 **Code example:**
 
 ```python
-import zarr
+import icechunk
 import numpy as np
-from icechunk import IcechunkStore, StorageConfig
+import zarr
 
-# ── Create a versioned store on S3 ──
-storage = StorageConfig.s3_from_env(
+# ── Open or create a repository on S3 (credentials from the environment) ──
+storage = icechunk.s3_storage(
     bucket="my-bucket",
-    prefix="versioned-climate.zarr",
+    prefix="versioned-climate",
     region="us-west-2",
+    from_env=True,
 )
-store = IcechunkStore.open_or_create(storage=storage, mode="w")
+repo = icechunk.Repository.open_or_create(storage)
 
-# ── Write initial data ──
-root = zarr.open_group(store=store, mode="w")
-temp = root.create_array(
-    "temperature",
-    shape=(365, 180, 360),
-    chunks=(30, 90, 180),
-    dtype="float32",
-)
+# ── Write initial data on main and commit ──
+session = repo.writable_session("main")
+root = zarr.open_group(store=session.store, mode="w")
+temp = root.create_array("temperature", shape=(365, 180, 360), chunks=(30, 180, 360), dtype="float32")
 temp[:] = np.random.randn(365, 180, 360).astype("float32")
 root.attrs["source"] = "CESM2 Model Output"
+first_commit = session.commit("Initial temperature data for 2024")  # session is read-only afterwards
 
-# ── Commit (like git commit) ──
-first_commit = store.commit("Initial temperature data for 2024")
-print(f"Committed: {first_commit}")
+# ── Change data on a branch ──
+repo.create_branch("bias-correction", snapshot_id=first_commit)
+branch = repo.writable_session("bias-correction")
+temp = zarr.open_array(store=branch.store, path="temperature", mode="r+")
+temp[:] = temp[:] - 0.5
+branch.commit("Apply -0.5 K bias correction")
 
-# ── Update data on a branch ──
-store.new_branch("bias-correction")
-store.checkout(branch="bias-correction")
-temp = zarr.open_array(store=store, path="temperature", mode="r+")
-temp[:] = temp[:] - 0.5  # apply bias correction
-store.commit("Apply -0.5K bias correction")
+# ── main is unchanged ──
+main = repo.readonly_session(branch="main")
+print(zarr.open_array(store=main.store, path="temperature", mode="r")[:10, 0, 0])
 
-# ── Read from main (original data unchanged) ──
-store_main = IcechunkStore.open_existing(storage=storage, mode="r")
-store_main.checkout(branch="main")
-root_main = zarr.open_group(store=store_main, mode="r")
-print(f"Main branch mean: {root_main['temperature'][:10, 0, 0].mean():.3f}")
-
-# ── Tag a release ──
-store.checkout(branch="main")
-store.tag("v1.0", snapshot_id=first_commit)
+# ── Tag a release and read it back later ──
+repo.create_tag("v1.0", snapshot_id=first_commit)
+v1 = repo.readonly_session(tag="v1.0")
 ```
+
+For local tests, `icechunk.local_filesystem_storage(path)` or `icechunk.in_memory_storage()` stand in for `s3_storage`. Skip `zarr.consolidate_metadata` on an Icechunk store: it raises `TypeError` because the store does not support consolidated metadata.
 
 ---
 
 ## Pattern 6: Read-Through Caching for Remote Stores
 
-**Description:** Use fsspec's built-in caching protocols to cache cloud-hosted Zarr chunks on local disk, avoiding repeated downloads during iterative analysis.
+**Description:** zarr-python 3 has no `LRUStoreCache`. Caching comes from an fsspec caching protocol chained in front of the URL, or from a store wrapper. Only `simplecache::` reliably caches through `FsspecStore` on S3, GCS or Azure.
+
+| Layer | Through `FsspecStore` on s3/gs/az (zarr 3.1, fsspec 2026.x) |
+|---|---|
+| `simplecache::` | Caches whole objects on first read. Needs `"asynchronous": True` in the target options. Sharded arrays fail (`OSError` on the shard-index read). Never re-checks the remote |
+| `filecache::` | Writes cache files but re-downloads on every read |
+| `blockcache::` | Passes reads straight through; nothing is cached |
+| `zarr.experimental.cache_store.CacheStore` | Experimental. Works for unsharded arrays; on sharded arrays it caches byte ranges as whole objects and reads fail |
 
 **When to use:**
-- Repeatedly reading the same subsets of a large cloud dataset
-- Working with cloud data on a machine with good local disk but limited bandwidth
+- Repeatedly reading the same parts of an unsharded remote dataset that does not change
 - Prototyping analysis on a remote dataset before scaling to cloud compute
 
 **Code example:**
@@ -292,38 +289,18 @@ store.tag("v1.0", snapshot_id=first_commit)
 import zarr
 from zarr.storage import FsspecStore
 
-# ── Simple cache (download once, keep until process exits) ──
 store = FsspecStore.from_url(
-    "simplecache::s3://noaa-goes16/ABI-L2-CMIPF/2024/001/00/data.zarr",
+    "simplecache::s3://cmip6-pds/CMIP6/CMIP/NOAA-GFDL/GFDL-ESM4/historical/r1i1p1f1/Omon/tos/gn/v20190726/",
     storage_options={
-        "s3": {"anon": True},
-        "simplecache": {"cache_storage": "/tmp/zarr-cache"},
+        "s3": {"anon": True, "asynchronous": True},  # asynchronous=True avoids an event-loop clash
+        "simplecache": {"cache_storage": "/tmp/zarr-cache"},  # kept across runs; delete to refresh
     },
+    read_only=True,
 )
 root = zarr.open_group(store=store, mode="r")
-
-# ── File cache with expiry (persistent across sessions) ──
-store = FsspecStore.from_url(
-    "filecache::s3://my-bucket/data.zarr",
-    storage_options={
-        "s3": {"anon": True},
-        "filecache": {
-            "cache_storage": "/data/zarr-cache",
-            "expiry_time": 86400,  # re-check remote after 24 hours
-            "same_names": True,    # preserve original filenames in cache
-        },
-    },
-)
-
-# ── Block cache (cache individual byte ranges, useful for partial reads) ──
-store = FsspecStore.from_url(
-    "blockcache::s3://my-bucket/data.zarr",
-    storage_options={
-        "s3": {"anon": True},
-        "blockcache": {
-            "cache_storage": "/tmp/zarr-block-cache",
-            "block_size": 1_048_576,  # 1 MB blocks
-        },
-    },
-)
+lat = root["lat"][:]  # first read downloads; later reads come from /tmp/zarr-cache
 ```
+
+Without `"asynchronous": True`, the read fails with an `HTTPClientError` whenever the process already holds a synchronous s3fs instance with the same options (for example from an earlier `s3fs.S3FileSystem(anon=True).ls(...)`). For gcsfs use the `"gs"` key, for adlfs `"az"`.
+
+The cache is keyed by path and never expires: after the remote store is rewritten, delete the cache directory or reads return old chunks and old metadata.

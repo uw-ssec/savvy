@@ -1,152 +1,157 @@
-# Real-World Examples
+# Measured Examples
+
+All numbers below were measured with zarr-python 3.1.5 and numcodecs 0.17.1 on an Apple M5 Max, through an in-memory store. Throughput depends on the machine, so compare rows with each other. Ratios depend on the data, so measure your own.
 
 ## Contents
 
 | Example | Description |
 |---------|-------------|
-| 1. Benchmarking Codecs on Climate Data | Compare codecs on realistic scientific data |
-| 2. Delta Filter for Monotonic Data | Timestamps and cumulative sums |
-| 3. Per-Variable Compression in xarray | Different codecs per variable |
-| 4. Optimizing Integer Count Data | Satellite observation counts |
+| 1. Codec Comparison on Four Datasets | Ratios from `assets/codec-comparison.py` |
+| 2. Delta Filter for Timestamps | When Delta helps and when it doesn't |
+| 3. Shuffle Modes on Integer Counts | Shuffle choice depends on the inner codec |
+| 4. Choosing BitRound Precision | Ratio against error before adopting a lossy filter |
 
 ---
 
-## Example 1: Benchmarking Codecs on Climate Data
+## Example 1: Codec Comparison on Four Datasets
 
-**Problem:** Choose the best codec for a float32 temperature dataset by benchmarking compression ratio, compress time, and decompress time.
+Datasets:
+- **air**: xarray tutorial `air_temperature` (NCEP reanalysis), `air` as float32, shape `(2920, 25, 53)`, chunks `(730, 25, 53)`. The source file packs it as int16 × 0.01 K.
+- **rasm**: xarray tutorial `rasm` (RASM model output), `Tair` as float32, shape `(36, 205, 275)`, chunks `(12, 205, 275)`, 54% NaN.
+- **counts**: `rng.poisson(50, (2000, 2000))` as uint32, chunks `(500, 500)`.
+- **noise**: the script's default random walk (float32, `(1000, 1000)`).
 
-```python
-import time
-import numpy as np
-from numcodecs import Blosc, Zstd, GZip, LZ4, Zlib, BZ2
+| Configuration | air | rasm | counts | noise | air read MB/s |
+|---|---|---|---|---|---|
+| `ZstdCodec()` (default) | 2.83x | 2.32x | 4.21x | 1.08x | 4,460 |
+| `ZstdCodec(level=9)` | 3.09x | 2.34x | 4.49x | 1.08x | 4,510 |
+| `GzipCodec(level=5)` | 2.76x | 2.34x | 4.02x | 1.08x | 1,560 |
+| Blosc lz4 5, noshuffle | 1.49x | 2.04x | 2.62x | 1.00x | 7,190 |
+| Blosc lz4 5, shuffle | 1.74x | 2.23x | 3.94x | 1.24x | 5,170 |
+| Blosc lz4 5, bitshuffle | 1.60x | 1.66x | 5.15x | 1.00x | 5,590 |
+| Blosc zstd 5, noshuffle | 2.89x | 2.34x | 4.62x | 1.08x | 4,460 |
+| Blosc zstd 5, shuffle | 2.97x | 2.52x | 6.32x | 1.28x | 3,130 |
+| Blosc zstd 5, bitshuffle | 1.72x | 2.14x | 5.58x | 1.08x | 3,390 |
+| LZ4 (numcodecs) | 1.71x | 2.06x | 2.65x | 1.00x | 7,100 |
+| BZ2 level 5 (numcodecs) | 4.80x | 2.27x | 6.16x | 1.05x | 290 |
+| LZMA preset 6 (numcodecs) | 4.15x | 2.51x | 5.92x | 1.23x | 490 |
+| BitRound(10) + Blosc zstd shuffle (lossy) | 5.18x | 4.80x | — | 2.52x | 2,800 |
 
-# Generate realistic correlated float32 data
-rng = np.random.default_rng(42)
-data = np.cumsum(rng.normal(0, 0.1, (1000, 1000)), axis=0).astype("float32")
-raw_size = data.nbytes
+What the table supports:
+- No lossless codec reached 5x on the float data, and none passed 1.3x on noise. Synthetic noise cannot rank codecs.
+- The default Zstd was within 10% of the best Blosc setting on air and rasm, and 33% behind it on counts.
+- Shuffle helped the integer counts most (4.62x to 6.32x with zstd). On air it changed little, and with zstd, bitshuffle was worse than no shuffle.
+- BZ2 and LZMA gave the highest lossless ratios on air but read 9–15x slower than the default.
 
-codecs = {
-    "Blosc+LZ4 SHUFFLE": Blosc(cname='lz4', clevel=1, shuffle=Blosc.SHUFFLE),
-    "Blosc+Zstd SHUFFLE": Blosc(cname='zstd', clevel=5, shuffle=Blosc.SHUFFLE),
-    "Zstd(3)": Zstd(level=3),
-    "GZip(5)": GZip(level=5),
-    "LZ4": LZ4(),
-}
+Reproduce a column on your own data:
 
-print(f"{'Codec':<25} {'Ratio':>8} {'Compress':>10} {'Decompress':>12}")
-print("-" * 60)
-
-for name, codec in codecs.items():
-    t0 = time.perf_counter()
-    compressed = codec.encode(data)
-    t_compress = time.perf_counter() - t0
-
-    t0 = time.perf_counter()
-    codec.decode(compressed)
-    t_decompress = time.perf_counter() - t0
-
-    ratio = raw_size / len(compressed)
-    print(f"{name:<25} {ratio:>7.1f}x {t_compress:>9.3f}s {t_decompress:>11.3f}s")
+```bash
+python assets/codec-comparison.py --zarr store.zarr/air --runs 5
+python assets/codec-comparison.py --npy counts.npy --chunks 500,500
 ```
 
-→ See [assets/codec-comparison.py](../assets/codec-comparison.py) for a more comprehensive benchmark script.
-
 ---
 
-## Example 2: Delta Filter for Monotonic Data
+## Example 2: Delta Filter for Timestamps
 
-**Problem:** Compress a monotonically increasing timestamp array. Without Delta, the compressor sees large values with small differences; with Delta, it sees small constant-ish values.
+Delta stores differences between neighbours. It pays off when the differences repeat.
 
 ```python
+import numpy as np
 import zarr
-import numpy as np
-from numcodecs import Delta, Blosc
-
-# Simulated timestamps (nanoseconds since epoch, monotonically increasing)
-timestamps = np.cumsum(np.random.randint(1_000_000, 10_000_000, 1_000_000)).astype("int64")
-
-# Without Delta filter
-z_no_delta = zarr.open_array('no_delta.zarr', mode='w', shape=timestamps.shape,
-                             dtype='int64', chunks=(100_000,),
-                             compressor=Blosc(cname='zstd', clevel=5))
-z_no_delta[:] = timestamps
-
-# With Delta filter
-z_delta = zarr.open_array('with_delta.zarr', mode='w', shape=timestamps.shape,
-                          dtype='int64', chunks=(100_000,),
-                          filters=[Delta(dtype='int64')],
-                          compressor=Blosc(cname='zstd', clevel=5))
-z_delta[:] = timestamps
-
-print(f"Without Delta: ratio from info")
-print(f"With Delta: dramatically better ratio for monotonic data")
-```
-
----
-
-## Example 3: Per-Variable Compression in xarray
-
-**Problem:** A climate dataset has float32 temperatures (benefits from shuffle), uint16 observation counts (benefits from BITSHUFFLE), and boolean cloud masks (benefits from PackBits).
-
-```python
-import xarray as xr
-import numpy as np
-from numcodecs import Blosc, PackBits
+from zarr.codecs.numcodecs import Delta
 
 rng = np.random.default_rng(42)
-ds = xr.Dataset({
-    "temperature": (["time", "lat", "lon"],
-                    rng.normal(280, 15, (365, 180, 360)).astype("float32")),
-    "obs_count": (["time", "lat", "lon"],
-                  rng.integers(0, 100, (365, 180, 360), dtype="uint16")),
-    "cloud_mask": (["time", "lat", "lon"],
-                   rng.integers(0, 2, (365, 180, 360), dtype="bool")),
-}, coords={
-    "time": np.arange(365), "lat": np.linspace(-89.5, 89.5, 180),
-    "lon": np.linspace(0.5, 359.5, 360),
-})
-
-encoding = {
-    "temperature": {
-        "compressor": Blosc(cname='zstd', clevel=5, shuffle=Blosc.SHUFFLE),
-        "chunks": {"time": 30, "lat": 90, "lon": 180},
-    },
-    "obs_count": {
-        "compressor": Blosc(cname='zstd', clevel=5, shuffle=Blosc.BITSHUFFLE),
-        "chunks": {"time": 30, "lat": 90, "lon": 180},
-    },
-    "cloud_mask": {
-        "compressor": Blosc(cname='lz4', clevel=1),
-        "filters": [PackBits()],
-        "chunks": {"time": 30, "lat": 90, "lon": 180},
-    },
+series = {
+    "regular 1-minute cadence": np.arange(1_000_000, dtype="int64") * 60_000_000_000,
+    "random 1-10 ms steps": np.cumsum(rng.integers(1_000_000, 10_000_000, 1_000_000)),
 }
-ds.to_zarr("optimized_climate.zarr", encoding=encoding)
+for name, ts in series.items():
+    for label, kw in (("no filter", {}), ("Delta", {"filters": [Delta(dtype="int64")]})):
+        z = zarr.create_array(zarr.storage.MemoryStore(), shape=ts.shape, chunks=(100_000,),
+                              dtype="int64", **kw)
+        z[:] = ts
+        print(f"{name:<26} {label:<10} {z.nbytes / z.nbytes_stored():8.1f}x")
 ```
+
+Output:
+
+```
+regular 1-minute cadence   no filter       1.3x
+regular 1-minute cadence   Delta        4491.9x
+random 1-10 ms steps       no filter       2.2x
+random 1-10 ms steps       Delta           2.3x
+```
+
+On non-monotonic counts, Delta made things worse (6.32x to 3.34x with Blosc zstd shuffle).
 
 ---
 
-## Example 4: Optimizing Integer Count Data
+## Example 3: Shuffle Modes on Integer Counts
 
-**Problem:** Satellite pixel count data (uint32, range 0–10000) has lots of bit-level redundancy. BITSHUFFLE exposes this for better compression.
+The best shuffle mode depended on the codec inside Blosc. Benchmark through zarr so that Blosc gets the dtype's typesize.
 
 ```python
+import numpy as np
 import zarr
-import numpy as np
-from numcodecs import Blosc
+from zarr.codecs import BloscCodec
 
-rng = np.random.default_rng(42)
-counts = rng.poisson(50, (10000, 10000)).astype("uint32")
+counts = np.random.default_rng(42).poisson(50, (2000, 2000)).astype("uint32")
 
-configs = {
-    "NOSHUFFLE": Blosc(cname='zstd', clevel=5, shuffle=Blosc.NOSHUFFLE),
-    "SHUFFLE": Blosc(cname='zstd', clevel=5, shuffle=Blosc.SHUFFLE),
-    "BITSHUFFLE": Blosc(cname='zstd', clevel=5, shuffle=Blosc.BITSHUFFLE),
-}
-
-for name, comp in configs.items():
-    compressed = comp.encode(counts[:1000, :1000])
-    ratio = counts[:1000, :1000].nbytes / len(compressed)
-    print(f"{name:<12}: ratio={ratio:.1f}x")
-# BITSHUFFLE typically wins for integer data with limited range
+for cname in ("lz4", "zstd"):
+    for shuffle in ("noshuffle", "shuffle", "bitshuffle"):
+        z = zarr.create_array(zarr.storage.MemoryStore(), shape=counts.shape, chunks=(500, 500),
+                              dtype=counts.dtype,
+                              compressors=[BloscCodec(cname=cname, clevel=5, shuffle=shuffle)])
+        z[:] = counts
+        print(f"{cname:<5} {shuffle:<11} {z.nbytes / z.nbytes_stored():.2f}x")
 ```
+
+Output:
+
+```
+lz4   noshuffle   2.62x
+lz4   shuffle     3.94x
+lz4   bitshuffle  5.15x
+zstd  noshuffle   4.62x
+zstd  shuffle     6.32x
+zstd  bitshuffle  5.58x
+```
+
+Calling `Blosc().encode(counts.tobytes())` directly would hide the difference: a `bytes` buffer has typesize 1, so byte shuffle does nothing.
+
+---
+
+## Example 4: Choosing BitRound Precision
+
+BitRound zeroes the low mantissa bits. Measure ratio against error on a sample before adopting it, and keep at least the precision the data was recorded with.
+
+```python
+import numpy as np
+import zarr
+from zarr.codecs import BloscCodec
+from zarr.codecs.numcodecs import BitRound
+
+sample = np.load("air.npy")  # float32 sample of the real variable
+
+for keepbits in (4, 7, 10, 13, 23):
+    z = zarr.create_array(zarr.storage.MemoryStore(), shape=sample.shape, chunks=(730, 25, 53),
+                          dtype=sample.dtype, filters=[BitRound(keepbits=keepbits)],
+                          compressors=[BloscCodec(cname="zstd", clevel=5, shuffle="shuffle")])
+    z[:] = sample
+    err = np.abs(z[:] - sample)
+    print(f"keepbits={keepbits:>2}  ratio={z.nbytes / z.nbytes_stored():5.2f}x  "
+          f"max abs err={np.nanmax(err):.3g}  mean abs err={np.nanmean(err):.3g}")
+```
+
+Output on the air sample (221–317 K, recorded to 0.01 K):
+
+```
+keepbits= 4  ratio=45.10x  max abs err=8  mean abs err=4.06
+keepbits= 7  ratio=11.94x  max abs err=1  mean abs err=0.474
+keepbits=10  ratio= 5.18x  max abs err=0.11  mean abs err=0.0552
+keepbits=13  ratio= 4.37x  max abs err=0.015  mean abs err=0.00647
+keepbits=23  ratio= 2.97x  max abs err=0  mean abs err=0
+```
+
+Even `keepbits=13` loses more than the 0.01 K recording step, so here every BitRound gain discards recorded precision. `FixedScaleOffset(offset=0, scale=100, dtype="float32", astype="int16")` keeps the recorded values exactly, at 2.94x with Blosc zstd shuffle.

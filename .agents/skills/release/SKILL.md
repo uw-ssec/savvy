@@ -1,8 +1,8 @@
 ---
 name: release
 description:
-  Use when a new version needs cutting — a semver bump, changelog entry, git
-  tag, GitHub release, and plugin zip assets.
+  Use when a new version needs cutting — a calendar version, changelog entry,
+  git tag, GitHub release, and plugin zip assets.
 ---
 
 # Release
@@ -12,25 +12,31 @@ assets.
 
 ## Arguments
 
-Optional: version bump type — `patch`, `minor`, or `major`. Defaults to
-analyzing changes.
+None. The version is the current date (see `docs/versioning.md`).
 
 ## Instructions
 
-1. Determine the version bump:
-
-   - If `patch`, `minor`, or `major` was passed, use that
-   - If not specified, analyze commits since the last tag to determine:
-     - `major`: breaking changes (commits with `!` or `BREAKING CHANGE`)
-     - `minor`: new features (`feat:` commits)
-     - `patch`: fixes, refactors, docs, chores only
-
-2. Get the current version:
+1. Get the previous release tag:
 
    - Check `git tag --sort=-v:refname | head -1` for the latest tag
-   - If no tags exist, start at `v0.1.0`
+   - If no tags exist, there is no previous release
 
-3. Calculate the new version following semver.
+2. Calculate the new version using calendar versioning, `YY.M.MICRO`, per
+   `docs/versioning.md`:
+
+   - `YY.M` is today's two-digit year and month, with no zero-padding
+     (`v26.4.0`, never `v26.04.0`)
+   - MICRO counts releases already tagged in that month, starting at 0
+
+3. Compute the set of changed plugins **before editing any manifest**:
+
+   ```bash
+   pixi run -e ci python .github/scripts/skill_trust.py changed-plugins <previous-tag>
+   ```
+
+   Set each listed plugin's `version` in its `plugin.json` to the new version
+   (without the `v`), run `pixi run plugins-sync`, and commit the bumps before
+   tagging. Plugins not listed keep their version.
 
 4. Verify readiness:
 
@@ -42,14 +48,14 @@ analyzing changes.
 
 6. Update `CHANGELOG.md`:
 
-   - Rename `[Unreleased]` to `[X.Y.Z] -- YYYY-MM-DD` (today's date)
+   - Rename `[Unreleased]` to `[YY.M.MICRO] -- YYYY-MM-DD` (today's date)
    - Add a new empty `[Unreleased]` section above it
 
 7. Commit the changelog update:
 
    ```bash
    git add CHANGELOG.md
-   git commit -m "chore(release): prepare vX.Y.Z" -m "Assisted-by: <harness>:<model>"
+   git commit -m "chore(release): prepare vYY.M.MICRO" -m "Assisted-by: <harness>:<model>"
    ```
 
    The trailer follows the `commit` skill's AI Attribution section. Omit it
@@ -58,7 +64,7 @@ analyzing changes.
 8. Create the git tag:
 
    ```bash
-   git tag -a vX.Y.Z -m "vX.Y.Z"
+   git tag -a vYY.M.MICRO -m "vYY.M.MICRO"
    ```
 
 9. Push the commit and tag:
@@ -86,7 +92,7 @@ analyzing changes.
 11. Create a GitHub release with plugin zips as assets:
 
     ```bash
-    gh release create vX.Y.Z --title "vX.Y.Z" \
+    gh release create vYY.M.MICRO --title "vYY.M.MICRO" \
       --notes "$(cat <<'EOF'
     ## What's Changed
 
@@ -96,7 +102,7 @@ analyzing changes.
 
     <list each plugin zip with name and description>
 
-    **Full Changelog**: <repo compare URL>/compare/vPREVIOUS...vX.Y.Z
+    **Full Changelog**: <repo compare URL>/compare/vPREVIOUS...vYY.M.MICRO
     EOF
     )" \
       plugin_name_MM_DD_YYYY.zip
@@ -104,15 +110,7 @@ analyzing changes.
 
 12. Clean up zip files from the repo root after successful upload.
 
-13. Confirm: "Released vX.Y.Z — <release URL>"
-
-## Version Guidelines
-
-| Bump            | When                               | Example             |
-| --------------- | ---------------------------------- | ------------------- |
-| `patch` (0.1.X) | Bug fixes, docs, chores, refactors | `v0.1.1` → `v0.1.2` |
-| `minor` (0.X.0) | New features, non-breaking changes | `v0.1.2` → `v0.2.0` |
-| `major` (X.0.0) | Breaking changes, major rewrites   | `v0.2.0` → `v1.0.0` |
+13. Confirm: "Released vYY.M.MICRO — <release URL>"
 
 ## Zip Naming Rules
 
@@ -127,7 +125,7 @@ analyzing changes.
 - Must be on `main` branch with no uncommitted changes
 - Must have content in `[Unreleased]` section of CHANGELOG.md
 - Never create a release from a feature branch
-- Tag format is always `vX.Y.Z` (with `v` prefix)
+- Tag format is always `vYY.M.MICRO` (with `v` prefix), e.g. `v26.11.0`
 - Ask for confirmation before pushing the tag and creating the release
 - If CHANGELOG.md doesn't exist or has no `[Unreleased]` section, warn and ask
   how to proceed

@@ -17,11 +17,11 @@ This plugin provides expert guidance for domain-specific scientific computing ap
 
 ## Installation
 
-This plugin is part of the RSE Plugins collection. To use it with Claude Code:
+This plugin is part of the savvy collection. To use it with Claude Code:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/uw-ssec/rse-plugins.git
+   git clone https://github.com/uw-ssec/savvy.git
    ```
 
 2. The plugin will be automatically available in the repository's marketplace at:
@@ -360,9 +360,9 @@ Use the Scientific Domain Applications plugin when working on:
 
 ## Integration with Other Plugins
 
-This plugin is part of the RSE Plugins ecosystem and complements other scientific computing plugins:
+This plugin is part of the savvy ecosystem and complements other scientific computing plugins:
 
-**Current RSE Plugins:**
+**Current savvy plugins:**
 - **scientific-python-development** - Modern Scientific Python development practices (pixi, pytest, packaging, code quality)
 - **holoviz-visualization** - Interactive visualization with Panel, hvPlot, HoloViews
 
@@ -611,10 +611,10 @@ Potential additions that would enhance this plugin:
 
 ## Questions or Feedback?
 
-- **Issues**: Open an issue on [GitHub](https://github.com/uw-ssec/rse-plugins/issues) with the label `scientific-domain-applications`
-- **Discussions**: Start a discussion on [GitHub Discussions](https://github.com/uw-ssec/rse-plugins/discussions)
-- **Pull Requests**: Submit improvements via [pull requests](https://github.com/uw-ssec/rse-plugins/pulls)
+- **Issues**: Open an issue on [GitHub](https://github.com/uw-ssec/savvy/issues) with the label `scientific-domain-applications`
+- **Discussions**: Start a discussion on [GitHub Discussions](https://github.com/uw-ssec/savvy/discussions)
+- **Pull Requests**: Submit improvements via [pull requests](https://github.com/uw-ssec/savvy/pulls)
 
 ## License
 
-This plugin is part of the RSE Plugins project and is licensed under the BSD-3-Clause License. See [LICENSE](../../LICENSE) for details.
+This plugin is part of the savvy project and is licensed under the BSD-3-Clause License. See [LICENSE](../../LICENSE) for details.

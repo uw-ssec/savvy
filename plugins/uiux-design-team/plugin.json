@@ -7,8 +7,8 @@
         "name": "SSEC Engineering Team",
         "url": "https://escience.washington.edu/software-engineering/ssec/"
     },
-    "homepage": "https://github.com/uw-ssec/rse-plugins",
-    "repository": "https://github.com/uw-ssec/rse-plugins",
+    "homepage": "https://github.com/uw-ssec/savvy",
+    "repository": "https://github.com/uw-ssec/savvy",
     "license": "proprietary",
     "keywords": [
         "ui",

@@ -2,6 +2,7 @@ import json
 import os
 import shutil
 import tomllib
+from pathlib import Path
 
 import pytest
 from conftest import SCRIPTS, _load, run_step, workflow_step
@@ -32,7 +33,7 @@ def skill(root, plugin, name, body=""):
 def repo(tmp_path, ap):
     """Two synced plugins: one with skills and MCP, one community plugin."""
     write(tmp_path / ".claude-plugin/marketplace.json", {
-        "name": "rse-plugins",
+        "name": "savvy",
         "owner": {"name": "UW SSEC Team"},
         "metadata": {"description": "test"},
         "plugins": [
@@ -74,6 +75,26 @@ def test_sync_generates_every_client_manifest(ap, repo):
     cursor = json.loads((repo / ".cursor-plugin/marketplace.json").read_text())
     assert [p["source"] for p in cursor["plugins"]] == ["./plugins/alpha", "./community-plugins/beta"]
     assert not (repo / "plugins/alpha/.cursor-plugin/plugin.json").exists()
+
+
+def test_marketplace_entries_carry_no_version(ap, repo):
+    # Claude Code reads plugin.json's version first and warns when an entry repeats a different one,
+    # so the version lives in the plugin's manifests only (#289).
+    entries = json.loads((repo / ".claude-plugin/marketplace.json").read_text())["plugins"]
+    assert [e for e in entries if "version" in e] == []
+    claude = json.loads((repo / "plugins/alpha/.claude-plugin/plugin.json").read_text())
+    assert claude["version"] == "1.0.0"
+
+
+def test_hand_added_entry_version_is_drift(ap, repo):
+    path = repo / ".claude-plugin/marketplace.json"
+    catalog = json.loads(path.read_text())
+    catalog["plugins"][0]["version"] = "1.0.0"
+    write(path, catalog)
+    assert any(".claude-plugin/marketplace.json: out of date" in e for e in problems(ap, repo))
+    ap.sync(repo)
+    assert "version" not in json.loads(path.read_text())["plugins"][0]
+    assert problems(ap, repo) == []
 
 
 def test_sync_is_idempotent(ap, repo, capsys):
@@ -191,6 +212,34 @@ def test_links_in_code_urls_and_assets_are_ignored(ap, repo):
 def test_symlink_out_of_skill_fails(ap, repo):
     (repo / "plugins/alpha/skills/one/shared").symlink_to(repo / "plugins/alpha/skills/three")
     assert any("resolves outside its skill" in e for e in problems(ap, repo))
+
+
+def test_license_symlink_to_root_fails_and_sync_materializes_it(ap, repo):
+    # Clients install one plugin directory on its own, so ../../LICENSE dangles there.
+    write(repo / "LICENSE", "BSD 3-Clause License\n")
+    link = repo / "plugins/alpha/LICENSE"
+    link.symlink_to(Path("../../LICENSE"))
+    assert any("plugins/alpha/LICENSE: symlink -> ../../LICENSE resolves outside its plugin" in e
+               for e in problems(ap, repo))
+    assert ap.sync(repo) == 0
+    assert not link.is_symlink()
+    assert link.read_text(encoding="utf-8") == "BSD 3-Clause License\n"
+    assert problems(ap, repo) == []
+
+
+def test_symlink_inside_its_plugin_passes(ap, repo):
+    write(repo / "plugins/alpha/docs/shared.md", "# shared\n")
+    (repo / "plugins/alpha/docs/alias.md").symlink_to(repo / "plugins/alpha/docs/shared.md")
+    assert problems(ap, repo) == []
+
+
+def test_other_plugin_licenses_are_not_rewritten(ap, repo):
+    # A plugin with its own license text (MIT, a third-party copyright) keeps it.
+    write(repo / "LICENSE", "BSD 3-Clause License\n")
+    write(repo / "community-plugins/beta/LICENSE", "MIT License\n")
+    assert problems(ap, repo) == []
+    ap.sync(repo)
+    assert (repo / "community-plugins/beta/LICENSE").read_text(encoding="utf-8") == "MIT License\n"
 
 
 @pytest.mark.parametrize("frontmatter, message", [

@@ -9,6 +9,9 @@ gate          Read each skill's skillevaluator-output-*.json and print a Markdow
               matches, an incomplete scan, or a missing/unreadable report.
               Exits 1 if any skill fails.
 
+changed-plugins  Print the plugin directories changed since a tag, ignoring
+              skill evidence files (evals, BENCHMARK.md, skill-card.md).
+
 check         Check every pilot skill's trust evidence: the five capability
               declarations and a skill-card.md with every required section.
               Exits 1 if any skill has an error.
@@ -16,13 +19,16 @@ check         Check every pilot skill's trust evidence: the five capability
 Usage:
     python skill_trust.py select-pilot < skills.txt
     python skill_trust.py check [--no-evals]
+    python skill_trust.py changed-plugins <previous-tag>
     python skill_trust.py gate --reports <dir> --skills <file> --accepted .github/skill-security-accepted.yml
 """
 
 import argparse
+import fnmatch
 import hashlib
 import json
 import re
+import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -34,6 +40,11 @@ PILOT_PLUGINS: tuple[str, ...] = ("ai-research-workflows",)
 BLOCKING_SEVERITIES = {"high", "critical"}
 FIELDS = ("skill", "check_name", "file_path", "line_content", "file_sha256", "reason")
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
+PLUGIN_ROOTS = ("plugins", "community-plugins")
+# Evidence about a skill, not part of the skill. Relative to a plugin directory;
+# matched segment by segment, so `*` never crosses `/` and a trailing `**` means
+# "anything below".
+EVIDENCE_PATTERNS: tuple[str, ...] = ("skills/*/evals/**", "skills/*/BENCHMARK.md", "skills/*/skill-card.md")
 
 
 # What a skill directs the agent to do (not what code it ships), declared under
@@ -246,6 +257,33 @@ def summarize(reports: Path, skills: list[str], acceptances: list[Acceptance], r
     return "\n".join(lines) + "\n", ok
 
 
+def is_evidence(relpath: str) -> bool:
+    """True if a plugin-relative path is skill evidence rather than a plugin change."""
+    parts = relpath.split("/")
+    for pattern in EVIDENCE_PATTERNS:
+        pp = pattern.split("/")
+        if pp[-1] == "**":
+            ok = len(parts) > len(pp) - 1 and all(fnmatch.fnmatchcase(a, b) for a, b in zip(parts, pp[:-1]))
+        else:
+            ok = len(parts) == len(pp) and all(fnmatch.fnmatchcase(a, b) for a, b in zip(parts, pp))
+        if ok:
+            return True
+    return False
+
+
+def changed_plugins(root: Path, since: str) -> list[str]:
+    """Plugin dirs with a changed path outside the evidence patterns since `since`."""
+    out = subprocess.run(
+        ["git", "diff", "--name-only", f"{since}..HEAD"], cwd=root, check=True, capture_output=True, text=True
+    ).stdout
+    changed: set[str] = set()
+    for line in out.splitlines():
+        parts = line.strip().split("/", 2)
+        if len(parts) == 3 and parts[0] in PLUGIN_ROOTS and not is_evidence(parts[2]):
+            changed.add(f"{parts[0]}/{parts[1]}")
+    return sorted(changed)
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -258,8 +296,20 @@ def main(argv: list[str] | None = None) -> int:
     c = sub.add_parser("check")
     c.add_argument("--no-evals", action="store_true", help="skip the evals check")
     c.add_argument("--root", type=Path, default=Path("."), help="repo root that plugins/ is under")
+    cp = sub.add_parser("changed-plugins")
+    cp.add_argument("since", help="previous release tag (or any git revision)")
+    cp.add_argument("--root", type=Path, default=Path("."), help="repo root")
     args = ap.parse_args(argv)
 
+    if args.cmd == "changed-plugins":
+        try:
+            changed = changed_plugins(args.root, args.since)
+        except subprocess.CalledProcessError as exc:
+            print(f"error: {' '.join(exc.stderr.split())}", file=sys.stderr)
+            return 1
+        if changed:
+            print("\n".join(changed))
+        return 0
     if args.cmd == "check":
         skill_dirs = sorted(d for p in PILOT_PLUGINS for d in (args.root / "plugins" / p / "skills").glob("*/") if d.is_dir())
         if not skill_dirs:

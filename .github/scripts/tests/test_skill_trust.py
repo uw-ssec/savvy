@@ -1,6 +1,7 @@
 import hashlib
 import io
 import json
+import subprocess
 
 import pytest
 from conftest import SCRIPTS, _load, run_step, workflow_step
@@ -418,3 +419,80 @@ def test_check_cli_passes(st, tmp_path):
 
 def test_check_cli_no_skills_fails(st, tmp_path):
     assert st.main(["check", "--no-evals", "--root", str(tmp_path)]) == 1
+
+
+# --- changed-plugins -------------------------------------------------------
+
+
+def _git(repo, *args):
+    return subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True, text=True).stdout.strip()
+
+
+@pytest.fixture
+def grepo(tmp_path):
+    _git(tmp_path, "init", "-q", "-b", "main")
+    _git(tmp_path, "config", "user.email", "t@example.com")
+    _git(tmp_path, "config", "user.name", "t")
+    _git(tmp_path, "config", "commit.gpgsign", "false")
+    for d in ("plugins/p", "community-plugins/c"):
+        (tmp_path / d / "skills/a").mkdir(parents=True)
+        (tmp_path / d / "skills/a/SKILL.md").write_text("x\n", encoding="utf-8")
+    _git(tmp_path, "add", "-A")
+    _git(tmp_path, "commit", "-q", "-m", "base")
+    return tmp_path
+
+
+def _commit(repo, edits):
+    base = _git(repo, "rev-parse", "HEAD")
+    for path, text in edits.items():
+        p = repo / path
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text, encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "change")
+    return base
+
+
+@pytest.mark.parametrize("path", [
+    "plugins/p/skills/a/evals/evals.json",
+    "plugins/p/skills/a/evals/files/deep/x.md",
+    "plugins/p/skills/a/BENCHMARK.md",
+    "plugins/p/skills/a/skill-card.md",
+])
+def test_evidence_only_changes_are_not_plugin_changes(st, grepo, path):
+    base = _commit(grepo, {path: "new\n"})
+    assert st.changed_plugins(grepo, base) == []
+
+
+@pytest.mark.parametrize("path", [
+    "plugins/p/skills/a/SKILL.md",
+    "plugins/p/skills/a/references/BENCHMARK.md",
+    "plugins/p/skills/a/assets/skill-card.md",
+    "plugins/p/skills/a/references/evals/x.md",
+    "plugins/p/plugin.json",
+    "plugins/p/README.md",
+    "plugins/p/BENCHMARK.md",
+])
+def test_non_evidence_changes_count(st, grepo, path):
+    base = _commit(grepo, {path: "new\n"})
+    assert st.changed_plugins(grepo, base) == ["plugins/p"]
+
+
+def test_evidence_plus_real_change_counts(st, grepo):
+    base = _commit(grepo, {"plugins/p/skills/a/SKILL.md": "y\n", "plugins/p/skills/a/BENCHMARK.md": "b\n"})
+    assert st.changed_plugins(grepo, base) == ["plugins/p"]
+
+
+def test_changed_plugins_sorted_across_both_roots_and_ignores_non_plugin_paths(st, grepo):
+    base = _commit(grepo, {
+        "community-plugins/c/skills/a/SKILL.md": "y\n",
+        "plugins/p/skills/a/SKILL.md": "y\n",
+        "docs/x.md": "d\n",
+    })
+    assert st.changed_plugins(grepo, base) == ["community-plugins/c", "plugins/p"]
+
+
+def test_changed_plugins_cli(st, grepo, capsys):
+    base = _commit(grepo, {"community-plugins/c/skills/a/SKILL.md": "y\n", "plugins/p/skills/a/SKILL.md": "y\n"})
+    assert st.main(["changed-plugins", base, "--root", str(grepo)]) == 0
+    assert capsys.readouterr().out == "community-plugins/c\nplugins/p\n"

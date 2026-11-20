@@ -46,14 +46,15 @@ Every `uses:` reference in workflow files and local action files must point to a
 - Scan, from the repository root. It reads the `.yml` and `.yaml` files under `.github/` and every `action.yml` or `action.yaml` in the repository, tracked or not (files matched by `.gitignore` are skipped), so local composite actions are checked wherever they live. Local `./` refs and `docker://` images pinned by `@sha256:` digest are accepted:
 
   ```bash
-  git grep --untracked -nE '^[[:space:]]*(-[[:space:]]+)?uses:' -- '.github/*.yml' '.github/*.yaml' 'action.yml' '*/action.yml' 'action.yaml' '*/action.yaml' \
-    | grep -vE 'uses:[[:space:]]*[^[:alnum:][:space:]]?\./' \
-    | grep -vE "uses:[[:space:]]*[\"']?[^[:space:]\"']+@[0-9a-f]{40}[\"']?([[:space:]]|$)" \
+  git grep --untracked -nE "(^[[:space:]]*(-[[:space:]]+)?|[{,][[:space:]]*)[\"']?uses[\"']?[[:space:]]*:" -- '.github/*.yml' '.github/*.yaml' 'action.yml' '*/action.yml' 'action.yaml' '*/action.yaml' \
+    | grep -vE "uses[\"']?[[:space:]]*:[[:space:]]*[^[:alnum:][:space:]]?\./" \
+    | grep -vE "uses[\"']?[[:space:]]*:[[:space:]]*[\"']?[^[:space:]\"',}]+@[0-9a-f]{40}[\"']?([[:space:]},]|$)" \
     | grep -vE 'docker://[^[:space:]]*@sha256:[0-9a-f]{64}' \
     || echo "OK: every uses: ref is SHA- or digest-pinned, or local"
   ```
 
 - Every line it prints is a mutable ref. Flag each with the source file and line number.
+- It finds `uses:` in block style, in flow mappings (`- {uses: …}`) and under a quoted key (`"uses": …`). It reads one line at a time, so a line holding several refs (`steps: [{uses: …}, {uses: …}]`) passes if any one of them is pinned: check such lines by hand.
 - Cross-link: `supply-chain-hardened-ci-cd` skill.
 - Remediation: `/supply-chain-pin-actions` (dry-run by default).
 

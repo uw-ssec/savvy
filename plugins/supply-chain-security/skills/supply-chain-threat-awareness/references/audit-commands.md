@@ -37,9 +37,9 @@ Checked with `--help` for npm 11.20.0, pnpm 12.21.0, Yarn 1.22.22 and 4.18.1, uv
 ## Step 2 — Action pinning
 
 ```bash
-git grep --untracked -nE '^[[:space:]]*(-[[:space:]]+)?uses:' -- '.github/*.yml' '.github/*.yaml' 'action.yml' '*/action.yml' 'action.yaml' '*/action.yaml' \
-  | grep -vE 'uses:[[:space:]]*[^[:alnum:][:space:]]?\./' \
-  | grep -vE "uses:[[:space:]]*[\"']?[^[:space:]\"']+@[0-9a-f]{40}[\"']?([[:space:]]|$)" \
+git grep --untracked -nE "(^[[:space:]]*(-[[:space:]]+)?|[{,][[:space:]]*)[\"']?uses[\"']?[[:space:]]*:" -- '.github/*.yml' '.github/*.yaml' 'action.yml' '*/action.yml' 'action.yaml' '*/action.yaml' \
+  | grep -vE "uses[\"']?[[:space:]]*:[[:space:]]*[^[:alnum:][:space:]]?\./" \
+  | grep -vE "uses[\"']?[[:space:]]*:[[:space:]]*[\"']?[^[:space:]\"',}]+@[0-9a-f]{40}[\"']?([[:space:]},]|$)" \
   | grep -vE 'docker://[^[:space:]]*@sha256:[0-9a-f]{64}' \
   || echo "OK: every uses: ref is SHA- or digest-pinned, or local"
 ```
@@ -51,6 +51,8 @@ Every line it prints is a FAIL. The scan reads the `.yml` and `.yaml` files unde
 - a `docker://` image pinned by `@sha256:` digest.
 
 Everything else is flagged: tags (`@v4`, `@0.34.2`), branches (`@main`, `@dev`, `@beta`), short SHAs, `docker://` tags, and reusable workflows called on a branch.
+
+It finds `uses:` in block style, in flow mappings (`- {uses: …}`) and under a quoted key (`"uses": …`). It reads one line at a time, so a line holding several refs (`steps: [{uses: …}, {uses: …}]`) passes if any one of them is pinned: check such lines by hand.
 
 A pinned composite action can still call actions by tag. To check one, list the `uses:` lines of its `action.yml` (or `action.yaml`) at the pinned SHA:
 
@@ -64,7 +66,7 @@ Fix: pin each ref to its full commit SHA (with `/supply-chain-pin-actions`, dry 
 
 ```bash
 # The project's own lifecycle scripts
-jq '.scripts // {} | with_entries(select(.key | test("^(pre|post)?install$|^prepare$")))' package.json
+jq '.scripts // {} | with_entries(select(.key | test("^((pre|post)?(install|prepare)|prepublish|dependencies)$")))' package.json
 
 # Dependencies with install scripts (package-lock.json v2 and v3 record hasInstallScript)
 jq -r '.packages | to_entries[] | select(.key != "" and .value.hasInstallScript) | .key' package-lock.json

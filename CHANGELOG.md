@@ -14,7 +14,7 @@ Changes that touch no plugin — CI, repository documentation, tooling — go un
 
 ## [Unreleased]
 
-First tagged release. Plugin versions move to this release for every plugin below.
+First tagged release. Only `ai-research-workflows` ships in it and moves to this release's version. The other plugins below are marked `released: false` in [docs/catalog.yml](docs/catalog.yml) until they are ready, so no marketplace lists them yet and their entries wait for the release that ships them.
 
 ### ai-research-workflows
 
@@ -165,6 +165,7 @@ First tagged release. Plugin versions move to this release for every plugin belo
 - `CHANGELOG.md`, a [versioning policy](docs/versioning.md), and a [deprecation policy](docs/deprecation.md).
 - [docs/codespaces.md](docs/codespaces.md), with the Codespaces and LiteLLM gateway setup moved out of the README.
 - README badges for CI, the Zenodo DOI, the license, and pixi.
+- `released: false` in [docs/catalog.yml](docs/catalog.yml) holds a plugin back from a release: no marketplace lists it and the [skill catalog](docs/catalog.md) leaves it out, while CI still checks it. Every plugin except `ai-research-workflows` is held back for now.
 
 #### Changed
 

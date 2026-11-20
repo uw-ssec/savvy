@@ -140,6 +140,42 @@ def test_plugin_missing_from_catalog_fails(ap, repo):
     assert any("no entry for ./plugins/gamma" in e for e in problems(ap, repo))
 
 
+def unrelease_beta(repo):
+    """Mark beta `released: false` in docs/catalog.yml and drop it from the catalog."""
+    write(repo / "docs/catalog.yml", "plugins:\n  beta:\n    released: false\n")
+    catalog = json.loads((repo / ".claude-plugin/marketplace.json").read_text())
+    catalog["plugins"] = [e for e in catalog["plugins"] if e["name"] != "beta"]
+    write(repo / ".claude-plugin/marketplace.json", catalog)
+
+
+def test_unreleased_plugin_may_be_left_out_of_every_marketplace(ap, repo):
+    unrelease_beta(repo)
+    ap.sync(repo)
+    assert problems(ap, repo) == []
+    for path in (".claude-plugin/marketplace.json", ".agents/plugins/marketplace.json",
+                 ".cursor-plugin/marketplace.json"):
+        assert [p["name"] for p in json.loads((repo / path).read_text())["plugins"]] == ["alpha"]
+
+
+def test_unreleased_plugin_is_still_checked_and_synced(ap, repo):
+    unrelease_beta(repo)
+    m = json.loads((repo / "community-plugins/beta/plugin.json").read_text())
+    write(repo / "community-plugins/beta/plugin.json", {**m, "description": "changed", "category": "x"})
+    errs = problems(ap, repo)
+    assert any("community-plugins/beta/.claude-plugin/plugin.json: out of date" in e for e in errs)
+    assert any("unknown field 'category'" in e for e in errs)
+    write(repo / "community-plugins/beta/plugin.json", {**m, "description": "changed"})
+    ap.sync(repo)
+    claude = json.loads((repo / "community-plugins/beta/.claude-plugin/plugin.json").read_text())
+    assert claude["description"] == "changed"
+    assert problems(ap, repo) == []
+
+
+def test_unreleased_plugin_listed_in_catalog_fails(ap, repo):
+    write(repo / "docs/catalog.yml", "plugins:\n  beta:\n    released: false\n")
+    assert any("beta is marked `released: false`" in e for e in problems(ap, repo))
+
+
 def test_claude_mcp_without_portable_mcp_fails(ap, repo):
     # Codex stops reading .mcp.json once plugin.json exists, so the server would vanish.
     (repo / "plugins/alpha/mcp.json").unlink()

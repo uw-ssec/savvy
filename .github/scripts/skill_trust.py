@@ -16,8 +16,18 @@ check         Check every pilot skill's trust evidence: the five capability
               declarations and a skill-card.md with every required section.
               Exits 1 if any skill has an error.
 
+list-pilot    Print the pilot skill directories, or validate a comma-separated
+              --skills list (each must be an existing pilot skill directory).
+              Exits 1 on the first entry that is not.
+
+collect-benchmarks  Copy each skill's <reports>/<report_name>/BENCHMARK.md to
+              <skill>/BENCHMARK.md. A skill without one is listed as missing and
+              left untouched (benchmarks are advisory, so this is not an error).
+
 Usage:
     python skill_trust.py select-pilot < skills.txt
+    python skill_trust.py list-pilot [--skills a,b]
+    python skill_trust.py collect-benchmarks --reports <dir> [--skills a,b]
     python skill_trust.py check [--no-evals]
     python skill_trust.py changed-plugins <previous-tag>
     python skill_trust.py gate --reports <dir> --skills <file> --accepted .github/skill-security-accepted.yml
@@ -28,6 +38,7 @@ import fnmatch
 import hashlib
 import json
 import re
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass, field
@@ -127,6 +138,40 @@ def report_name(skill_dir: str) -> str:
 def is_pilot(skill_dir: str) -> bool:
     m = re.fullmatch(r"plugins/([^/]+)/skills/[^/]+", skill_dir.strip("/"))
     return bool(m) and m.group(1) in PILOT_PLUGINS
+
+
+def resolve_skills(root: Path, csv: str = "") -> list[str]:
+    """Pilot skill dirs: all of them for an empty csv, else the validated, de-duplicated csv entries."""
+    if not csv.strip():
+        return sorted(
+            d.relative_to(root).as_posix()
+            for p in PILOT_PLUGINS
+            for d in (root / "plugins" / p / "skills").glob("*/")
+            if d.is_dir()
+        )
+    skills: list[str] = []
+    for raw in csv.split(","):
+        skill = raw.strip().strip("/")
+        if not skill:
+            continue
+        if not is_pilot(skill) or skill.split("/")[-1] in (".", "..") or not (root / skill).is_dir():
+            raise ValueError(f"{raw.strip()!r} is not a pilot skill directory")
+        if skill not in skills:
+            skills.append(skill)
+    return skills
+
+
+def collect_benchmarks(reports: Path, root: Path, skills: list[str]) -> tuple[list[str], list[str]]:
+    """Copy each skill's BENCHMARK.md from its report dir into the skill; return (updated, missing)."""
+    updated, missing = [], []
+    for skill in skills:
+        source = reports / report_name(skill) / "BENCHMARK.md"
+        if source.is_file():
+            shutil.copyfile(source, root / skill / "BENCHMARK.md")
+            updated.append(skill)
+        else:
+            missing.append(skill)
+    return updated, missing
 
 
 @dataclass(frozen=True)
@@ -299,8 +344,31 @@ def main(argv: list[str] | None = None) -> int:
     cp = sub.add_parser("changed-plugins")
     cp.add_argument("since", help="previous release tag (or any git revision)")
     cp.add_argument("--root", type=Path, default=Path("."), help="repo root")
+    lp = sub.add_parser("list-pilot")
+    lp.add_argument("--skills", default="", help="comma-separated skill directories (empty = all pilot skills)")
+    lp.add_argument("--root", type=Path, default=Path("."), help="repo root")
+    cb = sub.add_parser("collect-benchmarks")
+    cb.add_argument("--reports", type=Path, required=True, help="directory of per-skill report subdirectories")
+    cb.add_argument("--skills", default="", help="comma-separated skill directories (empty = all pilot skills)")
+    cb.add_argument("--root", type=Path, default=Path("."), help="repo root that skill directories are relative to")
     args = ap.parse_args(argv)
 
+    if args.cmd in ("list-pilot", "collect-benchmarks"):
+        try:
+            skills = resolve_skills(args.root, args.skills)
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+        if args.cmd == "list-pilot":
+            if skills:
+                print("\n".join(skills))
+            return 0
+        updated, missing = collect_benchmarks(args.reports, args.root, skills)
+        for skill in updated:
+            print(f"updated: {skill}")
+        for skill in missing:
+            print(f"missing: {skill}")
+        return 0
     if args.cmd == "changed-plugins":
         try:
             changed = changed_plugins(args.root, args.since)

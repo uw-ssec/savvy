@@ -517,3 +517,76 @@ def test_changed_plugins_bad_revision_exits_1_cleanly(st, grepo, capsys):
     err = capsys.readouterr().err
     assert err.startswith("error:")
     assert "Traceback" not in err
+
+
+SKILL_A = "plugins/ai-research-workflows/skills/alpha"
+SKILL_B = "plugins/ai-research-workflows/skills/beta"
+
+
+def test_collect_benchmarks_copies_and_lists_missing(st, tmp_path, capsys):
+    root, reports = tmp_path / "repo", tmp_path / "reports"
+    for skill in (SKILL_A, SKILL_B):
+        (root / skill).mkdir(parents=True)
+    (reports / st.report_name(SKILL_A)).mkdir(parents=True)
+    (reports / st.report_name(SKILL_A) / "BENCHMARK.md").write_text("bench a\n", encoding="utf-8")
+    code = st.main(["collect-benchmarks", "--reports", str(reports), "--root", str(root), "--skills", f"{SKILL_A},{SKILL_B}"])
+    assert code == 0
+    assert (root / SKILL_A / "BENCHMARK.md").read_text(encoding="utf-8") == "bench a\n"
+    assert not (root / SKILL_B / "BENCHMARK.md").exists()
+    out = capsys.readouterr().out
+    assert f"updated: {SKILL_A}" in out
+    assert f"missing: {SKILL_B}" in out
+
+
+def test_collect_benchmarks_leaves_existing_file_when_report_missing(st, tmp_path):
+    root = tmp_path / "repo"
+    (root / SKILL_A).mkdir(parents=True)
+    (root / SKILL_A / "BENCHMARK.md").write_text("old\n", encoding="utf-8")
+    assert st.main(["collect-benchmarks", "--reports", str(tmp_path / "none"), "--root", str(root), "--skills", SKILL_A]) == 0
+    assert (root / SKILL_A / "BENCHMARK.md").read_text(encoding="utf-8") == "old\n"
+
+
+def test_collect_benchmarks_rejects_non_pilot_skill(st, tmp_path, capsys):
+    assert st.main(["collect-benchmarks", "--reports", str(tmp_path), "--root", str(tmp_path), "--skills", "plugins/other/skills/x"]) == 1
+    assert "not a pilot skill" in capsys.readouterr().err
+
+
+def test_list_pilot_all_when_empty(st, tmp_path, capsys):
+    for skill in (SKILL_B, SKILL_A):
+        (tmp_path / skill).mkdir(parents=True)
+    (tmp_path / "plugins/ai-research-workflows/skills/not-a-dir.txt").write_text("x", encoding="utf-8")
+    assert st.main(["list-pilot", "--root", str(tmp_path)]) == 0
+    assert capsys.readouterr().out == f"{SKILL_A}\n{SKILL_B}\n"
+
+
+def test_list_pilot_validates_given_skills(st, tmp_path, capsys):
+    (tmp_path / SKILL_A).mkdir(parents=True)
+    assert st.main(["list-pilot", "--root", str(tmp_path), "--skills", f" {SKILL_A}/ , {SKILL_A}"]) == 0
+    assert capsys.readouterr().out == f"{SKILL_A}\n"
+
+
+@pytest.mark.parametrize("bad", ["plugins/other/skills/x", f"{SKILL_A}/../../../../etc", "../x", SKILL_B])
+def test_list_pilot_rejects_bad_skills(st, tmp_path, capsys, bad):
+    (tmp_path / SKILL_A).mkdir(parents=True)
+    assert st.main(["list-pilot", "--root", str(tmp_path), "--skills", f"{SKILL_A},{bad}"]) == 1
+    assert "error:" in capsys.readouterr().err
+
+
+def run_select(tmp_path, **env):
+    script = workflow_step("benchmark-skills.yml", "Validate inputs and select skills")
+    stubs = {"pixi": 'echo "plugins/ai-research-workflows/skills/alpha"\n'}
+    base = {"SKILLS_INPUT": "", "MODEL": "ssec-claude-sonnet-5-5", "ATTEMPTS": "3"}
+    return run_step(script, tmp_path, {**base, **env}, stubs)
+
+
+def test_benchmark_select_step_accepts_defaults(tmp_path):
+    proc, outputs = run_select(tmp_path)
+    assert proc.returncode == 0, proc.stderr
+    assert outputs["skills"] == "plugins/ai-research-workflows/skills/alpha"
+
+
+@pytest.mark.parametrize("env", [{"ATTEMPTS": "0"}, {"ATTEMPTS": "3; id"}, {"MODEL": "m --x"}, {"MODEL": "$(id)"}])
+def test_benchmark_select_step_rejects_bad_inputs(tmp_path, env):
+    proc, _ = run_select(tmp_path, **env)
+    assert proc.returncode == 1
+    assert "::error::" in proc.stdout

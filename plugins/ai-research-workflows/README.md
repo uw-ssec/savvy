@@ -180,7 +180,7 @@ For work where design decisions depend on what already exists in the field:
 
 ## Installation
 
-This plugin is part of the `uw-ssec/rse-plugins` collection. To install from the marketplace:
+This plugin is part of the `uw-ssec/savvy` collection. To install from the marketplace:
 
 ```bash
 # Add the savvy marketplace
@@ -193,7 +193,7 @@ claude plugin install ai-research-workflows@savvy
 To use directly from a local clone:
 
 ```bash
-git clone https://github.com/uw-ssec/rse-plugins.git
+git clone https://github.com/uw-ssec/savvy.git
 ```
 
 Verify installation:
@@ -209,14 +209,14 @@ We welcome contributions to this plugin. You can:
 - **Add or improve skills** — extend workflow guidance in `skills/`
 - **Enhance commands** — update command prompts in `commands/`
 - **Improve the agent** — adjust orchestration in `agents/`
-- **Report issues** — open an issue on [GitHub](https://github.com/uw-ssec/rse-plugins/issues) with the label `ai-research-workflows`
+- **Report issues** — open an issue on [GitHub](https://github.com/uw-ssec/savvy/issues) with the label `ai-research-workflows`
 - **Share examples** — contribute real-world usage patterns
 
 See the main repository [CONTRIBUTING.md](../../CONTRIBUTING.md) for detailed guidelines.
 
 ## License
 
-This plugin is part of the RSE Plugins project. See [LICENSE](LICENSE) file for details.
+This plugin is part of the savvy project. See [LICENSE](LICENSE) file for details.
 
 ## Authors
 

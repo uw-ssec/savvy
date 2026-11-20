@@ -302,8 +302,19 @@ def file_digest(path: Path) -> str | None:
 
 def gate(report: dict, skill: str, acceptances: list[Acceptance], root: Path = Path(".")) -> GateResult:
     results = report.get("results")
-    # Fail closed: only a report that says passed/failed and carries a results list is trusted.
-    result = GateResult(incomplete=report.get("overall_status") not in ("passed", "failed") or not isinstance(results, list))
+    # Fail closed: only a report that says passed/failed, carries validator
+    # results, and names no incomplete scanner is trusted. SkillEvaluator says
+    # `failed` rather than `incomplete` when any check fails outright, so a
+    # scanner that never ran must be caught from `incomplete_scans` directly.
+    missing_scanner = bool(report.get("incomplete_scans")) or (
+        isinstance(results, list) and any(isinstance(r, dict) and r.get("incomplete_scans") for r in results)
+    )
+    result = GateResult(
+        incomplete=report.get("overall_status") not in ("passed", "failed")
+        or not isinstance(results, list)
+        or not results
+        or missing_scanner
+    )
     mine = [a for a in acceptances if a.skill == skill]
     used: set[Acceptance] = set()
     digests: dict[str, str | None] = {}

@@ -120,6 +120,30 @@ def test_incomplete_report_fails(st):
     assert not res.passed
 
 
+def test_failed_report_with_a_missing_scanner_fails(st, root):
+    # SkillEvaluator reports `failed`, not `incomplete`, when any check fails
+    # outright, even if another scanner never ran. An accepted finding must not
+    # let that through.
+    rep = {**report(finding()), "incomplete_scans": ["gitleaks"]}
+    res = st.gate(rep, SKILL, [accept(st)], root)
+    assert res.incomplete
+    assert not res.passed
+
+
+def test_result_level_missing_scanner_fails(st):
+    rep = report()
+    rep["results"].append({"validator": "secrets", "findings": [], "incomplete_scans": ["gitleaks"]})
+    res = st.gate(rep, SKILL, [])
+    assert res.incomplete
+    assert not res.passed
+
+
+def test_report_with_no_validator_results_fails(st):
+    res = st.gate({"overall_status": "passed", "results": []}, SKILL, [])
+    assert res.incomplete
+    assert not res.passed
+
+
 def test_load_rejects_empty_reason(st, tmp_path):
     f = tmp_path / "a.yml"
     f.write_text(
@@ -281,10 +305,17 @@ def test_scan_step_keeps_going_past_a_failing_scan(tmp_path):
 
 
 def test_select_step_fails_when_skill_selection_crashes(tmp_path):
-    work, temp, env = step_env(tmp_path, [])
-    (work / ".github/scripts/skill-quality.py").write_text("import sys\nsys.exit(3)\n", encoding="utf-8")
-    env = {**env, "BASE_SHA": "a", "HEAD_SHA": "b"}
+    # A real repo with a non-gate change, so `git diff` succeeds and the
+    # crashing selector is what the step actually runs.
+    work, temp, env = select_repo(tmp_path, "docs/unrelated.md")
+    (work / ".github/scripts/skill-quality.py").write_text(
+        "import os, pathlib, sys\n"
+        "pathlib.Path(os.environ['RUNNER_TEMP'], 'selector-ran').touch()\n"
+        "sys.exit(3)\n",
+        encoding="utf-8",
+    )
     proc, _ = run_step(workflow_step("skill-quality-check.yml", "Select changed pilot skills"), work, env, {"pixi": "cat\n"})
+    assert (temp / "selector-ran").exists()
     assert proc.returncode != 0
 
 
@@ -321,6 +352,7 @@ def select_repo(tmp_path, changed_path):
 
 @pytest.mark.parametrize("path", [
     ".github/scripts/skill_trust.py",
+    ".github/scripts/skill-quality.py",
     ".github/skill-security-accepted.yml",
     ".github/skillevaluator-policy.yml",
     ".github/workflows/skill-quality-check.yml",
@@ -333,6 +365,18 @@ def test_select_step_rescans_every_pilot_skill_when_a_gate_input_changes(tmp_pat
     assert proc.returncode == 0, proc.stderr
     assert (temp / "pilot.txt").read_text(encoding="utf-8").splitlines() == ALL_PILOT
     assert outputs["count"] == "2"
+
+
+def test_codeowners_cover_every_gate_input():
+    # Anything that decides what the scan runs, flags or waives needs code-owner review.
+    script = workflow_step("skill-quality-check.yml", "Select changed pilot skills")
+    gate_inputs = script.split('gate_inputs="', 1)[1].split('"', 1)[0].split()
+    owned = {
+        line.split()[0].lstrip("/")
+        for line in (SCRIPTS.parent / "CODEOWNERS").read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.startswith("#")
+    }
+    assert set(gate_inputs) <= owned, set(gate_inputs) - owned
 
 
 def test_select_step_keeps_changed_only_selection_otherwise(tmp_path):

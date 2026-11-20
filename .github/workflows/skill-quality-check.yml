@@ -136,9 +136,11 @@ jobs:
         run: |
           # A failed `select` must fail the step, not read as "no pilot skills".
           set -o pipefail
-          # Anything that decides what the scan flags or what it can waive
-          # re-scans every pilot skill, not only the ones this PR changed.
+          # Anything that decides which skills are scanned, what the scan flags
+          # or what it can waive re-scans every pilot skill, not only the ones
+          # this PR changed. CODEOWNERS covers each of these files.
           gate_inputs=".github/scripts/skill_trust.py
+          .github/scripts/skill-quality.py
           .github/skill-security-accepted.yml
           .github/skillevaluator-policy.yml
           .github/workflows/skill-quality-check.yml

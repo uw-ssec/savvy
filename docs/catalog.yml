@@ -7,6 +7,12 @@
 #
 # For each plugin:
 #   tier:        one of the keys under `tiers`.
+#   released:    set to false while the plugin isn't ready to ship. It is still
+#                checked, but no marketplace lists it and docs/catalog.md leaves
+#                it out; keep its marketplace entry out of
+#                .claude-plugin/marketplace.json too. To release it, delete
+#                this line, add the entry back, and run `pixi run plugins-sync`
+#                and `pixi run catalog-sync`.
 #   maintainer:  GitHub handle or team that owns the plugin's skills
 #                (@uw-ssec/engineering for SSEC plugins, the contributor for
 #                contributed ones). A skill can override it with its own
@@ -37,6 +43,7 @@ plugins:
   # --- Core ------------------------------------------------------------------
 
   scientific-python-development:
+    released: false
     tier: Core
     maintainer: "@uw-ssec/engineering"
     skills:
@@ -77,6 +84,7 @@ plugins:
         example: Validate the implementation against its plan before I open a PR.
 
   project-management:
+    released: false
     tier: Core
     maintainer: "@uw-ssec/engineering"
     skills:
@@ -86,6 +94,7 @@ plugins:
         example: Check my docs for broken links and set up prose linting with Vale in CI.
 
   containerization:
+    released: false
     tier: Core
     maintainer: "@uw-ssec/engineering"
     skills:
@@ -109,6 +118,7 @@ plugins:
         example: How do I run containers on an HPC cluster with Apptainer? Convert our Docker image for the cluster and run it under Slurm.
 
   supply-chain-security:
+    released: false
     tier: Core
     maintainer: "@uw-ssec/engineering"
     skills:
@@ -128,6 +138,7 @@ plugins:
         example: Which active 2025-2026 supply chain campaigns (Shai-Hulud, TeamPCP, the axios compromise) should a Python and npm research project worry about, and what patterns do CVE scanners miss?
 
   research-software-design:
+    released: false
     tier: Core
     maintainer: "@uw-ssec/engineering"
     skills:
@@ -137,6 +148,7 @@ plugins:
   # --- Community ---------------------------------------------------------------
 
   scientific-domain-applications:
+    released: false
     tier: Community
     maintainer: "@uw-ssec/engineering"
     skills:
@@ -148,6 +160,7 @@ plugins:
         example: 'Explain how to work with xarray datasets: multidimensional labeled arrays from NetCDF files, groupby over time, and Dask for data larger than memory.'
 
   zarr-data-format:
+    released: false
     tier: Community
     maintainer: "@uw-ssec/engineering"
     skills:
@@ -165,6 +178,7 @@ plugins:
         issue: 219
 
   zarr-chunk-optimization:
+    released: false
     tier: Community
     maintainer: "@uw-ssec/engineering"
     skills:
@@ -186,6 +200,7 @@ plugins:
         issue: 214
 
   uiux-design-team:
+    released: false
     tier: Community
     maintainer: "@cdcore09"
     skills:
@@ -255,6 +270,7 @@ plugins:
         example: Create a lo-fi wireframe for a search results page of a dataset catalog, with filters, a results list, and pagination, and show how it changes at mobile width.
 
   holoviz-visualization:
+    released: false
     tier: Community
     maintainer: "@cdcore09"
     skills:
@@ -280,6 +296,7 @@ plugins:
         example: Make a quick interactive line plot of a pandas DataFrame with hvPlot, with hover tooltips.
 
   gaia-data-downloader:
+    released: false
     tier: Community
     maintainer: "@gaia-hazlab"
     skills:

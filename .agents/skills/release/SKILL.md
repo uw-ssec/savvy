@@ -69,7 +69,9 @@ analyzing changes.
 
 10. Build plugin zip assets:
 
-    - For each directory in `plugins/`, create a zip archive
+    - For each plugin listed in `.claude-plugin/marketplace.json`, create a zip
+      archive. Plugins marked `released: false` in `docs/catalog.yml` are not
+      listed there and must not be zipped
     - **Zip naming convention:**
       - Default: `plugin_name_MM_DD_YYYY.zip` (snake_case plugin name + date)
       - If a release already exists for today (check `gh release list`), append

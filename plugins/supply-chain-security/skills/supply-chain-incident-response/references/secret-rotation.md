@@ -55,7 +55,7 @@ gh secret set <NAME> --body "<new-value>"
 gh secret set <NAME> --env <env> --body "<new-value>"
 
 # Old values still cached in any in-progress run — cancel them
-gh run list --status in_progress --json databaseId --jq '.[].databaseId' \
+gh run list --status in_progress --limit 1000 --json databaseId --jq '.[].databaseId' \
   | xargs -I{} gh run cancel {}
 ```
 

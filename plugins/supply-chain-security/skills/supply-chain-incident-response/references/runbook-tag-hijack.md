@@ -40,8 +40,8 @@ Mismatch or `UNRESOLVED` = potential hijack, treat as EXPOSED until proven other
 For each workflow that used the suspect action, enumerate runs during the exposure window and identify which secrets were in scope.
 
 ```bash
-# Runs of a given workflow in the window
-gh run list --workflow=<file>.yml --created ">=<exposure-start>" \
+# Runs of a given workflow in the window (without --limit, gh lists only 20)
+gh run list --workflow=<file>.yml --created ">=<exposure-start>" --limit 1000 \
   --json databaseId,createdAt,headSha,conclusion,url
 
 # For a specific run, confirm the suspect action ran: its step is named "Run <action>@<ref>"
@@ -53,7 +53,7 @@ gh api "repos/<owner>/<repo>/contents/.github/workflows/<file>.yml?ref=<headSha>
   --jq '.content' | base64 -d
 ```
 
-Each run in the window where the action could have read secrets is a separate EXPOSED instance for the incident report.
+Each run in the window where the action could have read secrets is a separate EXPOSED instance for the incident report. `gh run list` stops at `--limit` even with `--created`: if it returns 1,000 runs, raise `--limit` before counting.
 
 ## Secret Rotation Prioritization
 

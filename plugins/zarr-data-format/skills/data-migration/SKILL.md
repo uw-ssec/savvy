@@ -51,7 +51,7 @@ def cf_encoding(var):
         enc["dtype"] = np.dtype(f"u{signed.itemsize}")
         for k in ("_FillValue", "missing_value"):
             if k in enc:
-                enc[k] = np.asarray(enc[k], signed).view(enc["dtype"])
+                enc[k] = np.asarray(enc[k], signed).astype(enc["dtype"])
     return enc
 
 

@@ -9,8 +9,8 @@
 | Pattern 3: Virtual References with VirtualiZarr or Kerchunk | 132–241 | Reference existing HDF5/NetCDF4 chunks without copying |
 | Pattern 4: Group-by-Group Copy with h5py | 242–321 | Copy an HDF5 tree xarray can't model, chunk by chunk |
 | Pattern 5: Incremental Migration with Checkpointing | 322–396 | Append file by file with a resumable checkpoint |
-| Pattern 6: Post-Migration Validation Pipeline | 397–457 | Compare source and target chunk by chunk, with a report |
-| Pattern 7: Zarr v2 Store to Zarr v3 | 458–497 | Rewrite a v2 store in the v3 format |
+| Pattern 6: Post-Migration Validation Pipeline | 397–468 | Compare source and target chunk by chunk, with a report |
+| Pattern 7: Zarr v2 Store to Zarr v3 | 469–508 | Rewrite a v2 store in the v3 format |
 
 ---
 
@@ -50,7 +50,7 @@ def cf_encoding(var):
         enc["dtype"] = np.dtype(f"u{signed.itemsize}")
         for k in ("_FillValue", "missing_value"):
             if k in enc:
-                enc[k] = np.asarray(enc[k], signed).view(enc["dtype"])
+                enc[k] = np.asarray(enc[k], signed).astype(enc["dtype"])
     return enc
 
 
@@ -406,7 +406,13 @@ Skipping a failed file and carrying on would leave a gap in `time`, and appendin
 **Code example:**
 
 ```python
+import numpy as np
 import xarray as xr
+
+
+def lost_or_changed(a, b):
+    """Attribute names missing from b, or whose value differs."""
+    return {k for k in a if k not in b or not np.array_equal(a[k], b[k])}
 
 
 def validate_migration(source_path, zarr_path, rtol=1e-5, chunks="auto", **open_kwargs):
@@ -434,9 +440,14 @@ def validate_migration(source_path, zarr_path, rtol=1e-5, chunks="auto", **open_
             report["passed"].append(f"{name}: values match (rtol={rtol})")
         except AssertionError as e:
             report["failed"].append(f"{name}: {str(e).splitlines()[0]}")
-        missing_attrs = set(ds_src[name].attrs) - set(ds_dst[name].attrs)
-        if missing_attrs:
-            report["failed"].append(f"{name}: missing attrs {missing_attrs}")
+        bad_attrs = lost_or_changed(ds_src[name].attrs, ds_dst[name].attrs)
+        if bad_attrs:
+            report["failed"].append(f"{name}: missing or changed attrs {bad_attrs}")
+
+    # ── 3. Global attributes ──
+    bad_attrs = lost_or_changed(ds_src.attrs, ds_dst.attrs)
+    if bad_attrs:
+        report["failed"].append(f"Global attrs missing or changed: {bad_attrs}")
 
     # ── Print report ──
     print("\n=== Migration Validation Report ===")

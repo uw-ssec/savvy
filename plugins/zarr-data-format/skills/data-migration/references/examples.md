@@ -7,7 +7,7 @@
 | Example 1: Migrating a Climate Model Archive | 14–87 | Convert a directory of monthly NetCDF files to a single Zarr store |
 | Example 2: Virtual Zarr References for Granules on S3 | 88–142 | Create virtual references for cloud-hosted HDF5/NetCDF4 files |
 | Example 3: HDF5 Instrument Data to Cloud Zarr with Rechunking | 143–234 | Migrate and rechunk instrument data for cloud-optimized access |
-| Example 4: Validating a Large Migration | 235–318 | Per-file source-vs-target validation |
+| Example 4: Validating a Large Migration | 235–330 | Per-file source-vs-target validation |
 
 ---
 
@@ -250,6 +250,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def lost_or_changed(a, b):
+    """Attribute names missing from b, or whose value differs."""
+    return {k for k in a if k not in b or not np.array_equal(a[k], b[k])}
+
+
 def validate_chunked(source_files, zarr_path, concat_dim="time", rtol=1e-5):
     """Validate a large migration by comparing one source file at a time."""
     ds_zarr = xr.open_zarr(zarr_path, chunks={})
@@ -285,6 +290,13 @@ def validate_chunked(source_files, zarr_path, concat_dim="time", rtol=1e-5):
                         msg += f", max_diff={np.nanmax(diff):.2e} at {loc}"
                 errors.append(msg)
             total_checks += 1
+
+        for var in ds_src.variables:  # assert_allclose ignores attributes
+            if var in ds_zarr and (bad := lost_or_changed(ds_src[var].attrs, ds_zarr[var].attrs)):
+                errors.append(f"{filepath.name}/{var}: missing or changed attrs {bad}")
+        if time_offset == 0:  # open_mfdataset keeps the first file's global attributes
+            if bad := lost_or_changed(ds_src.attrs, ds_zarr.attrs):
+                errors.append(f"{filepath.name}: missing or changed global attrs {bad}")
 
         time_offset += n_time
         ds_src.close()

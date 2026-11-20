@@ -5,12 +5,12 @@
 | Section | Lines | Description |
 |---------|-------|-------------|
 | Issue 1: HDF5 Features Not Supported in Zarr | 17–78 | Links, object references, variable-length strings and plugin filters |
-| Issue 2: Metadata Loss During Conversion | 79–136 | `encoding=` replacing the source's packing and fill value |
-| Issue 3: Memory Errors on Large File Conversion | 137–195 | Whole variables loaded into memory during migration |
-| Issue 4: Virtual References Become Invalid | 196–247 | Source files moved or renamed after creating references |
-| Issue 5: Chunk Size Not Optimal After Migration | 248–290 | Inheriting the HDF5 chunk layout |
-| Issue 6: Fill Value Mismatch Between HDF5 and Zarr | 291–333 | HDF5 fill values that xarray does not mask |
-| Issue 7: Encoding/Dtype Differences Between Source and Target | 334–381 | Unexpected type or time changes during migration |
+| Issue 2: Metadata Loss During Conversion | 79–138 | `encoding=` replacing the source's packing and fill value |
+| Issue 3: Memory Errors on Large File Conversion | 139–197 | Whole variables loaded into memory during migration |
+| Issue 4: Virtual References Become Invalid | 198–249 | Source files moved or renamed after creating references |
+| Issue 5: Chunk Size Not Optimal After Migration | 250–292 | Inheriting the HDF5 chunk layout |
+| Issue 6: Fill Value Mismatch Between HDF5 and Zarr | 293–335 | HDF5 fill values that xarray does not mask |
+| Issue 7: Encoding/Dtype Differences Between Source and Target | 336–383 | Unexpected type or time changes during migration |
 
 ---
 
@@ -119,7 +119,7 @@ def cf_encoding(var):
         enc["dtype"] = np.dtype(f"u{signed.itemsize}")
         for k in ("_FillValue", "missing_value"):
             if k in enc:
-                enc[k] = np.asarray(enc[k], signed).view(enc["dtype"])
+                enc[k] = np.asarray(enc[k], signed).astype(enc["dtype"])
     return enc
 
 
@@ -129,6 +129,8 @@ ds.to_zarr("output.zarr", mode="w", encoding=encoding)
 ```
 
 Without `missing_value`, values masked by it are written as `0`. Without the unsigned dtype, an `_Unsigned` byte of `200` reads back as `-56`: xarray keeps the signed storage dtype, and the zarr backend rejects `_Unsigned` in `encoding=`.
+
+A big-endian source (`var.encoding["dtype"].byteorder == ">"`) is decoded wrong before `encoding=` is involved: xarray 2026.9.0 reads an `_Unsigned` `_FillValue` of `-32767` in the wrong byte order, masks valid `384` values and leaves the fill as `32769`. Validation then fails. Copy those files with Fix 1, and validate against `xr.decode_cf(xr.open_dataset(path, decode_cf=False).load())`, which decodes correctly.
 
 Don't copy the raw attributes back onto decoded data with `ds[var].attrs.update(...)`: `to_zarr` then raises `ValueError: Key 'add_offset' already exists in attrs`, and if it didn't, readers would apply the scale twice.
 

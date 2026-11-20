@@ -746,6 +746,20 @@ def test_benchmark_env_pins_same_skillevaluator_as_ci():
     assert (bench["git"], bench["rev"]) == (ci["git"], ci["rev"])
 
 
+def test_scanners_env_installs_semgrep_from_a_linux_wheel():
+    # Semgrep publishes only manylinux_2_34 wheels. If the scanners env's
+    # declared glibc is older, the lock falls back to the sdist, and CI's
+    # locked install rejects the wheel the sdist builds.
+    lock = yaml.safe_load((SCRIPTS.parents[1] / "pixi.lock").read_text(encoding="utf-8"))
+    # A platform with extra system requirements gets its own name (e.g.
+    # linux-64-glibc-2-34); its `subdir` still says linux-64.
+    linux_names = {p["name"] for p in lock["platforms"] if p.get("subdir", p["name"]) == "linux-64"}
+    packages = lock["environments"]["scanners"]["packages"]
+    linux = [entry for name in linux_names & packages.keys() for entry in packages[name]]
+    semgrep = [entry["pypi"] for entry in linux if "pypi" in entry and "/semgrep-" in entry["pypi"]]
+    assert semgrep and all(url.endswith(".whl") for url in semgrep), semgrep
+
+
 def run_select(tmp_path, **env):
     script = workflow_step("benchmark-skills.yml", "Validate inputs and select skills")
     stubs = {"pixi": 'echo "plugins/ai-research-workflows/skills/alpha"\n'}

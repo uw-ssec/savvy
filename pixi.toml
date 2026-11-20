@@ -62,13 +62,17 @@ model-signing = "==1.1.1"
 # SkillSpector needs yara-python, which has no osx-arm64 conda-forge build and
 # publishes PyPI macOS wheels only for macOS 14+, hence the macOS 14.0
 # system requirement (without it the solver falls back to a source build that
-# fails). pixi 0.83 warns that `system-requirements` is deprecated, but a
-# feature's `platforms` list takes plain strings only.
+# fails). Semgrep publishes Linux wheels only for glibc 2.34+ (manylinux_2_34),
+# hence the libc requirement (with pixi's default glibc 2.28 the lock falls
+# back to the sdist, whose built wheel a locked install then rejects).
+# pixi 0.83 warns that `system-requirements` is deprecated, but a feature's
+# `platforms` list takes plain strings only.
 [feature.scanners]
 platforms = ["linux-64", "osx-arm64", "win-64"]
 
 [feature.scanners.system-requirements]
 macos = "14.0"
+libc = "2.34"
 
 [feature.scanners.dependencies]
 python = "3.12.*"

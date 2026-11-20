@@ -392,7 +392,7 @@ transforms:
 
 ## References
 
-- [Panel Deployment Guide](https://panel.holoviz.org/user_guide/Deploy.html)
+- [Panel Deployment Guide](https://panel.holoviz.org/how_to/deployment/index.html)
 - [Docker Documentation](https://docs.docker.com/)
 - [Heroku Python Guide](https://devcenter.heroku.com/articles/python-gunicorn)
 - [AWS ECS Documentation](https://docs.aws.amazon.com/ecs/)

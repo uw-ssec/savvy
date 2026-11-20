@@ -41,11 +41,20 @@ Before classifying findings, collect ground truth with these exact commands:
 
 ### 1. Action pinning
 
-Every `uses:` reference in workflow files must point to a 40-character commit SHA, not a mutable ref (`@v4`, `@main`, `@latest`, `@release/v1`).
+Every `uses:` reference in workflow files and local action files must point to a 40-character commit SHA, not a mutable ref (`@v4`, `@main`, `@latest`, `@release/v1`). The SHA must end the ref: `@<sha>/maintenance` is a branch.
 
-- Grep: `grep -nE '^\s*-?\s*uses:\s*[^@]+@' .github/workflows/*.y*ml`
-- For each match, verify the ref after `@` is 40 hex characters.
-- Flag every mutable ref with the source file and line number.
+- Scan, from the repository root. It reads the `.yml` and `.yaml` files under `.github/` and every `action.yml` or `action.yaml` in the repository, tracked or not (files matched by `.gitignore` are skipped), so local composite actions are checked wherever they live. Local `./` refs and `docker://` images pinned by `@sha256:` digest are accepted:
+
+  ```bash
+  git grep --untracked -nE "(^[[:space:]]*(-[[:space:]]+)?|[{,][[:space:]]*)[\"']?uses[\"']?[[:space:]]*:" -- '.github/*.yml' '.github/*.yaml' 'action.yml' '*/action.yml' 'action.yaml' '*/action.yaml' \
+    | grep -vE "uses[\"']?[[:space:]]*:[[:space:]]*[^[:alnum:][:space:]]?\./" \
+    | grep -vE "uses[\"']?[[:space:]]*:[[:space:]]*[\"']?[^[:space:]\"',}]+@[0-9a-f]{40}[\"']?([[:space:]},]|$)" \
+    | grep -vE 'docker://[^[:space:]]*@sha256:[0-9a-f]{64}' \
+    || echo "OK: every uses: ref is SHA- or digest-pinned, or local"
+  ```
+
+- Every line it prints is a mutable ref. Flag each with the source file and line number.
+- It finds `uses:` in block style, in flow mappings (`- {uses: …}`) and under a quoted key (`"uses": …`). It reads one line at a time, so a line holding several refs (`steps: [{uses: …}, {uses: …}]`) passes if any one of them is pinned: check such lines by hand.
 - Cross-link: `supply-chain-hardened-ci-cd` skill.
 - Remediation: `/supply-chain-pin-actions` (dry-run by default).
 
@@ -76,8 +85,8 @@ Surface areas where dependency installation can execute arbitrary code.
 - Python `.pth` files in site-packages: list contents; benign `.pth` files only add paths. Executable content is a campaign signal.
 - Cross-link: `supply-chain-ecosystem-quirks`.
 - Campaign references:
-  - `plugins/supply-chain-security/skills/supply-chain-threat-awareness/references/campaigns/shai-hulud.md`
-  - `plugins/supply-chain-security/skills/supply-chain-threat-awareness/references/campaigns/litellm-pth.md`
+  - Shai-Hulud, in the `supply-chain-threat-awareness` skill
+  - LiteLLM `.pth`, in the `supply-chain-threat-awareness` skill
 
 ### 5. Provenance
 
@@ -92,9 +101,9 @@ Release workflows should produce an SBOM and sign artifacts (Sigstore, or `npm p
 
 ### Step 1: Action pinning
 
-- Read every workflow file from the Information Gathering step.
-- For each `uses:` line, parse the ref after `@`.
-- PASS: ref is 40 hex chars. WARN: ref is a tag like `v4` or `v4.2.2` (mutable but commonly trusted). FAIL: ref is a branch (`main`, `master`, `latest`, `release/v1`).
+- Run the scan from category 1. It covers every workflow file and every local `action.yml`/`action.yaml`.
+- For each line it prints, parse the ref after `@`.
+- PASS: the scan prints nothing (each ref is a full 40-character SHA with nothing after it but an optional comment). WARN: ref is a tag like `v4` or `v4.2.2` (mutable but commonly trusted). FAIL: ref is a branch (`main`, `master`, `latest`, `release/v1`).
 
 ### Step 2: Workflow permissions
 

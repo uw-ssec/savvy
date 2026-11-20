@@ -678,5 +678,5 @@ layouts:
 
 ## References
 
-- [Lumen Gallery](https://lumen.holoviz.org/gallery/)
+- [Lumen Gallery](https://lumen.holoviz.org/en/docs/latest/examples/gallery/)
 - [Panel Examples](https://panel.holoviz.org/gallery/index.html)

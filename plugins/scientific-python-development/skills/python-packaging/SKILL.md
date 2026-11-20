@@ -44,12 +44,12 @@ Not for environments and lockfiles (`scientific-python-development:pixi-package-
 
 ## Publishing
 
-Publish from CI with Trusted Publishing, not an API token. Copy `assets/github-actions-publish.yml`, keep its actions pinned to commit SHAs, then add a trusted publisher on PyPI for that workflow file and the environment `pypi`. The build job has no credentials; only the publish job can request a token, and it never checks out code.
+Publish from CI with Trusted Publishing; don't upload by hand with `twine upload` or an API token. Copy `assets/github-actions-publish.yml`, keep its actions pinned to commit SHAs, then add a trusted publisher for that workflow file on PyPI (environment `pypi`) and on TestPyPI (environment `testpypi`). The build job has no credentials; only the publish jobs can request a token, and they never check out code.
 
-Dry-run on TestPyPI first, installing only your package from it:
+Dry-run on TestPyPI first: run the workflow by hand, then install only your package from TestPyPI. Publishing a GitHub Release uploads to PyPI.
 
 ```bash
-twine upload --repository testpypi dist/*
+gh workflow run publish.yml    # uploads to TestPyPI
 pip install numpy scipy        # your dependencies, from PyPI
 pip install --no-deps --index-url https://test.pypi.org/simple/ <your-package>
 ```

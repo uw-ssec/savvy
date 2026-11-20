@@ -66,7 +66,7 @@ First tagged release. Plugin versions move to this release for every plugin belo
 
 #### Changed
 
-- `python-packaging`: the description is trigger-only, and the skill adds Purpose, Prerequisites, Troubleshooting and Limitations sections. Publishing defaults to Trusted Publishing from CI instead of `twine upload` with a token, and the TestPyPI dry run installs only the package with `--no-deps`.
+- `python-packaging`: the description is trigger-only, and the skill adds Purpose, Prerequisites, Troubleshooting and Limitations sections. Publishing uses Trusted Publishing from CI instead of `twine upload` with a token, the publish workflow gains a manually run TestPyPI job, and the TestPyPI dry run installs only the package with `--no-deps`.
 - `python-packaging`: `cli-example.py` moves from `scripts/` to `assets/`, since it is a template to copy into a package rather than a script to run.
 
 #### Deprecated

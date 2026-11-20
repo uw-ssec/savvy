@@ -82,6 +82,11 @@ First tagged release. Plugin versions move to this release for every plugin belo
 
 - Initial tagged release.
 
+#### Fixed
+
+- `chunking-strategy`: benchmark each candidate as its own rechunked store, since `benchmark_runner.py` only labels results with `--configs` and never applies them. Also corrects the time-series `--traverse-dims` flag, the rechunk example (stale `encoding["chunks"]`), `sel` vs `isel` on datetime coordinates, the overhead, cost and memory arithmetic, KB-sized "optimal" chunks, zarr 2-only APIs, and the statistics guidance.
+- `chunking-strategy`: the description is now trigger-only ("Use when ...").
+
 ### zarr-data-format
 
 #### Added

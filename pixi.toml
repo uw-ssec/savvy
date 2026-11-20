@@ -21,8 +21,9 @@ lychee = "0.24.2.*"
 
 # The single pin for SkillEvaluator's version: skill-quality-check.yml runs
 # the checker through pixi (the skill-quality-check task below), so bumping
-# this rev is the only place a version bump is needed. Bump deliberately:
-# scores can shift between SkillEvaluator releases.
+# this rev is the place to bump. The same rev is repeated in [feature.benchmark]
+# below (it needs the tier3 extra); test_skill_trust.py enforces the two match.
+# Bump deliberately: scores can shift between SkillEvaluator releases.
 # Rev 707fb9a (main after 5320d93) accepts SkillSpector's `complete_with_caveats`
 # when every caveat is a non-fatal missing reference; older revs flag it incomplete.
 [feature.ci.pypi-dependencies]

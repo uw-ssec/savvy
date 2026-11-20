@@ -572,6 +572,17 @@ def test_list_pilot_rejects_bad_skills(st, tmp_path, capsys, bad):
     assert "error:" in capsys.readouterr().err
 
 
+def test_benchmark_env_pins_same_skillevaluator_as_ci():
+    import tomllib
+
+    from conftest import SCRIPTS
+
+    feature = tomllib.loads((SCRIPTS.parents[1] / "pixi.toml").read_text(encoding="utf-8"))["feature"]
+    ci = feature["ci"]["pypi-dependencies"]["skillevaluator"]
+    bench = feature["benchmark"]["pypi-dependencies"]["skillevaluator"]
+    assert (bench["git"], bench["rev"]) == (ci["git"], ci["rev"])
+
+
 def run_select(tmp_path, **env):
     script = workflow_step("benchmark-skills.yml", "Validate inputs and select skills")
     stubs = {"pixi": 'echo "plugins/ai-research-workflows/skills/alpha"\n'}

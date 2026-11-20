@@ -4,7 +4,7 @@ name: Benchmark Skills
 # gating: a failed or missing benchmark only shows up in the job summary. The
 # `run` job holds the LiteLLM secrets and has read-only access; the `publish` job
 # can push but never sees the secrets, so the agent-run code can't reach a write
-# token. `publish` commits each skill's BENCHMARK.md to `benchmarks/<run_id>` and
+# token. `publish` commits each skill's BENCHMARK.md to `benchmarks/<run_id>-<run_attempt>` and
 # prints a compare link; a person opens the PR.
 #
 # Provider settings for SkillEvaluator's claude-code agent through the LiteLLM
@@ -126,7 +126,9 @@ jobs:
             echo ""
             echo "Model \`$MODEL\`, $ATTEMPTS attempt(s) per case."
             echo ""
-            if [ -s "$RUNNER_TEMP/failed.txt" ]; then
+            if [ ! -e "$RUNNER_TEMP/failed.txt" ]; then
+              echo "The run did not complete (it stopped before any benchmark ran)."
+            elif [ -s "$RUNNER_TEMP/failed.txt" ]; then
               echo "Benchmark failed for:"
               sed 's/^/- `/; s/$/`/' "$RUNNER_TEMP/failed.txt"
             else
@@ -173,6 +175,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
           SKILLS: ${{ needs.run.outputs.skills }}
           BASE: ${{ github.event.repository.default_branch }}
         run: |
@@ -190,7 +193,7 @@ jobs:
             exit 0
           fi
 
-          BRANCH="benchmarks/${RUN_ID}"
+          BRANCH="benchmarks/${RUN_ID}-${RUN_ATTEMPT}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"

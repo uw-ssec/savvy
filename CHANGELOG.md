@@ -76,8 +76,20 @@ First tagged release. Only `ai-research-workflows` ships in it and moves to this
 
 - Initial tagged release.
 
+#### Changed
+
+- `python-packaging`: the description is trigger-only, and the skill adds Purpose, Prerequisites, Troubleshooting and Limitations sections. Publishing uses Trusted Publishing from CI instead of `twine upload` with a token, the publish workflow gains a manually run TestPyPI job, and the TestPyPI dry run installs only the package with `--no-deps`.
+- `python-packaging`: `cli-example.py` moves from `scripts/` to `assets/`, since it is a template to copy into a package rather than a script to run.
+
+#### Deprecated
+
+- The `/scientific-python-development:python-packaging` command shares its name with the `python-packaging` skill and shadows it. Use the skill instead. Removable no earlier than 2027-02-18, and not before the first release on or after that date.
+
 #### Fixed
 
+- `python-packaging`: `assets/github-actions-publish.yml` pins every action to a commit SHA and splits the job, so the build job has no credentials and only the publish job holds `id-token: write`.
+- `python-packaging`: the `pyproject` templates and `references/metadata.md` require Python 3.13 or newer (the SPEC 0 floor) instead of end-of-life 3.9, and drop the `License ::` classifier that PEP 639 deprecates next to a `license` expression.
+- `python-packaging`: the TestPyPI install in `references/patterns.md` uses a placeholder that can't resolve on a registry, and `--no-deps`.
 - Fixed broken links in the `scientific-documentation` skill references, refs #249.
 
 ### supply-chain-security

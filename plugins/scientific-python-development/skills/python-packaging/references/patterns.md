@@ -169,36 +169,17 @@ unzip -l dist/*.whl
 
 ### Publishing to PyPI
 
+Publish from CI with Trusted Publishing, not `twine upload` from your machine, so there is no API token to create, store, or leak. Use [../assets/github-actions-publish.yml](../assets/github-actions-publish.yml) and add the trusted publishers its header comment lists.
+
 ```bash
-# Install publishing tools
-pip install twine
+# Test on TestPyPI first (always!): run the workflow by hand
+gh workflow run publish.yml
 
-# Test on TestPyPI first (always!)
-twine upload --repository testpypi dist/*
+# Install and test from TestPyPI (install its dependencies from PyPI first)
+pip install --no-deps --index-url https://test.pypi.org/simple/ <my-sci-package>
 
-# Install and test from TestPyPI
-pip install --index-url https://test.pypi.org/simple/ my-sci-package
-
-# If everything works, publish to PyPI
-twine upload dist/*
-```
-
-**Using API tokens (recommended):**
-
-Create `~/.pypirc`:
-```ini
-[distutils]
-index-servers =
-    pypi
-    testpypi
-
-[pypi]
-username = __token__
-password = pypi-...your-token...
-
-[testpypi]
-username = __token__
-password = pypi-...your-test-token...
+# If everything works, publish a GitHub Release; the workflow uploads to PyPI
+gh release create v1.0.0 --generate-notes
 ```
 
 ## Pattern 5: Testing Installation

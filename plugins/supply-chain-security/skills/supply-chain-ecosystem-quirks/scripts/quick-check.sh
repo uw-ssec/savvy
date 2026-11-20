@@ -510,7 +510,8 @@ def owners(sitedir, name, module):
 
 
 def project_name(src):
-    """The [project] name in src/pyproject.toml, or None."""
+    """The project name a source tree declares without running code: [project] or
+    [tool.poetry] name in pyproject.toml, or [metadata] name in setup.cfg. None if none."""
     try:
         with open(os.path.join(src, "pyproject.toml"), encoding="utf-8") as f:
             section = None
@@ -518,18 +519,27 @@ def project_name(src):
                 if re.match(r"\s*\[", line):
                     section = line.strip()
                 m = re.match(r"""\s*name\s*=\s*["']([^"']+)["']""", line)
-                if section == "[project]" and m:
+                if section in ("[project]", "[tool.poetry]") and m:
                     return m.group(1)
     except OSError:
         pass
-    return None
+    import configparser
+    cfg = configparser.RawConfigParser()
+    try:
+        cfg.read(os.path.join(src, "setup.cfg"), encoding="utf-8")
+        return cfg.get("metadata", "name").strip() or None
+    except (configparser.Error, UnicodeDecodeError):
+        return None
 
 
 def editable(sitedir, dist):
-    """True if dist's direct_url.json marks an editable install of a source tree that
-    exists outside the environment. A wheel from an index can ship its own
-    direct_url.json, but it cannot create a project directory outside the environment
-    (its data files land inside it) without already running code."""
+    """None if dist is an editable install of its own source tree outside the environment,
+    else (level, problem). A wheel from an index can ship its own direct_url.json, but it
+    cannot create a project directory outside the environment (its data files land inside
+    it) without already running code. The URL must be an absolute local path: an empty
+    "file://" would resolve to the scanned project."""
+    bad = ("FAIL", "file and the module it imports are not from one editable install of a source tree "
+           "outside the environment (direct_url.json)")
     for info in glob.glob(os.path.join(sitedir, "*.dist-info")):
         if norm(os.path.basename(info)[: -len(".dist-info")].rpartition("-")[0]) != dist:
             continue
@@ -538,21 +548,30 @@ def editable(sitedir, dist):
                 direct = json.load(f)
             url = direct["url"]
             if direct.get("dir_info", {}).get("editable") is not True or not url.startswith("file://"):
-                return False
+                return bad
         except (OSError, ValueError, AttributeError, KeyError, TypeError):
-            return False
+            return bad
         from urllib.parse import urlparse, unquote
         from urllib.request import url2pathname
-        src = os.path.realpath(url2pathname(unquote(urlparse(url).path)))
+        parsed = urlparse(url)
+        path = url2pathname(unquote(parsed.path))
+        if parsed.netloc not in ("", "localhost") or not os.path.isabs(path):
+            return bad
+        src = os.path.realpath(path)
         env = up(sitedir, lambda d: any(os.path.exists(os.path.join(d, m)) for m in ("pyvenv.cfg", "conda-meta")))
         env = os.path.realpath(env or os.path.dirname(os.path.dirname(os.path.dirname(sitedir))))
         if not os.path.isdir(src) or os.path.commonpath([src, env]) == env:
-            return False
+            return bad
         if not any(os.path.isfile(os.path.join(src, n)) for n in ("pyproject.toml", "setup.py", "setup.cfg")):
-            return False
+            return bad
         name = project_name(src)
-        return name is None or norm(name) == dist
-    return False
+        if name is None:
+            return ("WARN", "its source tree %s declares no project name (setup.py only?), so it can't be "
+                    "confirmed as %s's; check direct_url.json and the tree by hand" % (src, dist))
+        if norm(name) != dist:
+            return ("FAIL", "direct_url.json points to %s, whose project is %s, not %s" % (src, name, dist))
+        return None
+    return bad
 
 
 def venv_by_tool(sitedir):
@@ -580,8 +599,11 @@ def judge(sitedir, name, rule, module):
             return "FAIL", "not in a venv whose pyvenv.cfg names uv or virtualenv", who
         return "INFO", "", who
     if rule == EDITABLE:
-        if len(pth) != 1 or mod != pth or not editable(sitedir, next(iter(pth))):
-            return "FAIL", "file and %s are not from one editable install of a source tree outside the environment (direct_url.json)" % module, who
+        if len(pth) != 1 or mod != pth:
+            return "FAIL", "file and %s are not from one editable install" % module, who
+        problem = editable(sitedir, next(iter(pth)))
+        if problem:
+            return problem[0], problem[1], who
         return "INFO", "", who
     if not pth and not mod:
         return "WARN", "no RECORD or conda-meta names its owner; confirm it with the package manager that installed %s" % rule, who

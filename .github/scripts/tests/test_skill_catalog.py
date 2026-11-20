@@ -128,6 +128,29 @@ def test_check_fails_on_bad_tier_maintainer_and_stale_entries(sc, repo, capsys):
     assert "plugin removed: no such plugin directory" in err
 
 
+def test_unreleased_plugin_is_validated_but_left_off_the_page(sc, repo, capsys):
+    data = meta(repo)
+    data["plugins"]["beta"]["released"] = False
+    save(repo, data)
+    assert sc.main(["sync", "--root", str(repo)]) == 0
+    text = (repo / "docs/catalog.md").read_text()
+    assert "beta" not in text and "## Community plugins" not in text
+    assert "1 skills, 1 commands, and 1 agents across 1 plugins" in text
+    # Its metadata is still required, so it is ready to publish when released.
+    del data["plugins"]["beta"]["skills"]["two"]
+    save(repo, data)
+    assert sc.main(["check", "--root", str(repo)]) == 1
+    assert "beta/two: example prompt is required" in capsys.readouterr().err
+
+
+def test_released_must_be_a_boolean(sc, repo, capsys):
+    data = meta(repo)
+    data["plugins"]["beta"]["released"] = "no"
+    save(repo, data)
+    assert sc.main(["check", "--root", str(repo)]) == 1
+    assert "plugin beta: released must be true or false" in capsys.readouterr().err
+
+
 def test_activates_false_flags_the_example(sc, repo, capsys):
     data = meta(repo)
     data["plugins"]["alpha"]["skills"]["one"]["activates"] = False

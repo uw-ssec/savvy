@@ -247,10 +247,10 @@ Azure Blob: set CORS rules under Storage Account > Resource sharing (CORS) > Blo
 ## Issue 6: Slow Opens and Connection Timeouts
 
 **Symptoms:**
-- Opening a group, or `xr.open_zarr`, takes seconds to minutes before any data is read
+- `xr.open_zarr`, or walking a group's members, takes seconds to minutes before any data is read
 - `TimeoutError`, `ConnectTimeoutError` or `ReadTimeoutError` while opening
 
-**Cause:** Without consolidated metadata, zarr-python 3 lists each group and reads one metadata object per array and group (more for v2), one request each. A store with hundreds of variables or nested groups pays hundreds of 20–100 ms round trips. The chunk count does not matter: zarr never lists chunks when opening, so sharding does not speed up opens.
+**Cause:** `zarr.open_group` alone reads only that group's own metadata, a few requests however many children it has. Discovering the children is what scales: without consolidated metadata, `xr.open_zarr` or `group.members()` lists each group and reads one metadata object per array and group (more for v2), one request each. A store with hundreds of variables or nested groups pays hundreds of 20–100 ms round trips. The chunk count does not matter: zarr never lists chunks when opening, so sharding does not speed up opens.
 
 **Solution:**
 

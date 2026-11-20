@@ -274,7 +274,7 @@ def is_evidence(relpath: str) -> bool:
 def changed_plugins(root: Path, since: str) -> list[str]:
     """Plugin dirs with a changed path outside the evidence patterns since `since`."""
     out = subprocess.run(
-        ["git", "diff", "--name-only", f"{since}..HEAD"], cwd=root, check=True, capture_output=True, text=True
+        ["git", "diff", "--name-only", "--no-renames", f"{since}..HEAD"], cwd=root, check=True, capture_output=True, text=True
     ).stdout
     changed: set[str] = set()
     for line in out.splitlines():

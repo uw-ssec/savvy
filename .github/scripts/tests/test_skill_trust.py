@@ -496,3 +496,24 @@ def test_changed_plugins_cli(st, grepo, capsys):
     base = _commit(grepo, {"community-plugins/c/skills/a/SKILL.md": "y\n", "plugins/p/skills/a/SKILL.md": "y\n"})
     assert st.main(["changed-plugins", base, "--root", str(grepo)]) == 0
     assert capsys.readouterr().out == "community-plugins/c\nplugins/p\n"
+
+
+def test_moving_a_file_across_plugins_marks_both(st, grepo):
+    base = _git(grepo, "rev-parse", "HEAD")
+    _git(grepo, "mv", "plugins/p/skills/a/SKILL.md", "community-plugins/c/skills/a/MOVED.md")
+    _git(grepo, "commit", "-q", "-m", "move")
+    assert st.changed_plugins(grepo, base) == ["community-plugins/c", "plugins/p"]
+
+
+def test_deleting_a_file_marks_its_plugin(st, grepo):
+    base = _git(grepo, "rev-parse", "HEAD")
+    _git(grepo, "rm", "-q", "plugins/p/skills/a/SKILL.md")
+    _git(grepo, "commit", "-q", "-m", "rm")
+    assert st.changed_plugins(grepo, base) == ["plugins/p"]
+
+
+def test_changed_plugins_bad_revision_exits_1_cleanly(st, grepo, capsys):
+    assert st.main(["changed-plugins", "no-such-tag", "--root", str(grepo)]) == 1
+    err = capsys.readouterr().err
+    assert err.startswith("error:")
+    assert "Traceback" not in err

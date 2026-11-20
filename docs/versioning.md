@@ -49,7 +49,7 @@ Dropping the padding everywhere keeps one rule with no translation step: **the g
 pixi run -e ci python .github/scripts/skill_trust.py changed-plugins <previous-tag>
 ```
 
-If that lists a plugin, it changed and its version becomes the new release. A plugin it does not list keeps its version.
+If that lists a plugin, it changed and its version becomes the new release. A plugin it does not list keeps its version. For the first release there is no previous tag: skip the command, and every plugin takes the new version.
 
 The command prints every plugin directory (`plugins/<name>` and `community-plugins/<name>`) with at least one changed path outside a skill's evidence files: `skills/<skill>/evals/`, `skills/<skill>/BENCHMARK.md`, and `skills/<skill>/skill-card.md`. Evidence describes how a skill was tested; it does not change what the skill does, so a pull request that only adds or refreshes it does not move the plugin's version. The same file elsewhere (for example `skills/<skill>/references/BENCHMARK.md`) is ordinary content and does count.
 

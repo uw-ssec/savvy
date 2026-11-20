@@ -19,7 +19,7 @@ None. The version is the current date (see `docs/versioning.md`).
 1. Get the previous release tag:
 
    - Check `git tag --sort=-v:refname | head -1` for the latest tag
-   - If no tags exist, there is no previous release
+   - If no tags exist, there is no previous release (see step 4)
 
 2. Calculate the new version using calendar versioning, `YY.M.MICRO`, per
    `docs/versioning.md`:
@@ -28,21 +28,24 @@ None. The version is the current date (see `docs/versioning.md`).
      (`v26.4.0`, never `v26.04.0`)
    - MICRO counts releases already tagged in that month, starting at 0
 
-3. Compute the set of changed plugins **before editing any manifest**:
+3. Verify readiness:
+
+   - `git status` — must be on `main` with no uncommitted changes
+   - `git pull origin main` — must be up to date
+   - Warn and stop if not on `main` or if there are uncommitted changes
+
+4. Compute the set of changed plugins **before editing any manifest**:
 
    ```bash
    pixi run -e ci python .github/scripts/skill_trust.py changed-plugins <previous-tag>
    ```
 
+   If no previous tag exists (the first release), skip the command: every
+   plugin takes the new version.
+
    Set each listed plugin's `version` in its `plugin.json` to the new version
    (without the `v`), run `pixi run plugins-sync`, and commit the bumps before
    tagging. Plugins not listed keep their version.
-
-4. Verify readiness:
-
-   - `git status` — must be on `main` with no uncommitted changes
-   - `git pull origin main` — must be up to date
-   - Warn and stop if not on `main` or if there are uncommitted changes
 
 5. Read `CHANGELOG.md` and check that the `[Unreleased]` section has content.
 

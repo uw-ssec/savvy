@@ -1,5 +1,5 @@
 {
-  "_description": "Example configuration for synthetic Zarr dataset generation. Use this template with synthetic_data.py to create test datasets for chunking benchmarks. Adjust shape, chunks, dtype, and compression to match your target workload.",
+  "_description": "Record of one synthetic_data.py run, for benchmark reports. The script has no --config flag and does not read this file: pass each value as its CLI flag (output -> --output, shape -> --shape 1000,2048,2048, chunks -> --chunks, dimensions -> --dims time,frequency,baseline, compression_level -> --compression-level, overwrite: true -> --overwrite). This shape is 15.6 GiB of float32 (12.5 MiB chunks).",
   "output": "/tmp/synthetic_benchmark.zarr",
   "shape": [1000, 2048, 2048],
   "chunks": [50, 256, 256],

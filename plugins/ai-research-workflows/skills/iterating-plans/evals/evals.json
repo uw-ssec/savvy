@@ -3,13 +3,13 @@
   "evals": [
     {
       "id": "iterating-plans-001",
-      "prompt": "Update docs/rse/specs/plan-2025-03-12-auth-migration.md. I want to add a new phase between Phase 2 and Phase 3 for migrating existing user sessions to the new token format. Go ahead and make the edit, no need to check back with me first.",
-      "expected_output": "The existing auth-migration plan is read in full, and the agent briefly states the change it will make (a new session-migration phase) and edits the plan in place without asking to confirm, since the prompt pre-authorises it (Direct mode). The new phase is inserted between the old Phase 2 and Phase 3 in the same file using the existing phase format, subsequent phases are renumbered, and the new phase includes tasks with file references and success criteria split into Automated and Manual Verification. A consistency scan is run afterwards.",
+      "prompt": "Update docs/rse/specs/plan-2025-03-12-auth-migration.md. I want to add a new phase between Phase 2 and Phase 3 for migrating existing user sessions to the new token format.",
+      "expected_output": "A proposal, not yet an edit: the agent reads the auth-migration plan in full, summarises its current phases, proposes a new session-migration phase between Phase 2 and Phase 3 (with tasks, file references, and Automated and Manual Verification criteria), notes that later phases would be renumbered, and asks the user to confirm before editing. The plan file is unchanged in this turn.",
       "assertions": [
-        "The agent read the full plan file before editing and did not stop to ask for confirmation, since the user pre-authorised the edit",
-        "The agent inserted the new phase in the existing plan file between Phase 2 and Phase 3 and renumbered later phases consistently, without rewriting unrelated sections",
-        "The new phase contains tasks with path/to/file references and separate Automated Verification and Manual Verification subsections",
-        "The agent ran a consistency scan after editing (phase numbering contiguous, cross-references still resolve) and reported the result",
+        "The agent read the full plan file and presented the current state of the plan (its phases and scope) before proposing changes",
+        "The proposal places a new session-migration phase between Phase 2 and Phase 3 and states that later phases would be renumbered",
+        "The proposed phase lists tasks with file references and separate Automated Verification and Manual Verification criteria",
+        "The agent asked the user to confirm the proposed changes and did not modify the plan file in this turn",
         "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
       ],
       "expected_skill": "iterating-plans",
@@ -21,6 +21,7 @@
       "expected_output": "A proposal, not yet an edit: the agent summarises the current plan, states the proposed switch to write-through caching and the sections it would change, and asks the user to confirm before editing.",
       "assertions": [
         "The agent located and read the caching plan file in full, asking which plan if it could not be identified",
+        "The agent looked for the benchmark or experiment report (for example an experiment-*.md document) before proposing changes, or asked the user for it",
         "The agent presented the current state of the plan and the specific proposed change (switch Phase 2 from batched writes to write-through caching)",
         "The agent listed the sections it would affect, including the Implementation Approach, Phase 2 tasks and related success criteria",
         "The agent asked the user to confirm before editing and did not modify the plan file in this turn",
@@ -31,14 +32,14 @@
     },
     {
       "id": "iterating-plans-003",
-      "prompt": "We're halfway through executing the API v2 rollout plan. Phase 1 is done and Phase 2 is in progress, but product just told us the webhook retry work needs to be cut from scope and the admin dashboard needs to ship earlier. Can you rework the plan accordingly? Just make the changes, no need to confirm first.",
-      "expected_output": "The API v2 rollout plan is revised in place: webhook retry tasks are removed from scope and listed under What We're NOT Doing, the admin dashboard work is moved earlier in the phase order, and success criteria and phase numbering are updated to match. Completed Phase 1 content is preserved. The agent edits the plan directly without asking to confirm, since the prompt pre-authorises the changes, and runs a consistency scan afterwards.",
+      "prompt": "We're halfway through executing the API v2 rollout plan in docs/rse/specs/plan-api-v2-rollout.md. Phase 1 is done and Phase 2 is in progress, but product just told us the webhook retry work needs to be cut from scope and the admin dashboard needs to ship earlier. Please cut webhook retry from scope and move the admin dashboard phase to directly after Phase 2.",
+      "expected_output": "A proposal, not yet an edit: the agent reads the API v2 rollout plan in full, summarises its current phases, and proposes removing the webhook retry tasks (listing them under What We're NOT Doing) and moving the admin dashboard phase to directly after Phase 2, with the affected sections and phase renumbering. It notes that completed Phase 1 content stays untouched and asks the user to confirm before editing. The plan file is unchanged in this turn.",
       "assertions": [
-        "The agent read the full plan and did not stop to ask for confirmation, since the user pre-authorised the changes",
-        "The agent removed the webhook retry tasks and added them to the What We're NOT Doing section of the plan file",
-        "The agent moved the admin dashboard work earlier, kept phase numbering contiguous and updated cross-references",
-        "The agent preserved the completed Phase 1 content and did not rewrite the entire plan",
-        "The agent ran a consistency scan after editing and reported it",
+        "The agent read the full plan and presented the current state of the plan before proposing changes",
+        "The proposal removes the webhook retry tasks from the phases and lists them under What We're NOT Doing",
+        "The proposal moves the admin dashboard phase to directly after Phase 2 and states how later phases would be renumbered and which cross-references would be updated",
+        "The proposal leaves the completed Phase 1 content unchanged and proposes surgical edits, not a rewrite of the whole plan",
+        "The agent asked the user to confirm the proposed changes and did not modify the plan file in this turn",
         "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
       ],
       "expected_skill": "iterating-plans",
@@ -59,13 +60,14 @@
     },
     {
       "id": "iterating-plans-005",
-      "prompt": "In docs/rse/specs/plan-report-export.md the success criteria for Phase 2 just say 'works well' and 'tests pass'. Make them concrete. Go ahead and edit it directly.",
-      "expected_output": "Phase 2 success criteria rewritten as concrete runnable commands and observable outcomes, split into automated and manual, with other sections unchanged.",
+      "prompt": "In docs/rse/specs/plan-report-export.md the success criteria for Phase 2 just say 'works well' and 'tests pass'. Make them concrete.",
+      "expected_output": "A proposal, not yet an edit: the agent reads the plan, presents the current Phase 2 criteria and proposes replacing 'works well' and 'tests pass' with concrete runnable commands and observable outcomes, kept in separate Automated and Manual Verification lists, and asks the user to confirm before editing. The plan file is unchanged in this turn.",
       "assertions": [
-        "The agent read the plan and edited it without stopping to ask for confirmation, since the user pre-authorised the edit",
-        "The agent replaced 'works well' and 'tests pass' with concrete runnable commands or specific observable outcomes",
-        "The agent kept the criteria split into Automated Verification and Manual Verification",
-        "The agent made surgical edits and did not rewrite unrelated sections",
+        "The agent read the plan and presented the current Phase 2 success criteria before proposing changes",
+        "The proposal replaces 'works well' and 'tests pass' with concrete runnable commands or specific observable outcomes (named commands, expected output or thresholds)",
+        "The proposal keeps the criteria split into Automated Verification and Manual Verification",
+        "The proposal changes only the Phase 2 criteria and leaves unrelated sections as they are",
+        "The agent asked the user to confirm the proposed changes and did not modify the plan file in this turn",
         "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
       ],
       "expected_skill": "iterating-plans",
@@ -76,7 +78,7 @@
       "prompt": "The plan in docs/rse/specs/plan-bootstrap-ci-pipeline.md is approved and we're on branch feature/bootstrap-ci. Start building Phase 1.",
       "expected_output": "Execution of Phase 1 of the approved plan. This belongs to implementing-plans, not to editing the plan.",
       "assertions": [
-        "The agent implemented Phase 1 tasks from the plan in code",
+        "The agent treated the request as execution of the plan (read the plan, checked the branch, and began or prepared Phase 1) and did not treat it as a request to revise the plan",
         "The agent did not restructure, add or remove phases in the plan file (apart from ticking completed checkboxes)",
         "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
       ],
@@ -85,12 +87,11 @@
     },
     {
       "id": "iterating-plans-neg-002",
-      "prompt": "Can you explain the difference between a mutex and a semaphore, and give me a short Python example of each?",
-      "expected_output": "An explanation of the difference between a mutex (exclusive ownership, binary lock) and a semaphore (counter allowing N concurrent holders), along with a short Python example of each using the threading module.",
+      "prompt": "We have no plan yet for the export feature. Design one.",
+      "expected_output": "The agent treats this as creating a new implementation plan (scoping questions or a proposed phased breakdown), not as editing an existing plan.",
       "assertions": [
-        "The agent's response explains that a mutex provides exclusive access while a semaphore permits a limited number of concurrent holders",
-        "The agent's response includes a Python code example for a mutex-style lock and one for a semaphore",
-        "The agent did not read or modify any plan files under docs/rse/specs/",
+        "The agent did not edit or iterate on any existing plan file under docs/rse/specs/",
+        "The agent started scoping the export feature, by asking scoping questions, investigating the codebase, or proposing a phased breakdown for the user's approval, instead of revising a plan",
         "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
       ],
       "expected_skill": null,

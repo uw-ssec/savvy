@@ -3,15 +3,14 @@
   "evals": [
     {
       "id": "researching-001",
-      "prompt": "Figure out how authentication middleware is wired up in this repo. I need to know where requests get their user context attached and which modules depend on it before I change the session handling. Just do it, no need to check in with me along the way.",
-      "expected_output": "A trace of the authentication middleware path showing where in the codebase user context is attached to requests, with file:line anchors, and a map of the modules that depend on it. The findings are also written to a research document under docs/rse/specs/ that records the commit SHA and date of the codebase state investigated.",
+      "prompt": "Figure out how authentication middleware is wired up in this repo. I need to know where requests get their user context attached and which modules depend on it before I change the session handling.",
+      "expected_output": "A scope statement and research plan awaiting a quick OK: the agent states that this is an internal (codebase) question, proposes the codebase sub-questions it will trace (where user context is attached to requests, which modules depend on the middleware), and asks the user to confirm before investigating. No research document is written and no session handling code is changed in this turn.",
       "assertions": [
-        "The agent stated the scope it inferred and proceeded without waiting for the user, since the user asked for no check-ins",
-        "The agent's final response identifies the files and functions where user context is attached to incoming requests, with file:line references",
-        "The agent lists the modules or call sites that depend on the authentication/session middleware",
-        "The agent writes a research document at docs/rse/specs/research-<slug>.md that includes the commit SHA and date of the code it investigated",
-        "The agent did not modify any session handling source code",
-        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+        "The agent stated the scope it established, as an internal codebase question with no external prior-art search",
+        "The agent proposed the codebase sub-questions it would trace, including where user context is attached to incoming requests and which modules depend on the authentication or session middleware",
+        "The agent asked the user for a quick OK on the research plan before investigating further or writing anything out",
+        "The agent did not write a research-*.md document and did not modify any session handling source code in this turn",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or read or write local files outside the repository (web search and fetch for the prior-art pass are expected)"
       ],
       "expected_skill": "researching",
       "expected_script": null
@@ -19,43 +18,43 @@
     {
       "id": "researching-002",
       "prompt": "Has this been done before? We want to add incremental, resumable checkpointing to our long-running data ingestion pipeline. What approaches and libraries already exist for this, and how do they compare?",
-      "expected_output": "A survey of existing approaches and libraries for incremental/resumable checkpointing in data pipelines, with citations or links for each source and a comparison of the alternatives across relevant dimensions (such as maturity, fit, and tradeoffs). Results are summarized in a research document without committing to a final design.",
+      "expected_output": "A scope statement and research plan awaiting a quick OK: the agent states that this is an external prior-art question, proposes the sources it will search and the dimensions along which it will compare approaches and libraries for incremental, resumable checkpointing, and asks the user to confirm before investigating. No research document is written and no checkpointing is implemented in this turn.",
       "assertions": [
-        "The agent's final response names at least three distinct existing approaches, tools, or libraries for resumable checkpointing",
-        "The agent provides a citation or link for each external source it references",
-        "The agent presents a comparison of the alternatives across stated dimensions rather than a bare list",
-        "The agent keeps recommendations clearly labeled as observations and does not begin implementing checkpointing in the codebase",
-        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+        "The agent stated the scope it established, as an external prior-art question about resumable checkpointing approaches and libraries",
+        "The agent proposed the sources it would search (for example documentation, package indexes, papers) and the dimensions along which it would compare the alternatives",
+        "The agent asked the user for a quick OK, or one focused scoping question, before running the survey",
+        "The agent did not write a research-*.md document in this turn and did not begin implementing checkpointing in the codebase",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or read or write local files outside the repository (web search and fetch for the prior-art pass are expected)"
       ],
       "expected_skill": "researching",
       "expected_script": null
     },
     {
       "id": "researching-003",
-      "prompt": "I just inherited this service and I'm supposed to swap out our homegrown retry logic for something standard next sprint. Before I sit down to plan that, can you dig into where retries are currently implemented in our code and also see what established libraries people use for this in the ecosystem? I want one write-up I can hand to planning. Just do it, no need to check in with me along the way.",
-      "expected_output": "A single research write-up combining (a) the locations and behavior of the existing retry logic in the codebase, with file:line anchors and the callers that use it, and (b) a comparison of established retry libraries in the relevant language ecosystem with sources. The document is saved under docs/rse/specs/ and is suitable as input for planning the replacement.",
+      "prompt": "I just inherited this service and I'm supposed to swap out our homegrown retry logic for something standard next sprint. Before I sit down to plan that, can you dig into where retries are currently implemented in our code and also see what established libraries people use for this in the ecosystem? I want one write-up I can hand to planning.",
+      "expected_output": "A scope statement and research plan awaiting a quick OK: the agent states that both dimensions are in scope, proposes the codebase sub-questions (where retries are implemented, what calls them) and the prior-art sources and comparison dimensions for retry libraries, says it will combine both into a single write-up for planning, and asks the user to confirm before investigating. The existing retry code is not modified and no document is written in this turn.",
       "assertions": [
-        "The agent stated the scope it inferred and proceeded without waiting for the user, since the user asked for no check-ins",
-        "The agent's findings list where retry logic is implemented in the codebase with file:line references and the code that calls it",
-        "The agent's findings include a survey of established retry libraries with sources and a comparison of them",
-        "The agent produces one research document at docs/rse/specs/research-<slug>.md covering both the internal and external findings",
-        "The agent does not replace or modify the existing retry code",
-        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+        "The agent stated that both the internal codebase and the external prior art are in scope",
+        "The agent proposed the codebase sub-questions it would trace, including where retry logic is implemented and what code calls it",
+        "The agent proposed the prior-art sources it would search and the dimensions along which it would compare established retry libraries",
+        "The agent said it would combine the internal and external findings in a single research write-up for planning",
+        "The agent asked the user for a quick OK on the research plan before investigating, and did not modify the existing retry code in this turn",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or read or write local files outside the repository (web search and fetch for the prior-art pass are expected)"
       ],
       "expected_skill": "researching",
       "expected_script": null
     },
     {
       "id": "researching-004",
-      "prompt": "Survey the literature on conformal prediction for regression. Which methods exist, which open-source tools implement them, and how do they compare? Write it up, I'm not writing any code yet. Just do it, no need to check in with me along the way.",
-      "expected_output": "A research document under docs/rse/specs/ surveying methods and tools with sources and a comparison, without implementing anything.",
+      "prompt": "Survey the literature on conformal prediction for regression. Which methods exist, which open-source tools implement them, and how do they compare? Write it up, I'm not writing any code yet.",
+      "expected_output": "A scope statement and research plan awaiting a quick OK: the agent states that this is an external prior-art question, proposes the sources to search (papers, open-source tool repositories and documentation), the comparison dimensions, and a search for limitations and critiques of the methods, and asks the user to confirm before investigating. No document is written and no implementation code is produced in this turn.",
       "assertions": [
-        "The agent stated the scope it inferred and proceeded without waiting for the user, since the user asked for no check-ins",
-        "The agent surveyed multiple methods and tools and cited a source for each",
-        "The agent compared the alternatives rather than only listing them",
-        "The agent wrote a research document under docs/rse/specs/ named research-<slug>.md",
-        "The agent did not write implementation code",
-        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+        "The agent stated the scope it established, as an external literature and tooling survey",
+        "The agent proposed the sources it would search for methods and for open-source tools, and the dimensions along which it would compare them",
+        "The agent said it would also search for limitations, critiques or failures of the surveyed methods, not only supporting evidence",
+        "The agent asked the user for a quick OK on the research plan before investigating",
+        "The agent did not write implementation code in this turn",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or read or write local files outside the repository (web search and fetch for the prior-art pass are expected)"
       ],
       "expected_skill": "researching",
       "expected_script": null
@@ -63,13 +62,13 @@
     {
       "id": "researching-005",
       "prompt": "Where does our pipeline compute the weekly aggregate, and what calls it? I want a write-up I can review before we plan changes.",
-      "expected_output": "A research document with file:line anchors and a caller map; the agent presents findings and asks the user to review the document before handing off to planning.",
+      "expected_output": "The agent follows the Collaborative flow: it proposes the sub-questions it will trace (where the weekly aggregate is computed, what calls it) or presents findings, and asks the user to confirm before anything is written out. No research-*.md document exists before the user confirms, and the agent does not start planning or implementing.",
       "assertions": [
-        "The agent presented its findings before writing the document",
-        "The agent's findings give file:line references for where the weekly aggregate is computed and what calls it",
-        "The agent wrote a research document under docs/rse/specs/ that records the commit SHA investigated",
-        "The agent asked the user to review the document before handing off to planning, and did not start planning or implementing",
-        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+        "The agent proposed the sub-questions it would trace for where the weekly aggregate is computed and what calls it, or presented findings and asked the user to confirm them",
+        "If the agent presented findings, they give file:line references for where the weekly aggregate is computed and for what calls it",
+        "The agent did not write a research-*.md document before the user confirmed its plan or findings",
+        "The agent did not start planning or implementing changes",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or read or write local files outside the repository (web search and fetch for the prior-art pass are expected)"
       ],
       "expected_skill": "researching",
       "expected_script": null
@@ -77,24 +76,23 @@
     {
       "id": "researching-neg-001",
       "prompt": "Design the implementation plan for adding CSV export to the reports module. I already know the code well, so skip the investigation and give me a phased plan with success criteria.",
-      "expected_output": "A phased implementation plan saved as a plan file. This belongs to planning-implementations, not to a research document.",
+      "expected_output": "The agent treats this as a planning request (it asks about scope or approach, or proposes a phased breakdown for approval), not as a research request. No research document is written.",
       "assertions": [
-        "The agent produced a phased implementation plan with success criteria",
         "The agent did not write a research-*.md document or run a survey of external prior work",
-        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+        "The agent treated the request as planning the CSV export, by asking scoping questions or proposing a phased breakdown with success criteria, and did not start a research pass",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or read or write local files outside the repository (web search and fetch for the prior-art pass are expected)"
       ],
       "expected_skill": null,
       "expected_script": null
     },
     {
       "id": "researching-neg-002",
-      "prompt": "Can you write a Python function that takes a list of integers and returns the running median after each element? Just give me the code with a couple of test cases.",
-      "expected_output": "A working Python function that returns the running median after each element of an input list of integers, accompanied by a couple of test cases demonstrating correct output.",
+      "prompt": "Should we use msgpack or protobuf for our event stream? Benchmark both on our payloads.",
+      "expected_output": "The agent treats this as an experiment (a measured comparison of two approaches on the user's payloads), not as a literature survey: it states the measurable question and criteria, or builds and runs small prototypes of both, and does not produce a research document.",
       "assertions": [
-        "The agent's response includes a Python function that computes the running median for a list of integers",
-        "The agent's response includes at least two test cases with expected outputs",
-        "The agent did not produce a research document or survey external libraries or papers",
-        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+        "The agent did not write a research-*.md document or produce a literature or prior-art survey with citations",
+        "The agent set up a measured comparison of msgpack and protobuf, by stating the measurable question and criteria, or by building and timing a prototype of each, rather than answering from published opinions",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or read or write local files outside the repository (web search and fetch for the prior-art pass are expected)"
       ],
       "expected_skill": null,
       "expected_script": null

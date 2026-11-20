@@ -77,7 +77,7 @@ def main() -> None:
         for c in cases if not c["expect_skill"]
     ]
     if queries:
-        query_set = {"catalog_id": "rse-plugins", "queries": queries}
+        query_set = {"catalog_id": "savvy", "queries": queries}
         (args.out / "trigger.reach.json").write_text(json.dumps(query_set, indent=1))
     print(f"{skill}: {len(evals)} quality cases, {len(queries)} trigger queries")
 

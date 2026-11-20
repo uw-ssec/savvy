@@ -5,7 +5,7 @@
 set -euo pipefail
 
 echo ""
-echo "=== RSE Plugins Codespace ==="
+echo "=== savvy Codespace ==="
 echo ""
 
 BASHRC="${HOME}/.bashrc"

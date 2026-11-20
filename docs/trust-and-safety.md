@@ -67,6 +67,54 @@ Maintainers review every change to a plugin in either tier against the [security
 
 Review doesn't guarantee safety. A careful reviewer can still miss a problem, and the third-party tools and packages that skills point to change over time.
 
+## Checking a skill before you install it
+
+Skills in the trust pilot (`ai-research-workflows` for now) carry evidence you can read before you install, in the skill's own directory (`plugins/<plugin>/skills/<name>/`):
+
+| File | What it holds |
+| --- | --- |
+| `skill-card.md` | What the skill does, who it's for, what credentials it needs, and its risks and mitigations. A person reviewed it. |
+| `evals/evals.json` | The test cases a benchmark runs, including at least one case where the skill should not trigger. They are the input to the verdict, not evidence on their own. |
+| `BENCHMARK.md` | The result of running the evals with and without the skill. It's written by the manually run [benchmark workflow](../.github/workflows/benchmark-skills.yml), then reviewed and merged by a person, so git history shows when it was run. |
+
+Not every skill has all three yet. A missing `BENCHMARK.md` means no benchmark has been run for it.
+
+**Reading a benchmark verdict.** A benchmark reports how the skill performed on its own eval cases. It's a measurement, not a safety guarantee, and it never blocks a release. FAIL and INCONCLUSIVE results are published as they are: a skill that failed or couldn't be measured keeps that result in `BENCHMARK.md`, sometimes with a maintainer note on why. Read a FAIL as "this skill didn't help on these cases" and INCONCLUSIVE as "too little signal to say". Check the date and model, since results change when either does. The release notes list each pilot skill's verdict.
+
+**Capability declarations.** Each pilot skill's `SKILL.md` declares five keys under `metadata`. A value states what the skill **directs the agent to do**, not what code it ships. A maintainer reviews that the values match the skill's content; CI checks only that they are present and allowed.
+
+| Key | Values | Meaning |
+| --- | --- | --- |
+| `capability-network` | `none`, `read`, `write` | `read`: tells the agent to fetch pages or packages. `write`: tells it to publish or upload. |
+| `capability-shell` | `none`, `runs-commands` | `runs-commands`: tells the agent to run shell commands. |
+| `capability-file` | `none`, `read`, `write` | `read`: tells the agent to read project files. `write`: tells it to create or change files. |
+| `capability-environment` | `none`, `read` | `read`: tells the agent to read environment variables or credentials. |
+| `capability-mcp` | `none`, `uses` | `uses`: tells the agent to call MCP tools. |
+
+**Verifying a release archive.** Each pilot skill is attached to a [release](https://github.com/uw-ssec/savvy/releases) as a signed archive, `<plugin>--<skill>-<version>.tar.gz`, starting with the first release after the pilot lands. [`release-sign.yml`](../.github/workflows/release-sign.yml) signs it. Extract the archive, then verify the folder it creates:
+
+```bash
+tar -xzf <plugin>--<skill>-<version>.tar.gz
+
+model_signing verify sigstore <plugin>--<skill> \
+  --signature <plugin>--<skill>/skill.oms.sig \
+  --identity https://github.com/uw-ssec/savvy/.github/workflows/release-sign.yml@refs/tags/<TAG> \
+  --identity_provider https://token.actions.githubusercontent.com \
+  --no-ignore-git-paths
+```
+
+Replace `<TAG>` with the release tag, including the leading `v` (for example `v26.12.0`). The flag spellings are mixed (`--identity_provider` has an underscore, `--no-ignore-git-paths` has hyphens) because that's how `model-signing` 1.1.1 defines them. Without `--no-ignore-git-paths`, `model_signing` skips top-level `.git*` and `.github` paths, so a `.github/` folder added to the archive wouldn't be detected.
+
+You need the `model_signing` command. It's published on PyPI (not conda-forge, so `pixi exec` can't fetch it). With [uv](https://docs.astral.sh/uv/) installed, this runs it without a permanent install, and was tested with `--help`:
+
+```bash
+uvx --from model-signing==1.1.1 --with "pyopenssl>=26.4.0,<27" model_signing --help
+```
+
+Use the same `uvx --from … model_signing` prefix in place of `model_signing` in the verify command. `pyopenssl` is listed because `model-signing` imports it without declaring it. `pipx` or a virtual environment with `pip install model-signing==1.1.1 "pyopenssl>=26.4.0,<27"` works too. From a clone of this repository, `pixi run -e signing model_signing …` uses the pinned environment.
+
+**What a passing verification proves.** The archive was produced by `release-sign.yml` at that tag in `uw-ssec/savvy`, and its contents haven't changed since. It doesn't prove the code at that tag was reviewed or that the skill is safe. Read the skill and its card, as described in [Before you install](#before-you-install).
+
 ## Before you install
 
 We recommend reviewing a plugin before you install it, especially on a machine with sensitive data or credentials. A plugin is plain text, so a review takes a few minutes:

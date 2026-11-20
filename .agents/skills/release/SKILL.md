@@ -2,13 +2,15 @@
 name: release
 description:
   Use when a new version needs cutting — a calendar version, changelog entry,
-  git tag, GitHub release, and plugin zip assets.
+  git tag, GitHub release, plugin zip assets, and signed pilot skill archives.
 ---
 
 # Release
 
 Create a versioned release with changelog, tag, GitHub release, and plugin zip
-assets.
+assets. Pilot plugins (`ai-research-workflows`) get no zip: `release-sign.yml`
+attaches signed per-skill archives when the release is published (see
+`docs/releasing.md`).
 
 ## Arguments
 
@@ -47,14 +49,29 @@ None. The version is the current date (see `docs/versioning.md`).
    (without the `v`), run `pixi run plugins-sync`, and commit the bumps before
    tagging. Plugins not listed keep their version.
 
-5. Read `CHANGELOG.md` and check that the `[Unreleased]` section has content.
+5. Benchmark the changed pilot skills. Benchmarks report; they never gate the
+   release. If `changed-plugins` (step 4) lists `ai-research-workflows`, or this
+   is the first release, dispatch the benchmark workflow for the changed
+   skills:
 
-6. Update `CHANGELOG.md`:
+   ```bash
+   gh workflow run benchmark-skills.yml -f skills=<plugin/skill,...>
+   ```
+
+   See the workflow's inputs for `skills`, `model` and `attempts`. The run
+   pushes each skill's `BENCHMARK.md` to a `benchmarks/<run_id>-<run_attempt>`
+   branch. Open a pull request from it, review it, and merge it before
+   tagging. Publish a FAIL or INCONCLUSIVE result as it is; a maintainer note
+   on why is optional.
+
+6. Read `CHANGELOG.md` and check that the `[Unreleased]` section has content.
+
+7. Update `CHANGELOG.md`:
 
    - Rename `[Unreleased]` to `[YY.M.MICRO] -- YYYY-MM-DD` (today's date)
    - Add a new empty `[Unreleased]` section above it
 
-7. Commit the changelog update:
+8. Commit the changelog update:
 
    ```bash
    git add CHANGELOG.md
@@ -64,21 +81,25 @@ None. The version is the current date (see `docs/versioning.md`).
    The trailer follows the `commit` skill's AI Attribution section. Omit it
    entirely if the release was cut without AI assistance.
 
-8. Create the git tag:
+9. Create the git tag:
 
    ```bash
    git tag -a vYY.M.MICRO -m "vYY.M.MICRO"
    ```
 
-9. Push the commit and tag:
+10. Push the commit and tag:
 
    ```bash
    git push origin main --follow-tags
    ```
 
-10. Build plugin zip assets:
+11. Build plugin zip assets:
 
-    - For each directory in `plugins/`, create a zip archive
+    - For each directory in `plugins/` except `ai-research-workflows`, create a
+      zip archive. `ai-research-workflows` is a trust-pilot plugin: its signed
+      per-skill archives come from `release-sign.yml`, and an unsigned zip
+      beside them would be an unverifiable copy. `supply-chain-security` keeps
+      its zip until it joins the pilot.
     - **Zip naming convention:**
       - Default: `plugin_name_MM_DD_YYYY.zip` (snake_case plugin name + date)
       - If a release already exists for today (check `gh release list`), append
@@ -92,7 +113,7 @@ None. The version is the current date (see `docs/versioning.md`).
       ```
     - Exclude unnecessary files from zip: `.DS_Store`, `__pycache__`, `*.pyc`
 
-11. Create a GitHub release with plugin zips as assets:
+12. Create a GitHub release with plugin zips as assets:
 
     ```bash
     gh release create vYY.M.MICRO --title "vYY.M.MICRO" \
@@ -105,15 +126,38 @@ None. The version is the current date (see `docs/versioning.md`).
 
     <list each plugin zip with name and description>
 
+    ## Skill Benchmarks
+
+    <one line per pilot skill: its verdict from `<skill>/BENCHMARK.md`, or "no
+    benchmark yet" if the file is missing. Report FAIL and INCONCLUSIVE as
+    they are.>
+
+    ## Signed Skill Archives
+
+    Attached by `release-sign.yml` after publishing. To verify one, see
+    [Checking a skill before you install it](<repo URL>/blob/vYY.M.MICRO/docs/trust-and-safety.md#checking-a-skill-before-you-install-it).
+
     **Full Changelog**: <repo compare URL>/compare/vPREVIOUS...vYY.M.MICRO
     EOF
     )" \
       plugin_name_MM_DD_YYYY.zip
     ```
 
-12. Clean up zip files from the repo root after successful upload.
+13. Clean up zip files from the repo root after successful upload.
 
-13. Confirm: "Released vYY.M.MICRO — <release URL>"
+14. Confirm signing. Publishing triggers `release-sign.yml`:
+
+    ```bash
+    gh run list --workflow release-sign.yml --limit 3
+    gh release view vYY.M.MICRO --json assets --jq '.assets[].name'
+    ```
+
+    The run must have succeeded and the release must list one
+    `ai-research-workflows--<skill>-YY.M.MICRO.tar.gz` per pilot skill. If it
+    failed, read the run log, fix the cause, and re-run it with
+    `gh run rerun <run-id>`; re-running replaces the assets.
+
+15. Confirm: "Released vYY.M.MICRO — <release URL>"
 
 ## Zip Naming Rules
 
@@ -132,6 +176,9 @@ None. The version is the current date (see `docs/versioning.md`).
 - Ask for confirmation before pushing the tag and creating the release
 - If CHANGELOG.md doesn't exist or has no `[Unreleased]` section, warn and ask
   how to proceed
+- Benchmarks never gate a release, but a pilot skill's verdict (or "no
+  benchmark yet") must appear in the release notes
+- Never build an unsigned archive for a pilot skill
 - Never commit generated zip files — they are upload artifacts only
 - NEVER add "Generated with" or similar marketing lines to the release notes
 - NEVER include sensitive information in the release notes or changelog

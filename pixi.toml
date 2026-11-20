@@ -84,7 +84,27 @@ skill-security-scan = { cmd = "skillevaluator validate --tiers 1 --policy .githu
 [feature.okf.dependencies]
 okf-agent-memory = ">=0.6.1,<0.7"
 
+# The benchmark environment: Tier 3 runs the agent in Docker through Harbor,
+# which SkillEvaluator ships in its `tier3` extra. Kept apart from `ci` so the
+# gates that don't run agents don't install Harbor. Same rev as `ci` above:
+# bump both together. Harbor's own wheels cover only these platforms.
+[feature.benchmark]
+platforms = ["linux-64", "osx-arm64"]
+
+[feature.benchmark.dependencies]
+python = "3.12.*"
+
+[feature.benchmark.pypi-dependencies]
+skillevaluator = { git = "https://github.com/NVIDIA/SkillEvaluator.git", rev = "707fb9a8cbfaf6c8f766506f43bb699212234f01", extras = ["tier3"] }
+
+# Reported, never gating: advisory Tier 3 only (no policy, no autopilot, so it
+# needs an existing evals/ dataset). `--n-attempts` and `--model` are set per
+# run by .github/workflows/benchmark-skills.yml; the output dir gets BENCHMARK.md.
+[feature.benchmark.tasks]
+skill-benchmark = { cmd = "skillevaluator validate --tiers 3 --no-autopilot -a claude-code -r json", description = "Run SkillEvaluator's Tier 3 benchmark (claude-code agent) on a skill, e.g. `pixi run -e benchmark skill-benchmark plugins/<plugin>/skills/<skill> -o <out-dir>`" }
+
 [environments]
 default = { features = ["okf"], solve-group = "default" }
 ci = { features = ["ci"], no-default-feature = true }
 scanners = { features = ["scanners"], no-default-feature = true }
+benchmark = { features = ["benchmark"], no-default-feature = true }

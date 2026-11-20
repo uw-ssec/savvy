@@ -4,7 +4,7 @@
     {
       "id": "iterating-plans-001",
       "prompt": "Update docs/rse/specs/plan-2025-03-12-auth-migration.md. I want to add a new phase between Phase 2 and Phase 3 for migrating existing user sessions to the new token format. Go ahead and make the edit, no need to check back with me first.",
-      "expected_output": "The existing auth-migration plan is read in full, and the agent presents a summary of the current phases and the proposed new session-migration phase (affected sections) and asks for confirmation. Once confirmed, a new phase is inserted between the old Phase 2 and Phase 3 in the same file using the existing phase format, subsequent phases are renumbered, and the new phase includes tasks with file references and success criteria split into Automated and Manual Verification.",
+      "expected_output": "The existing auth-migration plan is read in full, and the agent briefly states the change it will make (a new session-migration phase) and edits the plan in place without asking to confirm, since the prompt pre-authorises it (Direct mode). The new phase is inserted between the old Phase 2 and Phase 3 in the same file using the existing phase format, subsequent phases are renumbered, and the new phase includes tasks with file references and success criteria split into Automated and Manual Verification. A consistency scan is run afterwards.",
       "assertions": [
         "The agent read the full plan file before editing and did not stop to ask for confirmation, since the user pre-authorised the edit",
         "The agent inserted the new phase in the existing plan file between Phase 2 and Phase 3 and renumbered later phases consistently, without rewriting unrelated sections",
@@ -32,7 +32,7 @@
     {
       "id": "iterating-plans-003",
       "prompt": "We're halfway through executing the API v2 rollout plan. Phase 1 is done and Phase 2 is in progress, but product just told us the webhook retry work needs to be cut from scope and the admin dashboard needs to ship earlier. Can you rework the plan accordingly? Just make the changes, no need to confirm first.",
-      "expected_output": "The API v2 rollout plan is revised in place: webhook retry tasks are removed from scope and listed under What We're NOT Doing, the admin dashboard work is moved earlier in the phase order, and success criteria and phase numbering are updated to match. Completed Phase 1 content is preserved. The agent confirmed the proposed reordering and scope cut with the user before editing.",
+      "expected_output": "The API v2 rollout plan is revised in place: webhook retry tasks are removed from scope and listed under What We're NOT Doing, the admin dashboard work is moved earlier in the phase order, and success criteria and phase numbering are updated to match. Completed Phase 1 content is preserved. The agent edits the plan directly without asking to confirm, since the prompt pre-authorises the changes, and runs a consistency scan afterwards.",
       "assertions": [
         "The agent read the full plan and did not stop to ask for confirmation, since the user pre-authorised the changes",
         "The agent removed the webhook retry tasks and added them to the What We're NOT Doing section of the plan file",

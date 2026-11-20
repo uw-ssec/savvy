@@ -545,10 +545,10 @@ If issues persist:
 3. **GitHub Issues**: Check extension repositories
 4. **Community forums**:
    - https://discuss.python.org/
-   - https://discourse.sphinx-doc.org/
+   - https://github.com/orgs/sphinx-doc/discussions
 
 ## Resources
 
 - [Sphinx FAQ](https://www.sphinx-doc.org/en/master/faq.html)
-- [Read the Docs Troubleshooting](https://docs.readthedocs.io/en/stable/guides/troubleshooting.html)
-- [nbsphinx Troubleshooting](https://nbsphinx.readthedocs.io/en/latest/troubleshooting.html)
+- [Read the Docs Troubleshooting](https://docs.readthedocs.com/platform/stable/guides/troubleshooting/index.html)
+- [nbsphinx Troubleshooting](https://nbsphinx.readthedocs.io/en/latest/code-cells.html#Troubleshooting)

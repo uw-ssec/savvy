@@ -782,8 +782,8 @@ views:
 
 ## References
 
-- [Lumen Views Documentation](https://lumen.holoviz.org/user_guide/Views.html)
-- [hvPlot Reference](https://hvplot.holoviz.org/reference/index.html)
+- [Lumen Views Documentation](https://lumen.holoviz.org/en/docs/latest/configuration/spec/views/)
+- [hvPlot Reference](https://hvplot.holoviz.org/ref/index.html)
 - [Panel Indicators](https://panel.holoviz.org/reference/index.html#indicators)
 - [Altair Documentation](https://altair-viz.github.io/)
 - [Plotly Python](https://plotly.com/python/)

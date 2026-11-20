@@ -690,7 +690,7 @@ transforms:
 
 ## References
 
-- [Lumen Transforms Documentation](https://lumen.holoviz.org/user_guide/Transforms.html)
+- [Lumen Transforms Documentation](https://lumen.holoviz.org/en/docs/latest/configuration/spec/pipelines/)
 - [Pandas Query Syntax](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.query.html)
 - [SQL Tutorial](https://www.w3schools.com/sql/)
 - [DuckDB SQL Reference](https://duckdb.org/docs/sql/introduction)

@@ -5,7 +5,7 @@ description: >-
   external prior work (papers, methods, tools) before planning or changing
   something. Traces function call paths, maps module dependencies, searches
   academic papers and documentation, compares library alternatives. Triggers:
-  research the codebase, how does X work, where is X implemented, what tools or
+  research the codebase, research how X works before changing it, what tools or
   libraries exist for X, prior art on X, has this been done before, survey
   approaches to X.
 metadata:

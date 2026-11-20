@@ -609,6 +609,6 @@ Include:
 
 ## References
 
-- [Lumen Troubleshooting](https://lumen.holoviz.org/user_guide/Troubleshooting.html)
-- [Panel Debugging](https://panel.holoviz.org/user_guide/Performance.html)
+- [Lumen category on HoloViz Discourse](https://discourse.holoviz.org/c/lumen/)
+- [Panel: Improve the Performance](https://panel.holoviz.org/how_to/performance/index.html)
 - [HoloViz Discourse](https://discourse.holoviz.org/)

@@ -454,7 +454,7 @@ lumen serve dashboard.yaml --log-level=debug
 ### External Links
 
 - [Lumen Documentation](https://lumen.holoviz.org/)
-- [Lumen Gallery](https://lumen.holoviz.org/gallery/)
+- [Lumen Gallery](https://lumen.holoviz.org/en/docs/latest/examples/gallery/)
 - [GitHub Repository](https://github.com/holoviz/lumen)
 - [Community Discourse](https://discourse.holoviz.org)
 

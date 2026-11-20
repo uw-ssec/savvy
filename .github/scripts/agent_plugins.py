@@ -39,7 +39,10 @@ Package checks, for every plugin:
 
 - plugin.json follows the closed manifest schema and its name is the directory;
 - every directory under plugins/ and community-plugins/ is in the catalog,
-  and each catalog entry has a name, source and category and appears once;
+  unless docs/catalog.yml marks it ``released: false`` (not ready to ship, so
+  no marketplace lists it; it still gets every other check and its generated
+  plugin.json), and each catalog entry has a name, source and category and
+  appears once;
 - plugin names and skill names are unique across the repository (two
   installed plugins with the same skill name make activation ambiguous);
 - each skills/<dir>/SKILL.md has Agent Skills frontmatter whose name is <dir>
@@ -85,6 +88,7 @@ PLUGIN_PARENTS = ("plugins", "community-plugins")
 CATALOG = Path(".claude-plugin/marketplace.json")
 CODEX_CATALOG = Path(".agents/plugins/marketplace.json")
 CURSOR_CATALOG = Path(".cursor-plugin/marketplace.json")
+METADATA = Path("docs/catalog.yml")
 
 PLUGIN_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
 MCP_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json"
@@ -129,6 +133,15 @@ def plugin_dirs(root: Path) -> list[Path]:
                   for d in (root / parent).iterdir() if d.is_dir())
 
 
+def unreleased(root: Path) -> set[str]:
+    """Sources of the plugins docs/catalog.yml marks `released: false`."""
+    path = root / METADATA
+    meta = (yaml.safe_load(path.read_text(encoding="utf-8")) or {}) if path.is_file() else {}
+    flagged = {name for name, m in (meta.get("plugins") or {}).items()
+               if isinstance(m, dict) and m.get("released") is False}
+    return {"./" + d.relative_to(root).as_posix() for d in plugin_dirs(root) if d.name in flagged}
+
+
 def inside(path: Path, root: Path) -> bool:
     try:
         path.resolve().relative_to(root.resolve())
@@ -155,8 +168,13 @@ def expected_files(root: Path) -> dict[Path, str]:
         if not path.is_file():
             raise ValueError(f"{path.relative_to(root)}: missing; it is the source for every other manifest")
         manifests[src] = load(path)
+    for src in sorted(unreleased(root) - manifests.keys()):
+        if (root / src / "plugin.json").is_file():
+            manifests[src] = load(root / src / "plugin.json")
 
     out: dict[Path, str] = {}
+    for src, m in manifests.items():
+        out[root / src / ".claude-plugin" / "plugin.json"] = dump(shared(m))
     entries = []
     for entry in catalog.get("plugins", []):
         src = entry.get("source")
@@ -164,7 +182,6 @@ def expected_files(root: Path) -> dict[Path, str]:
             entries.append(entry)
             continue
         m = manifests[src]
-        out[root / src / ".claude-plugin" / "plugin.json"] = dump(shared(m))
         new = {"name": m["name"], "source": src}
         new.update({k: v for k, v in shared(m).items() if k not in ("name", "version")})
         new.update({k: v for k, v in entry.items() if k not in new and k not in SHARED})
@@ -523,9 +540,13 @@ def check(root: Path, run_claude: bool) -> list[str]:
     if errors:
         return errors
     listed = {e.get("source") for e in catalog.get("plugins", []) if isinstance(e, dict)}
+    held = unreleased(root)
     for pdir in plugin_dirs(root):
         src = "./" + pdir.relative_to(root).as_posix()
-        if src not in listed:
+        if src in held and src in listed:
+            errors.append(f"{CATALOG}: {pdir.name} is marked `released: false` in {METADATA}; remove its"
+                          " entry, or delete that line to release it")
+        elif src not in listed and src not in held:
             errors.append(f"{CATALOG}: no entry for {src}; add one with its category so every client can"
                           " install it")
         check_manifest(pdir, root, errors)

@@ -16,7 +16,7 @@ In Claude Code:
 
 ```bash
 claude plugin marketplace add uw-ssec/savvy
-claude plugin install scientific-python-development@savvy
+claude plugin install ai-research-workflows@savvy
 ```
 
 Skills also work in GitHub Copilot (CLI and VS Code), Codex, Cursor, Antigravity CLI, and OpenCode. [docs/install.md](docs/install.md) has the support matrix and install steps for each client. To try everything without installing, open a Codespace with the badge above; [docs/codespaces.md](docs/codespaces.md) covers routing Copilot through your own LiteLLM gateway.

@@ -74,6 +74,6 @@ Cross-link to `supply-chain-hardened-ci-cd` for the broader "treat all CI comman
 ## References
 
 - conda-content-trust (experimental): <https://github.com/conda/conda-content-trust>
-- pixi lockfile: <https://pixi.sh/latest/features/lockfile/>
-- conda-forge governance: <https://conda-forge.org/docs/orga/governance/>
+- pixi lockfile: <https://pixi.sh/latest/workspace/lock_file/>
+- conda-forge governance: <https://conda-forge.org/community/governance/>
 - channel priority semantics: <https://conda.io/projects/conda/en/latest/user-guide/concepts/installing-with-conda.html#strict-channel-priority>

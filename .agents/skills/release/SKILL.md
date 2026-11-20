@@ -98,11 +98,12 @@ None. The version is the current date (see `docs/versioning.md`).
 
 12. Build plugin zip assets:
 
-    - For each directory in `plugins/` except `ai-research-workflows`, create a
-      zip archive. `ai-research-workflows` is a trust-pilot plugin: its signed
+    - For each plugin listed in `.claude-plugin/marketplace.json` except
+      `ai-research-workflows`, create a zip archive. Plugins marked
+      `released: false` in `docs/catalog.yml` are not listed there and must not
+      be zipped. `ai-research-workflows` is a trust-pilot plugin: its signed
       per-skill archives come from `release-sign.yml`, and an unsigned zip
-      beside them would be an unverifiable copy. `supply-chain-security` keeps
-      its zip until it joins the pilot.
+      beside them would be an unverifiable copy.
     - **Zip naming convention:**
       - Default: `plugin_name_MM_DD_YYYY.zip` (snake_case plugin name + date)
       - If a release already exists for today (check `gh release list`), append

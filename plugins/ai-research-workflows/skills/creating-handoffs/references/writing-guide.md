@@ -68,7 +68,8 @@ session asked to write a handoff for a person's work). Then:
 - **Critical References:** the 2-3 files the next session must read before
   anything else, each with why. This is the most common cause of a slow
   restart when missing.
-- **Recent Changes:** `path/to/file.ext:line` references, not pasted code.
+- **Recent Changes:** `file:line` references (`path/to/file.ext:line`), not
+  pasted code.
   Open each file and check that the line still points at what you describe.
   Use a code block only for an error being debugged or a pattern that matters.
 - **Reproducibility & Data State:** the research state above. Delete the

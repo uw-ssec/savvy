@@ -310,6 +310,19 @@ def test_path_normalisation_keeps_a_nested_copy_of_the_skill_path(st, root):
     assert not res.passed
 
 
+@pytest.mark.parametrize("path", [f"payload/{SKILL}/SKILL.md", f"./payload/{SKILL}/SKILL.md"])
+def test_path_normalisation_keeps_a_skill_relative_path_that_contains_the_skill_path(st, root, path):
+    # Some validators report paths relative to the skill dir; there the first
+    # occurrence of the skill path is part of the file's own path, not a prefix.
+    res = st.gate(report(finding(path=path)), SKILL, [accept(st)], root)
+    assert len(res.blocking) == 1
+    assert not res.passed
+
+
+def test_path_normalisation_strips_a_leading_repo_relative_skill_path(st, root):
+    assert st.gate(report(finding(path=f"{SKILL}/SKILL.md")), SKILL, [accept(st)], root).passed
+
+
 def test_cli_gate_incomplete_report_fails(st, tmp_path, capsys):
     write_report(tmp_path / "reports", SKILL, report(status="incomplete"))
     assert run_gate(st, tmp_path) == 1

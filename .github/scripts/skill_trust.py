@@ -304,14 +304,18 @@ class GateResult:
 
 
 def relative_path(file_path: str, skill: str) -> str:
-    """Make a finding's path relative to the skill dir (scans record absolute paths).
+    """Make a finding's path relative to the skill dir.
 
-    Only the first occurrence of the skill path is the checkout prefix; a later
-    one is part of the flagged file's own path and must be kept.
+    Scans record absolute paths (<checkout>/<skill>/<file>), repo-relative
+    ones (<skill>/<file>) or skill-relative ones (<file>). Only a leading
+    skill path, or the first one after an absolute checkout prefix, is a
+    prefix; anywhere else it is part of the flagged file's own path and kept.
     """
-    marker = skill.rstrip("/") + "/"
-    if marker in file_path:
-        return file_path.split(marker, 1)[1]
+    marker = skill.strip("/") + "/"
+    if file_path.startswith(marker):
+        return file_path[len(marker) :]
+    if file_path.startswith("/") and "/" + marker in file_path:
+        return file_path.split("/" + marker, 1)[1]
     return file_path
 
 

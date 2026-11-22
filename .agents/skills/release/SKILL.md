@@ -52,10 +52,13 @@ None. The version is the current date (see `docs/versioning.md`).
    skill directories changed since the previous tag:
 
    ```bash
-   git diff --name-only <previous-tag>..HEAD -- plugins/ai-research-workflows/skills/ | cut -d/ -f1-4 | sort -u
+   git diff --name-only <previous-tag>..HEAD -- plugins/ai-research-workflows/skills/ | cut -d/ -f1-4 | sort -u \
+     | while read -r d; do if [ -d "$d" ]; then echo "$d"; fi; done
    ```
 
-   Pass them comma-separated:
+   The last line drops skills deleted or renamed since the tag; the workflow
+   rejects the whole list if any entry is not an existing pilot skill. Pass
+   them comma-separated:
 
    ```bash
    gh workflow run benchmark-skills.yml -f skills=plugins/ai-research-workflows/skills/<skill>,...

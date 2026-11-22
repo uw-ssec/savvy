@@ -238,7 +238,7 @@ When the new context requires elements that do not exist in the current system (
 - [[aesthetic-principles.md]] - Tone selection framework and anti-pattern library
 - [[visual-hierarchy.md]] - Gestalt principles for organizing brand elements
 - `color-theory.md` (`references/color-theory.md` in the `color-systems` skill) - Color psychology for brand-appropriate palettes
-- `font-pairing.md` (`references/font-pairing.md` in the `typography-systems` skill) - Font selection aligned to brand voice
+- `font-pairing-guide.md` (`references/font-pairing-guide.md` in the `typography-systems` skill) - Font selection aligned to brand voice
 
 ## Brand Audit Checklist (moved from SKILL.md)
 

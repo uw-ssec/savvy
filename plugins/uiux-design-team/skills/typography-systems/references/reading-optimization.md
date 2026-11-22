@@ -57,10 +57,10 @@ Line height controls the vertical space between baselines. Optimal line height d
 ### Contrast and Readability
 
 **WCAG contrast requirements:**
-- **Normal text (under 18px or under 14px bold):** Minimum 4.5:1 contrast ratio (AA), 7:1 for AAA
-- **Large text (18px+ or 14px+ bold):** Minimum 3:1 contrast ratio (AA), 4.5:1 for AAA
+- **Normal text (under 18pt/24px, or under 14pt/about 18.66px bold):** Minimum 4.5:1 contrast ratio (AA), 7:1 for AAA
+- **Large text (18pt/24px+, or 14pt/about 18.66px+ bold):** Minimum 3:1 contrast ratio (AA), 4.5:1 for AAA
 
-**Beyond minimum contrast:** Maximum contrast (pure black on pure white, #000 on #FFF, ratio 21:1) is not always optimal. Research suggests slightly reduced contrast (e.g., #1a1a1a on #ffffff, ratio ~18:1) reduces glare on backlit screens without sacrificing legibility. However, never reduce contrast below WCAG AA requirements.
+**Beyond minimum contrast:** Maximum contrast (pure black on pure white, #000 on #FFF, ratio 21:1) is not always optimal. Research suggests slightly reduced contrast (e.g., #1a1a1a on #ffffff, ratio ~17.4:1) reduces glare on backlit screens without sacrificing legibility. However, never reduce contrast below WCAG AA requirements.
 
 **Text rendering considerations:**
 - Light text on dark backgrounds appears heavier than dark text on light backgrounds at the same weight. Compensate by using a lighter font weight or slightly increasing letter spacing.
@@ -152,7 +152,7 @@ Do not use pure white (#ffffff) text on pure black (#000000) backgrounds. The ex
 - Background: #09090b (zinc-950) or #18181b (zinc-900), never pure #000000
 
 **Contrast ratios to verify:**
-- Primary text on background: target 12:1 to 15:1 (not maximum 21:1)
+- Primary text on background: target roughly 12:1 to 16:1 (not maximum 21:1); the pairs above measure 12.0:1 to 15.7:1
 - Secondary text on background: maintain at least 4.5:1
 
 ### Line Height in Dark Mode

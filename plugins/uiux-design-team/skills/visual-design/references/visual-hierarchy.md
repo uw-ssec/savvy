@@ -160,8 +160,8 @@ The golden ratio (1:1.618, approximately 61.8% to 38.2%) produces proportions th
 ### Two-Column Layouts
 
 For a content area alongside a sidebar on a 1200px container:
-- Content column: 1200 * 0.618 = 741px
-- Sidebar column: 1200 * 0.382 = 459px
+- Content column: 1200 * 0.618 = 742px (741.6)
+- Sidebar column: 1200 * 0.382 = 458px (458.4)
 - This ratio produces a main column that feels substantial without overwhelming the sidebar
 
 ### Spacing Progressions
@@ -193,7 +193,7 @@ Key findings from eye-tracking studies that inform hierarchy decisions.
 
 ### Findings from Nielsen Norman Group and Others
 
-1. **Users spend 80% of viewing time above the fold**. Critical actions and key messages must appear without scrolling. Content below the fold is seen by fewer than half of users.
+1. **Users spend most of their viewing time above the fold**. In NN/g's 2018 eyetracking study, about 57% of viewing time was above the fold and 74% in the first two screenfuls (down from 80% above the fold in their 2010 study). Critical actions and key messages must appear without scrolling.
 
 2. **The first 2-3 words of headings matter most**. When scanning, users read just the beginning of each heading before deciding to continue or skip. Front-load headings with meaningful keywords.
 
@@ -258,8 +258,8 @@ Progressively remove visual hierarchy tools (color, then size differences, then 
 
 - [[aesthetic-principles.md]] - How aesthetic choices create and reinforce hierarchy
 - [[brand-alignment.md]] - Ensuring hierarchy decisions align with brand priorities
-- `type-scale-guide.md` (`references/type-scale-guide.md` in the `typography-systems` skill) - Typographic hierarchy through modular scales
-- `grid-types.md` (`references/grid-types.md` in the `grid-layout-systems` skill) - Structural hierarchy through grid systems
+- `type-scale-theory.md` (`references/type-scale-theory.md` in the `typography-systems` skill) - Typographic hierarchy through modular scales
+- `grid-patterns.md` (`references/grid-patterns.md` in the `grid-layout-systems` skill) - Structural hierarchy through grid systems
 - `contrast-requirements.md` (`references/contrast-requirements.md` in the `color-systems` skill) - Contrast ratios that ensure readable hierarchy
 
 ## Hierarchy Tools (moved from SKILL.md)

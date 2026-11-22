@@ -62,7 +62,7 @@ Use this table format for the report:
 ```markdown
 | # | WCAG SC | Severity | Location | Issue | Fix | Status |
 |---|---------|----------|----------|-------|-----|--------|
-| 1 | 1.4.3 Contrast (Min) | Critical | /pricing #cta-btn | 3.2:1 white on #6FA8DC | Use #1A5490 (8.1:1) | Open |
+| 1 | 1.4.3 Contrast (Min) | Critical | /pricing #cta-btn | 2.5:1 white on #6FA8DC | Use #1A5490 (7.7:1) | Open |
 | 2 | 2.4.7 Focus Visible | Serious | global `button:focus { outline: none }` | No focus indicator | Add `:focus-visible { outline: 2px solid var(--focus) }` | Fixed |
 | 3 | 4.1.2 Name/Role/Value | Critical | header search icon button | No accessible name | Add `aria-label="Search"` | Open |
 ```

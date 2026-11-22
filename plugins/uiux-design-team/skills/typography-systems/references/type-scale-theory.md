@@ -47,14 +47,14 @@ Each ratio generates a different personality. This table shows the sizes produce
 
 | Step | Minor 2nd (1.067) | Major 2nd (1.125) | Minor 3rd (1.200) | Major 3rd (1.250) | Perfect 4th (1.333) | Aug 4th (1.414) | Perfect 5th (1.500) | Golden (1.618) |
 |------|-------------------|-------------------|--------------------|--------------------|---------------------|-----------------|---------------------|----------------|
-| -2   | 14.0px | 12.6px | 11.1px | 10.2px | 9.0px | 8.0px | 7.1px | 6.1px |
+| -2   | 14.1px | 12.6px | 11.1px | 10.2px | 9.0px | 8.0px | 7.1px | 6.1px |
 | -1   | 15.0px | 14.2px | 13.3px | 12.8px | 12.0px | 11.3px | 10.7px | 9.9px |
 | 0    | 16.0px | 16.0px | 16.0px | 16.0px | 16.0px | 16.0px | 16.0px | 16.0px |
 | 1    | 17.1px | 18.0px | 19.2px | 20.0px | 21.3px | 22.6px | 24.0px | 25.9px |
 | 2    | 18.2px | 20.3px | 23.0px | 25.0px | 28.4px | 32.0px | 36.0px | 41.9px |
 | 3    | 19.4px | 22.8px | 27.6px | 31.3px | 37.9px | 45.3px | 54.0px | 67.8px |
 | 4    | 20.7px | 25.6px | 33.2px | 39.1px | 50.5px | 64.0px | 81.0px | 109.7px |
-| 5    | 22.1px | 28.8px | 39.8px | 48.8px | 67.3px | 90.5px | 121.5px | 177.5px |
+| 5    | 22.1px | 28.8px | 39.8px | 48.8px | 67.3px | 90.5px | 121.5px | 177.4px |
 
 ### Ratio Character Profiles
 
@@ -80,7 +80,7 @@ The use of mathematical ratios in typography did not begin with the web. It exte
 
 ### Renaissance Proportional Theory
 
-In the fifteenth century, Luca Pacioli's "De Divina Proportione" (1509) formalized the golden ratio as a principle of aesthetic perfection, with illustrations by Leonardo da Vinci. The idea was that divine or natural beauty followed mathematical proportions, and human creations should follow them too.
+At the turn of the sixteenth century, Luca Pacioli's "De Divina Proportione" (1509) formalized the golden ratio as a principle of aesthetic perfection, with illustrations by Leonardo da Vinci. The idea was that divine or natural beauty followed mathematical proportions, and human creations should follow them too.
 
 Early typographers adopted this thinking. The sizes available from metal type foundries were not arbitrary: they followed proportional relationships. The traditional typographic point sizes -- 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 21, 24, 36, 48, 60, 72 -- approximate a geometric progression rather than a linear one.
 
@@ -253,15 +253,15 @@ body { font-size: type-scale(0); } // 1rem
 To produce a fluid value between (min-size at min-viewport) and (max-size at max-viewport):
 
 ```
-slope     = (max-size − min-size) / (max-viewport − min-viewport)
-intercept = min-size − slope × min-viewport
+slope     = (max-size − min-size) / (max-viewport − min-viewport)   (sizes and viewports in px)
+intercept = min-size − slope × min-viewport                         (px; divide by 16 for rem)
 result    = clamp(min-size, (slope × 100)vw + intercept rem, max-size)
 ```
 
-Example: min 2rem @ 320px → max 3.815rem @ 1440px
-- slope = (3.815 − 2) / (1440 − 320) = 0.00162rem/px → 0.162rem per 100px ≈ 1.62vw
-- intercept = 2 − (0.00162 × 320) = 1.482rem
-- **result: `clamp(2rem, 1.62vw + 1.482rem, 3.815rem)`**
+Example: min 2rem (32px) @ 320px → max 3.815rem (61.04px) @ 1440px
+- slope = (61.04 − 32) / (1440 − 320) = 0.025929 → × 100 = 2.5929vw
+- intercept = 32 − (0.025929 × 320) = 23.703px = 1.4814rem
+- **result: `clamp(2rem, 2.5929vw + 1.4814rem, 3.815rem)`**
 
 ## Scale Generation Worked Example
 

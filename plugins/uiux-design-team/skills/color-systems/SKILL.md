@@ -62,9 +62,18 @@ import fs from "node:fs";
 
 const css   = fs.readFileSync("dist/tokens.css","utf8");
 const pairs = JSON.parse(fs.readFileSync("pairs.json","utf8"));
+const dark  = process.argv.includes("--theme=dark");
+const rootBlock = css.match(/:root\s*\{([^}]*)\}/)?.[1] ?? "";
+const darkBlock = css.match(/\[data-theme="dark"\]\s*\{([^}]*)\}/)?.[1] ?? "";
+// Look up the token in the dark block first (with --theme=dark), then :root;
+// follow var(--alias) references until a hex value is reached.
 const resolve = (v) => {
   const name = v.match(/--[\w-]+/)[0];
-  return css.match(new RegExp(`${name}:\\s*(#[0-9a-fA-F]{3,8})`))[1];
+  const re = new RegExp(`(?:^|[\\s;{])${name}:\\s*([^;]+);`);
+  const m = (dark && darkBlock.match(re)) || rootBlock.match(re);
+  if (!m) throw new Error(`${name} is not defined in dist/tokens.css`);
+  const value = m[1].trim();
+  return value.startsWith("var(") ? resolve(value) : value;
 };
 let failed = 0;
 for (const p of pairs) {
@@ -86,8 +95,9 @@ Run: `node check-contrast.js` — exits non-zero on any failure. Wire into CI be
   --color-primary-hover: var(--color-brand-500);
   --color-surface:       var(--color-gray-50);
   --color-on-surface:    var(--color-gray-900);
+  --color-on-surface-muted: #4b5563;
   --color-on-primary:    #ffffff;
-  --color-border:        #e5e7eb;
+  --color-border:        #6b7280;  /* 4.63:1 on gray-50; #e5e7eb is only 1.18:1 */
   --color-success: #16a34a; --color-warning: #d97706; --color-error: #dc2626;
 }
 ```
@@ -100,7 +110,7 @@ Run: `node check-contrast.js` — exits non-zero on any failure. Wire into CI be
   --color-surface-raised: #1f2937;
   --color-on-surface:     #e5e7eb;
   --color-on-surface-muted:#9ca3af;
-  --color-border:         #374151;
+  --color-border:         #6b7280;  /* 3.67:1 on gray-900; #374151 is only 1.72:1 */
   --color-primary:        var(--color-brand-400);  /* lighter for dark bg */
   --color-on-primary:     #0b0d12;
 }
@@ -110,23 +120,23 @@ Rules: do not invert; reduce saturation 10–20% for highly saturated hues; elev
 
 ## Step 6 — Re-validate Dark Mode
 
-Re-run `node check-contrast.js --theme=dark` (extend script to swap to dark var lookups). Same pass criteria: AA = 4.5:1 text, 3:1 non-text.
+Re-run `node check-contrast.js --theme=dark` (looks up each token in the `[data-theme="dark"]` block first, then falls back to `:root`). Same pass criteria: AA = 4.5:1 text, 3:1 non-text.
 
 ## Complete Example: `#5B5BD6` → CSS
 
 ```css
 :root {
-  --color-brand-500: #5b5bd6;  --color-brand-600: #4848c4;
+  --color-brand-500: #5b5bd6;  --color-brand-600: #4945be;
   --color-primary:    var(--color-brand-600);
-  --color-on-primary: #ffffff;        /* 8.21:1 ✓ */
+  --color-on-primary: #ffffff;        /* 7.30:1 ✓ */
   --color-surface:    #f9fafb;
-  --color-on-surface: #111827;        /* 17.87:1 ✓ */
+  --color-on-surface: #111827;        /* 16.98:1 ✓ */
 }
 [data-theme="dark"] {
-  --color-primary:    var(--color-brand-400);  /* #7a7ae0 */
-  --color-on-primary: #0b0d12;        /* 5.41:1 ✓ */
+  --color-primary:    var(--color-brand-400);  /* #7c81ff */
+  --color-on-primary: #0b0d12;        /* 5.96:1 ✓ */
   --color-surface:    #111827;
-  --color-on-surface: #e5e7eb;        /* 14.12:1 ✓ */
+  --color-on-surface: #e5e7eb;        /* 14.33:1 ✓ */
 }
 ```
 

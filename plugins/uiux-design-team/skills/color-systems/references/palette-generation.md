@@ -207,12 +207,12 @@ Background  | Text Color | Contrast Ratio | AA Normal | AA Large | AAA Normal
 - Body text: use 800 or 900 (high contrast)
 - Secondary text: use 600 or 700 (must still meet 4.5:1)
 - Disabled text: use 400 (note: disabled elements are exempt from WCAG but should still be legible)
-- Borders: use 200 or 300 (non-text 3:1 requirement)
+- Borders: use 500 or darker where the border identifies a control (non-text 3:1 requirement); 200 or 300 only for decorative dividers
 
 **Dark mode (900/950 background)**:
 - Body text: use 100 or 200 (high contrast)
 - Secondary text: use 300 or 400 (must still meet 4.5:1)
-- Borders: use 700 or 800 (non-text 3:1 requirement)
+- Borders: use 400 or 500 where the border identifies a control (non-text 3:1 requirement); 700 or 800 only for decorative dividers
 
 ### Cross-Palette Accessibility
 

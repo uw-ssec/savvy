@@ -217,7 +217,7 @@ The `inert` attribute provides a declarative way to make background content non-
 
 ## Skip Navigation Links
 
-Skip links allow keyboard users to bypass repeated navigation blocks and jump directly to the main content. They are required by WCAG 2.4.1.
+Skip links allow keyboard users to bypass repeated navigation blocks and jump directly to the main content. They are the most common way to meet WCAG 2.4.1 Bypass Blocks, which requires a bypass mechanism (landmarks and headings also count).
 
 ### Implementation
 
@@ -382,7 +382,7 @@ input:focus-visible {
 
 ### Testing Focus Visibility
 
-Use Tab to navigate through the interface. Every interactive element must show a clearly visible focus indicator. Check on both light and dark backgrounds. The focus ring must meet 3:1 contrast ratio against adjacent colors (WCAG 2.4.11).
+Use Tab to navigate through the interface. Every interactive element must show a clearly visible focus indicator. Check on both light and dark backgrounds. The focus ring must meet 3:1 contrast ratio against adjacent colors (WCAG 1.4.11 Non-text Contrast).
 
 ## See Also
 

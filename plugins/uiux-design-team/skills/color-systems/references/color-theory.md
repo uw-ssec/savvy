@@ -48,7 +48,7 @@ LAB separates lightness from color information and is designed to be perceptuall
 
 ### OKLCH
 
-OKLCH is the modern perceptually uniform color space designed specifically for CSS and digital design. Available in CSS via `oklch()`.
+OKLCH is a modern perceptually uniform color space: the polar (lightness, chroma, hue) form of Oklab, published by Björn Ottosson in 2020. Available in CSS via `oklch()`.
 
 - **L** (0-1): Lightness, perceptually calibrated.
 - **C** (0-0.4+): Chroma (colorfulness). Similar to saturation but perceptually accurate.

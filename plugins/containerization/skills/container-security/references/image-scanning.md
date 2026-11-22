@@ -460,12 +460,15 @@ jobs:
           persist-credentials: false
 
       - name: Build image
-        run: docker build -t ${{ github.repository }}:${{ github.sha }} .
+        run: |
+          IMAGE="${GITHUB_REPOSITORY,,}:${GITHUB_SHA}"   # image names must be lowercase
+          echo "IMAGE=${IMAGE}" >> "$GITHUB_ENV"
+          docker build -t "${IMAGE}" .
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: '${{ github.repository }}:${{ github.sha }}'
+          image-ref: '${{ env.IMAGE }}'
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
@@ -501,14 +504,17 @@ jobs:
           persist-credentials: false
 
       - name: Build image
-        run: docker build -t ${{ github.repository }}:${{ github.sha }} .
+        run: |
+          IMAGE="${GITHUB_REPOSITORY,,}:${GITHUB_SHA}"   # image names must be lowercase
+          echo "IMAGE=${IMAGE}" >> "$GITHUB_ENV"
+          docker build -t "${IMAGE}" .
 
       - name: Scan image with Grype
         uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
         id: grype-scan
         with:
           grype-version: v0.121.3   # pin the scanner too; old Grype lost DB updates
-          image: '${{ github.repository }}:${{ github.sha }}'
+          image: '${{ env.IMAGE }}'
           fail-build: true
           severity-cutoff: critical
           output-format: sarif

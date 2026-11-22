@@ -42,13 +42,11 @@ on:
   workflow_dispatch:
 
 # ── Permissions ───────────────────────────────────────────────────────────────
+# Deny by default; each job grants only what it needs:
 # security-events: write  — required to upload SARIF to the Security tab
 # contents: read          — required to checkout the repository
-# packages: read          — required to pull images from ghcr.io (nightly)
-permissions:
-  security-events: write
-  contents: read
-  packages: read
+# packages: read          — required to pull images from ghcr.io (nightly only)
+permissions: {}
 
 jobs:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -58,6 +56,9 @@ jobs:
     name: Scan PR Image
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: Checkout code
@@ -66,12 +67,13 @@ jobs:
           persist-credentials: false
 
       # Build the image locally for scanning. We tag with the commit SHA
-      # so each PR build is unique and traceable.
+      # so each PR build is unique and traceable. Image names must be
+      # lowercase, and github.repository keeps the owner's capitals.
       - name: Build container image
         run: |
-          docker build \
-            -t ${{ github.repository }}:${{ github.sha }} \
-            .
+          IMAGE="${GITHUB_REPOSITORY,,}:${GITHUB_SHA}"
+          echo "IMAGE=${IMAGE}" >> "$GITHUB_ENV"
+          docker build -t "${IMAGE}" .
 
       # ── Trivy Vulnerability Scan ───────────────────────────────────────────
       # Scan the built image for CRITICAL and HIGH vulnerabilities.
@@ -79,7 +81,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: '${{ github.repository }}:${{ github.sha }}'
+          image-ref: '${{ env.IMAGE }}'
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
@@ -115,6 +117,10 @@ jobs:
     name: Nightly Security Scan
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
 
     steps:
       - name: Checkout code

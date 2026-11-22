@@ -74,7 +74,7 @@ permissions:
   contents: read
 
 steps:
-  - uses: docker/login-action@v3
+  - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
     with:
       registry: ghcr.io
       username: ${{ github.actor }}
@@ -215,7 +215,7 @@ Packages can be connected to repositories, which:
 
 ```yaml
 # In your workflow, GITHUB_TOKEN can push to packages connected to the repo
-- uses: docker/login-action@v3
+- uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
   with:
     registry: ghcr.io
     username: ${{ github.actor }}
@@ -253,7 +253,7 @@ When you push an image with this label, GHCR automatically links it to the speci
 The `docker/metadata-action` automatically generates OCI labels from your repository metadata:
 
 ```yaml
-- uses: docker/metadata-action@v5
+- uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
   id: meta
   with:
     images: ghcr.io/${{ github.repository }}
@@ -261,7 +261,7 @@ The `docker/metadata-action` automatically generates OCI labels from your reposi
       org.opencontainers.image.title=My App
       org.opencontainers.image.description=Description here
 
-- uses: docker/build-push-action@v6
+- uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
   with:
     push: true
     tags: ${{ steps.meta.outputs.tags }}
@@ -306,7 +306,7 @@ jobs:
     permissions:
       packages: write
     steps:
-      - uses: actions/delete-package-versions@v5
+      - uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
         with:
           package-name: myapp
           package-type: container
@@ -331,7 +331,7 @@ gh api orgs/myorg/packages/container/myapp/versions/12345 -X DELETE
 
 **Keep N most recent tagged versions:**
 ```yaml
-- uses: actions/delete-package-versions@v5
+- uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
   with:
     package-name: myapp
     package-type: container
@@ -340,7 +340,7 @@ gh api orgs/myorg/packages/container/myapp/versions/12345 -X DELETE
 
 **Delete untagged only (safest):**
 ```yaml
-- uses: actions/delete-package-versions@v5
+- uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
   with:
     package-name: myapp
     package-type: container
@@ -350,7 +350,7 @@ gh api orgs/myorg/packages/container/myapp/versions/12345 -X DELETE
 
 **Delete versions older than N days:**
 ```yaml
-- uses: actions/delete-package-versions@v5
+- uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
   with:
     package-name: myapp
     package-type: container
@@ -365,7 +365,7 @@ gh api orgs/myorg/packages/container/myapp/versions/12345 -X DELETE
 
 ```yaml
 # Example: ghcr-cleanup-action with tag filtering
-- uses: vlaurin/action-ghcr-prune@v0.6.0
+- uses: vlaurin/action-ghcr-prune@0cf7d39f88546edd31965acba78cdcb0be14d641 # v0.6.0
   with:
     token: ${{ secrets.PAT }}
     organization: myorg
@@ -408,8 +408,9 @@ helm pull oci://ghcr.io/myorg/charts/mychart --version 1.0.0
 # Generate SBOM with syft
 syft ghcr.io/myorg/myapp:v1.0.0 -o spdx-json > sbom.spdx.json
 
-# Attach SBOM to the image using cosign
-cosign attach sbom --sbom sbom.spdx.json ghcr.io/myorg/myapp:v1.0.0
+# Attach the SBOM as a signed attestation (`cosign attach sbom` is deprecated)
+cosign attest --yes --type spdxjson --predicate sbom.spdx.json \
+  ghcr.io/myorg/myapp@sha256:abc123...
 
 # Or use ORAS to push as a separate artifact
 oras push ghcr.io/myorg/myapp:v1.0.0-sbom \

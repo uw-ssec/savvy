@@ -113,4 +113,6 @@ jobs:
       #    Prints the published image digest for downstream consumption.
       # --------------------------------------------------------------------
       - name: Image digest
-        run: echo "Published ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}"
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: echo "Published ${REGISTRY}/${IMAGE_NAME}@${DIGEST}"

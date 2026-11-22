@@ -139,8 +139,11 @@ From: ubuntu:24.04
 
     # Build OpenMPI from source with InfiniBand support
     OPENMPI_VERSION=4.1.6
+    # SHA-256 from https://www.open-mpi.org/software/ompi/v4.1/
+    OPENMPI_SHA256=44da277b8cdc234e71c62473305a09d63f4dcca292ca40335aab7c4bf0e6a566
     cd /tmp
     wget https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-${OPENMPI_VERSION}.tar.gz
+    echo "${OPENMPI_SHA256}  openmpi-${OPENMPI_VERSION}.tar.gz" | sha256sum -c -
     tar xzf openmpi-${OPENMPI_VERSION}.tar.gz
     cd openmpi-${OPENMPI_VERSION}
     ./configure --prefix=/opt/openmpi \
@@ -231,8 +234,12 @@ From: ubuntu:24.04
 ```
 %post
     MPICH_VERSION=4.2.0
+    # Release tarball from the MPICH project's GitHub releases; same file and
+    # SHA-256 as the copy on mpich.org/static/downloads (update with the version)
+    MPICH_SHA256=a64a66781b9e5312ad052d32689e23252f745b27ee8818ac2ac0c8209bc0b90e
     cd /tmp
-    wget https://www.mpich.org/static/downloads/${MPICH_VERSION}/mpich-${MPICH_VERSION}.tar.gz
+    wget https://github.com/pmodels/mpich/releases/download/v${MPICH_VERSION}/mpich-${MPICH_VERSION}.tar.gz
+    echo "${MPICH_SHA256}  mpich-${MPICH_VERSION}.tar.gz" | sha256sum -c -
     tar xzf mpich-${MPICH_VERSION}.tar.gz
     cd mpich-${MPICH_VERSION}
     ./configure --prefix=/opt/mpich \
@@ -382,8 +389,11 @@ srun --mpi=pmix_v4 -n 64 apptainer exec image.sif ./my_mpi_app
 %post
     # Install PMIx from source for version control
     PMIX_VERSION=4.2.9
+    # The release notes publish SHA-1 912c70f5...; this is the SHA-256 of the same file
+    PMIX_SHA256=00ddb36fb81c31519972079a218c3cdd903510fc3910abaf4d484068fa29e884
     cd /tmp
     wget https://github.com/openpmix/openpmix/releases/download/v${PMIX_VERSION}/pmix-${PMIX_VERSION}.tar.gz
+    echo "${PMIX_SHA256}  pmix-${PMIX_VERSION}.tar.gz" | sha256sum -c -
     tar xzf pmix-${PMIX_VERSION}.tar.gz
     cd pmix-${PMIX_VERSION}
     ./configure --prefix=/opt/pmix
@@ -394,6 +404,8 @@ srun --mpi=pmix_v4 -n 64 apptainer exec image.sif ./my_mpi_app
     # Build OpenMPI with external PMIx
     cd /tmp
     wget https://download.open-mpi.org/release/open-mpi/v5.0/openmpi-5.0.3.tar.gz
+    # SHA-256 from https://www.open-mpi.org/software/ompi/v5.0/
+    echo "3e12160dd1d6f5cd8897bbab63a05fb9223a1e20a1726db23607aac25dc1aa19  openmpi-5.0.3.tar.gz" | sha256sum -c -
     tar xzf openmpi-5.0.3.tar.gz
     cd openmpi-5.0.3
     ./configure --prefix=/opt/openmpi \

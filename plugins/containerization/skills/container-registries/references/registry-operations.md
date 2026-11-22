@@ -12,7 +12,7 @@ permissions:
   packages: write
 
 steps:
-  - uses: docker/login-action@v3
+  - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
     with:
       registry: ghcr.io
       username: ${{ github.actor }}
@@ -22,7 +22,7 @@ steps:
 ### Docker Hub
 
 ```yaml
-- uses: docker/login-action@v3
+- uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
   with:
     username: ${{ secrets.DOCKERHUB_USERNAME }}
     password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -36,11 +36,11 @@ permissions:
   contents: read
 
 steps:
-  - uses: aws-actions/configure-aws-credentials@v4
+  - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
     with:
       role-to-assume: arn:aws:iam::123456789012:role/gha-ecr-push
       aws-region: us-east-1
-  - uses: aws-actions/amazon-ecr-login@v2
+  - uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
 ```
 
 ### Azure ACR (OIDC)
@@ -51,12 +51,12 @@ permissions:
   contents: read
 
 steps:
-  - uses: azure/login@v2
+  - uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
     with:
       client-id: ${{ secrets.AZURE_CLIENT_ID }}
       tenant-id: ${{ secrets.AZURE_TENANT_ID }}
       subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-  - uses: azure/docker-login@v2
+  - uses: azure/docker-login@15c4aadf093404726ab2ff205b2cdd33fa6d054c # v2
     with:
       login-server: myregistry.azurecr.io
 ```
@@ -89,7 +89,7 @@ docker pull ghcr.io/myorg/myapp:v1.2.3
 ### GHCR cleanup
 
 ```yaml
-- uses: actions/delete-package-versions@v5
+- uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
   with:
     package-name: myapp
     package-type: container

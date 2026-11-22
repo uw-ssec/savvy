@@ -26,9 +26,16 @@ env:
   # Set to your Docker Hub username/org and image name
   IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}
 
+# Deny by default; each job grants only what it needs.
+permissions: {}
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+
+    # Docker Hub uses its own token (secrets), so GITHUB_TOKEN only reads code.
+    permissions:
+      contents: read
 
     steps:
       # --------------------------------------------------------------------
@@ -114,4 +121,6 @@ jobs:
       # 8. Output image details
       # --------------------------------------------------------------------
       - name: Image digest
-        run: echo "Published ${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}"
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: echo "Published ${IMAGE_NAME}@${DIGEST}"

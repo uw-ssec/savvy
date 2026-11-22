@@ -87,8 +87,10 @@ docker sbom myapp:latest --format cyclonedx-json > sbom.cdx.json
 Store SBOMs alongside your container images for consumers to retrieve:
 
 ```bash
-# Attach SBOM as an OCI artifact (using cosign)
-cosign attach sbom --sbom sbom.spdx.json myregistry/myapp:latest
+# Attach the SBOM as a signed attestation (`cosign attach sbom` is deprecated);
+# use --type cyclonedx for a CycloneDX SBOM
+cosign attest --yes --type spdxjson --predicate sbom.spdx.json \
+  myregistry/myapp@sha256:abc123...
 
 # Attach SBOM using ORAS (OCI Registry As Storage)
 oras attach myregistry/myapp:latest sbom.spdx.json:application/spdx+json
@@ -181,11 +183,9 @@ cosign verify --key cosign.pub myregistry/myapp:latest
 
 ```yaml
 - name: Sign image with cosign
-  uses: sigstore/cosign-installer@v3
+  uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5 # v3.10.1
 
 - name: Sign the image
-  env:
-    COSIGN_EXPERIMENTAL: "true"
   run: |
     cosign sign --yes myregistry/myapp@${{ steps.build.outputs.digest }}
 ```
@@ -221,11 +221,22 @@ SLSA (Supply-chain Levels for Software Artifacts) is a framework for describing 
 ### Generating Provenance with GitHub Actions
 
 ```yaml
-- name: Generate SLSA provenance
+# Called as a job (not a step) after a `build` job that outputs the digest
+provenance:
+  needs: [build]
+  permissions:
+    actions: read      # detect the GitHub Actions environment
+    id-token: write    # OIDC token for keyless signing
+    packages: write    # upload the attestation to ghcr.io
+  # A reusable workflow runs as its own job, and must stay on a vX.Y.Z tag:
+  # slsa-verifier checks the ref, so it can't be SHA-pinned.
   uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0
   with:
     image: myregistry/myapp
-    digest: ${{ steps.build.outputs.digest }}
+    digest: ${{ needs.build.outputs.digest }}
+    registry-username: ${{ github.actor }}
+  secrets:
+    registry-password: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ### Attestation with cosign
@@ -433,7 +444,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install cosign
-        uses: sigstore/cosign-installer@v3
+        uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5 # v3.10.1
 
       - name: Verify image signature
         run: |
@@ -516,8 +527,8 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: sigstore/cosign-installer@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5 # v3.10.1
 
       - name: Build image
         run: docker build -t myapp:${{ github.sha }} .
@@ -534,10 +545,10 @@ jobs:
           docker push myregistry/myapp:${{ github.sha }}
 
       - name: Sign image
-        run: cosign sign --yes myregistry/myapp@$(crane digest myregistry/myapp:${{ github.sha }})
+        run: cosign sign --yes "myregistry/myapp@$(crane digest myregistry/myapp:${{ github.sha }})"
 
-      - name: Attach SBOM
-        run: cosign attach sbom --sbom sbom.spdx.json myregistry/myapp@$(crane digest myregistry/myapp:${{ github.sha }})
+      - name: Attest SBOM
+        run: cosign attest --yes --type spdxjson --predicate sbom.spdx.json "myregistry/myapp@$(crane digest myregistry/myapp:${{ github.sha }})"
 ```
 
 ## Software Bill of Materials Formats

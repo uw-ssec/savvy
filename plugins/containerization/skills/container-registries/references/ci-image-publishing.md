@@ -36,17 +36,17 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/metadata-action@v5
+      - uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
         id: meta
         with:
           images: ghcr.io/${{ github.repository }}
@@ -56,7 +56,7 @@ jobs:
             type=semver,pattern={{major}}
             type=sha
 
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: .
           push: true
@@ -129,11 +129,11 @@ The simplest approach uses QEMU to emulate non-native architectures. This is slo
 
 ```yaml
 steps:
-  - uses: docker/setup-qemu-action@v3
+  - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
 
-  - uses: docker/setup-buildx-action@v3
+  - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
-  - uses: docker/build-push-action@v6
+  - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
     with:
       platforms: linux/amd64,linux/arm64
       push: true
@@ -162,9 +162,9 @@ jobs:
             runner: ubuntu-24.04-arm
 
     steps:
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         id: build
         with:
           platforms: ${{ matrix.platform }}
@@ -177,7 +177,7 @@ jobs:
           digest="${{ steps.build.outputs.digest }}"
           touch "/tmp/digests/${digest#sha256:}"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: digests-${{ matrix.platform }}
           path: /tmp/digests/*
@@ -186,15 +186,15 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: /tmp/digests
           pattern: digests-*
           merge-multiple: true
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -230,7 +230,7 @@ RUN case "${TARGETPLATFORM}" in \
 Uses GitHub's cache infrastructure. Fast for small-to-medium images with frequent builds.
 
 ```yaml
-- uses: docker/build-push-action@v6
+- uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
   with:
     cache-from: type=gha
     cache-to: type=gha,mode=max
@@ -246,7 +246,7 @@ Uses GitHub's cache infrastructure. Fast for small-to-medium images with frequen
 Stores cache layers in a dedicated tag in the container registry. Works across CI providers and is not limited by GitHub cache size.
 
 ```yaml
-- uses: docker/build-push-action@v6
+- uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
   with:
     cache-from: type=registry,ref=ghcr.io/myorg/myapp:buildcache
     cache-to: type=registry,ref=ghcr.io/myorg/myapp:buildcache,mode=max
@@ -266,7 +266,7 @@ Stores cache layers in a dedicated tag in the container registry. Works across C
 Embeds cache metadata into the image itself. Simplest to set up but only caches layers included in the final image.
 
 ```yaml
-- uses: docker/build-push-action@v6
+- uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
   with:
     cache-from: type=registry,ref=ghcr.io/myorg/myapp:latest
     cache-to: type=inline
@@ -279,7 +279,7 @@ Embeds cache metadata into the image itself. Simplest to set up but only caches 
 You can specify multiple cache sources. Buildx checks them in order:
 
 ```yaml
-- uses: docker/build-push-action@v6
+- uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
   with:
     cache-from: |
       type=gha
@@ -340,7 +340,7 @@ on:
 Publish different tags from different branches:
 
 ```yaml
-- uses: docker/metadata-action@v5
+- uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
   id: meta
   with:
     images: ghcr.io/${{ github.repository }}
@@ -360,7 +360,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production  # requires approval
     steps:
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           push: true
 ```
@@ -378,7 +378,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           push: false  # build only, do not push
           tags: ghcr.io/myorg/myapp:pr-${{ github.event.number }}
@@ -389,7 +389,7 @@ jobs:
 Use GitHub Actions expressions for fine-grained control:
 
 ```yaml
-- uses: docker/build-push-action@v6
+- uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
   with:
     push: ${{ github.event_name != 'pull_request' }}
     tags: ${{ steps.meta.outputs.tags }}
@@ -418,17 +418,17 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/metadata-action@v5
+      - uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
         id: meta
         with:
           images: ghcr.io/${{ github.repository }}
@@ -437,7 +437,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
 
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: .
           platforms: linux/amd64,linux/arm64
@@ -465,7 +465,7 @@ Pre-release tags (containing `-`) are only matched by the `{{version}}` pattern 
 Pass release information as build arguments or labels:
 
 ```yaml
-- uses: docker/build-push-action@v6
+- uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
   with:
     build-args: |
       VERSION=${{ github.event.release.tag_name }}
@@ -480,18 +480,18 @@ Pass release information as build arguments or labels:
 Publish to multiple registries from a single build:
 
 ```yaml
-- uses: docker/login-action@v3
+- uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
   with:
     registry: ghcr.io
     username: ${{ github.actor }}
     password: ${{ secrets.GITHUB_TOKEN }}
 
-- uses: docker/login-action@v3
+- uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
   with:
     username: ${{ secrets.DOCKERHUB_USERNAME }}
     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-- uses: docker/metadata-action@v5
+- uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
   id: meta
   with:
     images: |
@@ -508,7 +508,7 @@ Publish to multiple registries from a single build:
 Docker Buildx can generate provenance attestations that record how an image was built:
 
 ```yaml
-- uses: docker/build-push-action@v6
+- uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
   with:
     push: true
     provenance: true  # default in recent versions
@@ -527,7 +527,7 @@ Provenance attestations include:
 Generate a Software Bill of Materials as a build attestation:
 
 ```yaml
-- uses: docker/build-push-action@v6
+- uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
   with:
     push: true
     sbom: true
@@ -549,22 +549,24 @@ docker buildx imagetools inspect ghcr.io/myorg/myapp:v1.0.0 --format '{{json .SB
 For more control over SBOM format and content, generate it after building:
 
 ```yaml
-- uses: docker/build-push-action@v6
+- uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
   id: build
   with:
     push: true
     tags: ghcr.io/myorg/myapp:v1.0.0
 
-- uses: anchore/sbom-action@v0
+- uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
   with:
     image: ghcr.io/myorg/myapp:v1.0.0
     format: spdx-json
     output-file: sbom.spdx.json
 
-- name: Attach SBOM to image
+# Signed SBOM attestation (`cosign attach sbom` is deprecated).
+# Keyless signing needs `id-token: write`.
+- name: Attest SBOM
   run: |
-    cosign attach sbom \
-      --sbom sbom.spdx.json \
+    cosign attest --yes --type spdxjson \
+      --predicate sbom.spdx.json \
       ghcr.io/myorg/myapp@${{ steps.build.outputs.digest }}
 ```
 
@@ -573,12 +575,21 @@ For more control over SBOM format and content, generate it after building:
 For SLSA Level 3 provenance (non-forgeable build attestation), use the SLSA GitHub generator:
 
 ```yaml
-- uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0
+# Called as a job (not a step) after a `build` job that outputs the digest
+provenance:
+  needs: [build]
+  permissions:
+    actions: read      # detect the GitHub Actions environment
+    id-token: write    # OIDC token for keyless signing
+    packages: write    # upload the attestation to ghcr.io
+  # A reusable workflow runs as its own job, and must stay on a vX.Y.Z tag:
+  # slsa-verifier checks the ref, so it can't be SHA-pinned.
+  uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0
   with:
     image: ghcr.io/myorg/myapp
     digest: ${{ needs.build.outputs.digest }}
-  secrets:
     registry-username: ${{ github.actor }}
+  secrets:
     registry-password: ${{ secrets.GITHUB_TOKEN }}
 ```
 
@@ -596,7 +607,7 @@ cosign verify-attestation \
 
 # Verify SBOM attestation
 cosign verify-attestation \
-  --type spdx \
+  --type spdxjson \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   --certificate-identity-regexp '^https://github.com/myorg/myapp/' \
   ghcr.io/myorg/myapp:v1.0.0

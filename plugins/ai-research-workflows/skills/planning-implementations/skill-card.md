@@ -4,7 +4,7 @@ Format follows NVIDIA's Skill Card template (NVIDIA/Trustworthy-AI). Sections no
 
 ## Description
 
-Instructs an agent to produce a phased implementation plan grounded in the actual codebase, with `file:line` references, test-first tasks, split automated and manual success criteria, explicit scope boundaries and no open questions. It is written instructions plus a plan template (`assets/plan-template.md`) and ships no code.
+Instructs an agent to produce a phased implementation plan grounded in the actual codebase, with `file:line` references, test-first tasks, split automated and manual success criteria, explicit scope boundaries and no open questions (each decision is recorded under Resolved Decisions). It is written instructions, a plan-writing reference (`references/plan-writing.md`) and a plan template (`assets/plan-template.md`), and ships no code.
 
 ## Owner
 
@@ -16,7 +16,7 @@ BSD-3-Clause (as declared in the plugin manifest, `plugins/ai-research-workflows
 
 ## Use Case
 
-Developers and researchers who need a feature, refactor or multi-file change designed before any code is written. Typical triggers: "plan X", "design the implementation", "create an implementation plan". The resulting plan is the input to `implementing-plans`.
+Developers and researchers who need a feature, refactor or multi-file change designed before any code is written. Typical triggers: "plan X", "design the implementation", "how should we build X", "create an implementation plan". Revising an existing plan belongs to `iterating-plans`. The resulting plan is the input to `implementing-plans`.
 
 ## Deployment Geography
 
@@ -42,7 +42,7 @@ Risk: the plan contains commands and verification steps that a later agent run (
 Mitigation: the skill requires the exact command or code for each step rather than a paraphrase, and in Collaborative mode requires user sign-off on the approach and phasing. A person should read the plan before it is executed.
 
 Risk: a plan that sounds complete but rests on a wrong reading of the code.
-Mitigation: the skill requires every phase to carry `file:line` references from files the agent has read completely, forbids placeholders such as "TBD" or "add appropriate error handling", and forbids shipping unresolved questions.
+Mitigation: the skill requires every phase to carry `file:line` references from files the agent has read completely, forbids placeholders such as "TBD" or "add appropriate error handling", and forbids shipping unresolved questions, including when the user asks to leave a decision open: the agent offers options with a recommendation and asks the user to choose.
 
 ## Output
 
@@ -56,9 +56,10 @@ Released with the `ai-research-workflows` plugin. The version is the release tag
 
 ## Ethics
 
-A plan records decisions that affect later work, so in Collaborative mode (the default lean) the skill asks that design options and trade-offs be shown to the user, and in Direct mode nothing is required to be shown before the plan is written. It also asks that scope boundaries ("What We're NOT Doing") be stated, rather than decided silently. For numerical research code, it points to `hardening-research-code` so that planned tests check against known results. Developers should confirm the skill fits their team's policies before adoption.
+A plan records decisions that affect later work, so in Collaborative mode (the default lean) the skill asks that design options and trade-offs be shown to the user, and in Direct mode (used only when the user asks for it or can't be consulted) nothing is required to be shown before the plan is written, but the decisions the agent made are recorded in the plan's Resolved Decisions section. It also asks that scope boundaries ("What We're NOT Doing") be stated, rather than decided silently. For numerical research code, it points to `hardening-research-code` so that planned tests check against known results. Developers should confirm the skill fits their team's policies before adoption.
 
 ## Reference(s)
 
 - [SKILL.md](SKILL.md)
+- [references/plan-writing.md](references/plan-writing.md)
 - [assets/plan-template.md](assets/plan-template.md)

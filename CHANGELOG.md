@@ -23,6 +23,10 @@ First tagged release. Only `ai-research-workflows` ships in it and moves to this
 - Initial tagged release.
 - Capability metadata, a skill card and a public eval task set on each skill, as part of the skill trust evidence pilot ([#293](https://github.com/uw-ssec/savvy/issues/293)).
 
+#### Changed
+
+- `planning-implementations`: `SKILL.md` is now a short entry point (when to use, mode, process, hard rules), and the section, task-shape, placeholder and checklist detail moves to `references/plan-writing.md`. The plan template's "Open Questions" section becomes "Resolved Decisions", so filling in the template no longer reintroduces the section the skill forbids. A request to leave a decision open now gets options and a recommendation instead of an unresolved plan, and Direct mode applies only when the user asks for it or can't be consulted.
+
 ### containerization
 
 #### Added

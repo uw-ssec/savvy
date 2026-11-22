@@ -21,7 +21,7 @@ measurable success criteria, and every decision made.
 
 ## When to use
 
-- A feature, refactor or multi-file change needs a design before anyone codes.
+- A feature, refactor or multi-file change needs designing before code.
 - Not when a plan already exists: use `ai-research-workflows:iterating-plans`.
 - Not when the approach is genuinely uncertain: run
   `ai-research-workflows:running-experiments` first.
@@ -63,17 +63,17 @@ then decide the rest yourself and record it in the plan.
   implementer would have to guess, offer options with a recommendation, and
   ask them to choose. No "Open Questions" section.
 - **No placeholders.** No "TBD", "add appropriate error handling", "write
-  tests for the above" or "similar to Phase N". Show the code or command.
+  tests for the above" or "similar to Phase N". Show the test code and commands.
 - **Test-first tasks.** Each unit of work: failing test, watch it fail, minimal
   code, watch it pass, commit. For research code the failing test checks a
   known result, analytic case or invariant
   (`ai-research-workflows:hardening-research-code`).
 - **Split success criteria** into Automated (commands) and Manual (judgment).
-- **Fill in "What We're NOT Doing"**, even when small.
+- **Fill in "What We're NOT Doing"**, even when small: it stops scope creep.
 
 ## Quick reference
 
 | Need | Read |
 |---|---|
-| Required sections, task shape, placeholder list, criteria split, checklist | `references/plan-writing.md` |
+| Sections, task shape, placeholders, criteria split, checklist | `references/plan-writing.md` |
 | The plan skeleton | `assets/plan-template.md` |

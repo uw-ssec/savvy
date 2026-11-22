@@ -23,11 +23,14 @@ Raw values with no semantic meaning. They describe what the value is, not how it
       "500": { "value": "#3b82f6" },
       "600": { "value": "#2563eb" },
       "700": { "value": "#1d4ed8" },
+      "800": { "value": "#1e40af" },
       "900": { "value": "#1e3a8a" }
     },
     "gray": {
       "50": { "value": "#f9fafb" },
       "100": { "value": "#f3f4f6" },
+      "200": { "value": "#e5e7eb" },
+      "400": { "value": "#9ca3af" },
       "500": { "value": "#6b7280" },
       "800": { "value": "#1f2937" },
       "900": { "value": "#111827" }
@@ -86,7 +89,7 @@ Bind semantic tokens to specific component properties.
       "background": { "value": "{color.interactive.default}" },
       "background-hover": { "value": "{color.interactive.hover}" },
       "text": { "value": "{color.text.inverse}" },
-      "border-radius": { "value": "{radius.md}" },
+      "border-radius": { "value": "{border.radius.md}" },
       "padding-x": { "value": "{spacing.4}" },
       "padding-y": { "value": "{spacing.2}" }
     },
@@ -98,7 +101,7 @@ Bind semantic tokens to specific component properties.
   "card": {
     "background": { "value": "{color.background.default}" },
     "border": { "value": "{color.border.default}" },
-    "border-radius": { "value": "{radius.lg}" },
+    "border-radius": { "value": "{border.radius.lg}" },
     "padding": { "value": "{spacing.6}" },
     "shadow": { "value": "{shadow.md}" }
   }
@@ -318,7 +321,7 @@ module.exports = {
       transformGroup: 'ios-swift',
       buildPath: 'dist/ios/',
       files: [
-        { destination: 'Tokens.swift', format: 'ios-swift/class.swift', className: 'DesignTokens' },
+        { destination: 'Tokens.swift', format: 'ios-swift/class.swift', options: { className: 'DesignTokens' } },
       ],
     },
     android: {
@@ -358,13 +361,13 @@ Write output files
 ### Custom Transform Example
 
 ```js
-const StyleDictionary = require('style-dictionary');
+import StyleDictionary from 'style-dictionary'; // v4+ is ESM-only
 
 StyleDictionary.registerTransform({
   name: 'size/pxToRem',
   type: 'value',
-  matcher: (token) => token.attributes.category === 'font' && token.attributes.type === 'size',
-  transformer: (token) => {
+  filter: (token) => token.attributes.category === 'font' && token.attributes.type === 'size',
+  transform: (token) => {
     const px = parseFloat(token.original.value);
     return `${px / 16}rem`;
   },

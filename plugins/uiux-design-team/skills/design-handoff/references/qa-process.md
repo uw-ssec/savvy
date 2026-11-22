@@ -66,7 +66,7 @@ Design QA (Quality Assurance) is the process of verifying that the implemented p
 
 - [ ] All focusable elements have visible focus indicators
 - [ ] Focus ring meets contrast requirements (3:1 against adjacent colors)
-- [ ] Focus-visible applies only on keyboard navigation (not mouse clicks)
+- [ ] Focus-visible styles appear on keyboard navigation, not on mouse clicks on buttons and links (text inputs match `:focus-visible` on click too)
 - [ ] Focus ring does not cause layout shift
 - [ ] Custom focus styles match design specifications
 

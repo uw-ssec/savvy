@@ -4,7 +4,7 @@
 
 ## Overview
 
-Jakob Nielsen's 10 usability heuristics, first published in 1994 and refined over decades, are among the most influential design principles in the field. While commonly used as evaluation tools (see usability-evaluation references for that methodology), this document examines the philosophical foundations of each heuristic, how they connect to broader design thinking, and how they integrate with other design philosophies.
+Jakob Nielsen's 10 usability heuristics, developed with Rolf Molich in 1990 and refined into the current set in 1994, are among the most influential design principles in the field. While commonly used as evaluation tools (see usability-evaluation references for that methodology), this document examines the philosophical foundations of each heuristic, how they connect to broader design thinking, and how they integrate with other design philosophies.
 
 ---
 

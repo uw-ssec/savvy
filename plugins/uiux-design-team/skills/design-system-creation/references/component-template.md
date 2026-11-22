@@ -7,7 +7,7 @@ Ready-to-copy templates for scaffolding design system components. Covers the Rea
 | Section | Description |
 |---------|-------------|
 | [React + CVA Component Pattern](#react--cva-component-pattern) | Baseline component structure with variant support and ref forwarding |
-| [Storybook main.ts Config](#storybook-maints-config) | Storybook configuration for React + Vite with a11y and interactions addons |
+| [Storybook main.ts Config](#storybook-maints-config) | Storybook configuration for React + Vite with the a11y addon |
 | [Button.stories.tsx Example](#buttonstoriestsx-example) | Complete story file demonstrating meta config, argTypes, and named stories |
 | [File Conventions](#file-conventions) | Directory layout and naming rules for design system components |
 | [See Also](#see-also) | Related references and skills |
@@ -25,7 +25,7 @@ const button = cva(
   "inline-flex items-center justify-center font-medium rounded-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 disabled:pointer-events-none",
   {
     variants: {
-      intent: {
+      variant: {
         primary: "bg-[var(--color-brand-500)] text-white hover:bg-[var(--color-brand-600)] focus-visible:outline-[var(--color-brand-500)]",
         ghost:   "bg-transparent text-[var(--color-brand-500)] hover:bg-[var(--color-brand-50)]",
         danger:  "bg-[var(--color-error)] text-white hover:bg-[var(--color-error-hover)]",
@@ -36,7 +36,7 @@ const button = cva(
         lg: "h-12 px-6 text-lg gap-2.5",
       },
     },
-    defaultVariants: { intent: "primary", size: "md" },
+    defaultVariants: { variant: "primary", size: "md" },
   }
 );
 
@@ -47,13 +47,13 @@ export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> &
   };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ intent, size, loading, className, children, ...props }, ref) => (
+  ({ variant, size, loading, className, children, ...props }, ref) => (
     <button
       ref={ref}
-      className={button({ intent, size, className })}
+      className={button({ variant, size, className })}
+      {...props}
       disabled={loading || props.disabled}
       aria-busy={loading}
-      {...props}
     >
       {loading ? <span className="animate-spin" aria-hidden>↻</span> : null}
       {children}
@@ -68,7 +68,7 @@ Button.displayName = "Button";
 - All colors reference CSS custom properties, never raw hex values.
 - `forwardRef` is required on every design system component so consumers can manage focus.
 - `loading` maps to `aria-busy` and `disabled` to prevent interaction without hiding the element.
-- `className` is passed into `cva()` so consumers can apply one-off overrides via `tailwind-merge`.
+- `className` is passed into `cva()`, which appends it after the variant classes. CVA does not resolve conflicting utilities; wrap the call in `twMerge()` from `tailwind-merge` when consumer classes must override them.
 
 ## Storybook main.ts Config
 
@@ -79,9 +79,9 @@ import type { StorybookConfig } from "@storybook/react-vite";
 const config: StorybookConfig = {
   stories: ["../src/**/*.stories.@(ts|tsx|mdx)"],
   addons: [
-    "@storybook/addon-essentials",
+    // Storybook 9+ ships essentials and interactions in core (the 8.x addons won't install).
+    // Add "@storybook/addon-docs" too if you use autodocs.
     "@storybook/addon-a11y",
-    "@storybook/addon-interactions",
   ],
   framework: { name: "@storybook/react-vite", options: {} },
 };
@@ -123,7 +123,7 @@ const meta: Meta<typeof Button> = {
   component: Button,
   args: { children: "Click me" },
   argTypes: {
-    intent: { control: "select", options: ["primary", "ghost", "danger"] },
+    variant: { control: "select", options: ["primary", "ghost", "danger"] },
     size:   { control: "select", options: ["sm", "md", "lg"] },
     loading: { control: "boolean" },
     disabled: { control: "boolean" },
@@ -135,8 +135,8 @@ const meta: Meta<typeof Button> = {
 export default meta;
 
 export const Primary:  StoryObj<typeof Button> = {};
-export const Ghost:    StoryObj<typeof Button> = { args: { intent: "ghost" } };
-export const Danger:   StoryObj<typeof Button> = { args: { intent: "danger" } };
+export const Ghost:    StoryObj<typeof Button> = { args: { variant: "ghost" } };
+export const Danger:   StoryObj<typeof Button> = { args: { variant: "danger" } };
 export const Small:    StoryObj<typeof Button> = { args: { size: "sm" } };
 export const Large:    StoryObj<typeof Button> = { args: { size: "lg" } };
 export const Loading:  StoryObj<typeof Button> = { args: { loading: true } };

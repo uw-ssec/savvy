@@ -103,7 +103,7 @@ Critique:
 
 | # | Principle | Sev | Issue → Recommendation |
 |---|-----------|-----|------------------------|
-| 1 | Nielsen H1 | 3 | "Save 20%" floats untethered → anchor to grid, add countdown (Emotional/visceral) |
+| 1 | Nielsen H8 | 3 | "Save 20%" floats untethered and competes with the content → anchor it to the grid near the products; no countdown, since an open-ended first-order offer has no deadline and a timer would be fake urgency (Rams #6 honest) |
 | 2 | Gestalt Proximity | 3 | Centered search, left-aligned products imply unrelated → left-align OR add label |
 | 3 | Nielsen H4 | 2 | Sign in/Sign up both gray → promote Sign up to primary intent |
 | 4 | Gestalt Similarity | 2 | Inconsistent price formatting → enforce `$XX.00` |

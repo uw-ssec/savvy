@@ -83,7 +83,7 @@ The behavioral level is about use -- function, usability, and the physical feel 
 - **Task completion rate**: Percentage of users who successfully complete a defined task. Below 80% indicates serious behavioral problems.
 - **Time on task**: How long each task takes. Compare against a benchmark (expert time, competitor time, or previous version time).
 - **Error rate**: How often users make mistakes during a task. High error rates indicate confusing labels, misleading affordances, or ambiguous options.
-- **System Usability Scale (SUS)**: A standardized 10-question post-task questionnaire. Scores above 68 are average; above 80 is good; above 90 is exceptional.
+- **System Usability Scale (SUS)**: A standardized 10-question post-test questionnaire (given once at the end of a session, not after each task). Scores above 68 are average; above 80 is good; above 90 is exceptional.
 - **Customer Effort Score (CES)**: "How easy was it to accomplish your goal?" on a 1-7 scale. Captures the subjective behavioral experience.
 
 ## Reflective Design

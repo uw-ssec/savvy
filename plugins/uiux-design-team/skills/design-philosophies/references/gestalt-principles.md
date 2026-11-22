@@ -1,6 +1,6 @@
 # Gestalt Principles
 
-A comprehensive reference on all seven Gestalt principles of visual perception as applied to user interface design, with concrete UI examples, common violations and their fixes, and CSS implementation tips for each principle.
+A comprehensive reference on seven core Gestalt principles of visual perception as applied to user interface design, with concrete UI examples, common violations and their fixes, and CSS implementation tips for each principle.
 
 ## Table of Contents
 

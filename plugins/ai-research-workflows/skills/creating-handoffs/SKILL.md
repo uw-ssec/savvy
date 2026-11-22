@@ -4,9 +4,9 @@ description: >-
   Use when work context must transfer to another session or person: pausing
   work, the context window running out, a collaborator or labmate taking over,
   or picking this up tomorrow. Triggers: create a handoff, hand off this work,
-  summarize context for the next session, prepare a handoff, write up the
-  current state for whoever takes over. Not for an end-of-project repository handover
-  (project-management:project-handoff) or one result's provenance
+  summarize context for the next session, prepare a handoff. Not for an
+  end-of-project repository handover (project-management:project-handoff) or
+  one result's provenance
   (ai-research-workflows:ensuring-reproducibility).
 metadata:
   capability-network: none

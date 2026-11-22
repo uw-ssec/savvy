@@ -23,6 +23,10 @@ First tagged release. Only `ai-research-workflows` ships in it and moves to this
 - Initial tagged release.
 - Capability metadata, a skill card and a public eval task set on each skill, as part of the skill trust evidence pilot ([#293](https://github.com/uw-ssec/savvy/issues/293)).
 
+#### Changed
+
+- `ensuring-reproducibility`: `SKILL.md` is now a short entry point (Iron Law, field table, clean-room steps, red flags). The full field list, record location and tolerance example moved to a new `references/provenance-record.md`, which also adds steps for a project with no lockfile and a record skeleton. The description gains triggers for numbers that differ across runs or machines, reviewer or journal requests and reporting a number in a paper, and names the neighboring skills it doesn't own ([#155](https://github.com/uw-ssec/savvy/issues/155)).
+
 ### containerization
 
 #### Added

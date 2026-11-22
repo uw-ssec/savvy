@@ -6,8 +6,8 @@ description: >-
   validating, reproducing, or hardening — and before reading code to "just
   check" or before editing. Triggers: research workflow, which skill should I
   use, where do I start, which stage are we in, what's the next step, guide me
-  through the workflow, structured development. Not for Dockerfiles
-  (containerization:dockerfile-patterns).
+  through the workflow, structured development. Not for plain
+  web or ops work (containerization:dockerfile-patterns).
 metadata:
   capability-network: none
   capability-shell: none
@@ -36,9 +36,9 @@ research investigation.
 
 - If the user explicitly skips a named step ("no plan, just write it"), skip
   that step and still run the rest.
-- If the user only signals urgency or gives a directive ("just fix it", "don't
-  overthink it", "add retry logic"), select **Direct** mode and still invoke
-  the matching skill.
+- If the user only signals urgency ("just fix it", "don't overthink it"),
+  select **Direct** mode and still invoke the matching skill.
+- A directive ("add retry logic") states WHAT to do; it skips nothing.
 
 ## Choosing a skill (decision tree)
 

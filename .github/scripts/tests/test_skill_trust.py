@@ -418,6 +418,40 @@ def test_select_step_keeps_changed_only_selection_otherwise(tmp_path):
     assert outputs["count"] == "1"
 
 
+def test_select_step_rescans_every_pilot_skill_when_the_change_list_is_large(tmp_path):
+    # `grep -q` stops at its first match; with pipefail, a producer still
+    # writing a list bigger than the pipe buffer then dies of SIGPIPE and the
+    # step used to fall back to scanning only the changed skills.
+    work, temp, env = step_env(tmp_path, [])
+    (work / ".github/scripts/skill-quality.py").write_text('print("plugins/ai-research-workflows/skills/alpha")\n', encoding="utf-8")
+    git = "printf 'pixi.lock\\n'; seq 200000 | sed 's|^|docs/f|'\n"
+    proc, outputs = run_step(
+        workflow_step("skill-quality-check.yml", "Select changed pilot skills"),
+        work,
+        {**env, "BASE_SHA": "b", "HEAD_SHA": "h"},
+        {"pixi": SELECT_PIXI, "git": git},
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert (temp / "pilot.txt").read_text(encoding="utf-8").splitlines() == ALL_PILOT
+    assert outputs["count"] == "2"
+
+
+def test_select_step_ignores_gate_inputs_changed_only_on_the_base_branch(tmp_path):
+    # Like `skill-quality.py select`, the step diffs against the merge base, so
+    # a pixi.lock bump that landed on main after the PR branched is not the PR's.
+    work, temp, env = select_repo(tmp_path, "docs/unrelated.md")
+    head = env["HEAD_SHA"]
+    _git(work, "checkout", "-q", "-b", "main-moved", "HEAD~1")
+    (work / "pixi.lock").write_text("bumped on main\n", encoding="utf-8")
+    _git(work, "add", "-f", "pixi.lock")
+    _git(work, "commit", "-q", "-m", "main moves on")
+    env = {**env, "BASE_SHA": _git(work, "rev-parse", "HEAD"), "HEAD_SHA": head}
+    proc, outputs = run_step(workflow_step("skill-quality-check.yml", "Select changed pilot skills"), work, env, {"pixi": SELECT_PIXI})
+    assert proc.returncode == 0, proc.stderr
+    assert (temp / "pilot.txt").read_text(encoding="utf-8").splitlines() == ["plugins/ai-research-workflows/skills/alpha"]
+    assert outputs["count"] == "1"
+
+
 def test_security_scan_steps_run_the_script_in_the_pixi_env():
     for name in ("Select changed pilot skills", "Gate on findings"):
         script = workflow_step("skill-quality-check.yml", name)

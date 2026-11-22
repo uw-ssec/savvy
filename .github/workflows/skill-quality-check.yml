@@ -146,8 +146,14 @@ jobs:
           .github/workflows/skill-quality-check.yml
           pixi.toml
           pixi.lock"
-          changed="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")"
-          if printf '%s\n' "$changed" | grep -qxF -f <(printf '%s\n' "$gate_inputs"); then
+          # Diff from the merge base (`...`), as `skill-quality.py select` does,
+          # so a gate input that changed only on the base branch doesn't count.
+          # The list goes to a file, not a pipe: `grep -q` stops at its first
+          # match and, under pipefail, a producer still writing a long list
+          # would die of SIGPIPE and send us down the changed-only branch.
+          git diff --name-only "$BASE_SHA...$HEAD_SHA" > "$RUNNER_TEMP/changed.txt"
+          printf '%s\n' "$gate_inputs" > "$RUNNER_TEMP/gate-inputs.txt"
+          if grep -qxF -f "$RUNNER_TEMP/gate-inputs.txt" "$RUNNER_TEMP/changed.txt"; then
             echo "A gate input changed; scanning every pilot skill."
             pixi run -e ci python .github/scripts/skill_trust.py list-pilot > "$RUNNER_TEMP/pilot.txt"
           else

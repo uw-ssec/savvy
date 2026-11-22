@@ -25,7 +25,7 @@ First tagged release. Only `ai-research-workflows` ships in it and moves to this
 
 #### Changed
 
-- `using-research-workflows`: slim the entry point to the rule, instruction priority, decision tree and pointers; move workflow patterns, red flags and common mistakes to `references/workflow-patterns.md` and document naming and deferral to `references/conventions.md`; an explicitly skipped step is skipped while urgency only selects Direct mode ([#162](https://github.com/uw-ssec/savvy/issues/162)).
+- `using-research-workflows`: slim the entry point to the rule, instruction priority, decision tree and pointers; move workflow patterns, red flags and common mistakes to `references/workflow-patterns.md` and document naming and deferral to `references/conventions.md`; an explicitly skipped step is skipped while urgency only selects Direct mode, and the agent states the route and writes the research document before editing ([#162](https://github.com/uw-ssec/savvy/issues/162)).
 
 ### containerization
 

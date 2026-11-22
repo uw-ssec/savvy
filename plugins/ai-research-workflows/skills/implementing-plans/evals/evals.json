@@ -3,7 +3,10 @@
   "evals": [
     {
       "id": "implementing-plans-001",
-      "prompt": "Please execute docs/rse/specs/plan-bootstrap-ci-pipeline.md. I'm on the branch feature/bootstrap-ci, so go ahead and start with Phase 1.",
+      "prompt": "Please execute docs/rse/specs/plan-bootstrap-ci-pipeline.md. The repo is at input/bootstrap-ci/. It was copied in without its git history, so first run `git init -b feature/bootstrap-ci` there and commit everything as-is. Then go ahead and start with Phase 1.",
+      "files": [
+        "files/bootstrap-ci"
+      ],
       "expected_output": "Phase 1 of the plan is implemented on the feature/bootstrap-ci branch, automated checks for that phase have been run with their results reported, the plan file's Phase 1 checkboxes are updated from '- [ ]' to '- [x]', and work stops after Phase 1 awaiting the user's manual verification before Phase 2 begins.",
       "assertions": [
         "The agent read the full plan file docs/rse/specs/plan-bootstrap-ci-pipeline.md before making code changes",
@@ -18,8 +21,11 @@
     },
     {
       "id": "implementing-plans-002",
-      "prompt": "The plan for the new data-loader refactor is approved and sitting in docs/rse/specs/plan-dataloader-refactor.md. Let's start building it.",
-      "expected_output": "The plan was read and reviewed, the current git branch was checked, and either implementation of the first phase began on a non-main branch or the agent stopped to raise concerns or request a feature branch if on main/master. Any plan assumptions that did not hold were reported before code was written.",
+      "prompt": "The plan for the new data-loader refactor is approved and sitting in docs/rse/specs/plan-dataloader-refactor.md. The repo is at input/dataloader/. It was copied in without its git history, so first run `git init -b main` there and commit everything as-is. Let's start building it.",
+      "files": [
+        "files/dataloader"
+      ],
+      "expected_output": "The plan was read and reviewed and the current git branch was checked. Because the repo is on main, the agent either stopped to ask for consent or a feature branch before writing code, or created a feature branch and began the first phase there. Any plan assumptions that did not hold were reported before code was written.",
       "assertions": [
         "The agent checked the current git branch before writing any code",
         "The agent did not make code changes on main or master without explicit user consent",
@@ -32,7 +38,10 @@
     },
     {
       "id": "implementing-plans-003",
-      "prompt": "I finished reviewing plan-survival-analysis.md yesterday and signed off. Phases 1 and 2 are already checked off in it from last week. Can you pick it back up and run the rest? The data directory data/cohort_v3 should be in place, and we're on branch analysis/survival-models.",
+      "prompt": "I finished reviewing docs/rse/specs/plan-survival-analysis.md yesterday and signed off. Phases 1 and 2 are already checked off in it from last week. Can you pick it back up and run the rest? The data directory data/cohort_v3 should be in place. The repo is at input/survival/. It was copied in without its git history, so first run `git init -b analysis/survival-models` there and commit everything as-is.",
+      "files": [
+        "files/survival"
+      ],
       "expected_output": "The agent recognized from existing checkmarks that Phases 1 and 2 were already complete, verified that data/cohort_v3 exists, and began implementing the first unchecked phase (Phase 3), updating checkboxes as tasks finished and running automated verification for that phase. Any deviations from the plan were reported to the user.",
       "assertions": [
         "The agent did not redo Phases 1 and 2 and started from the first unchecked phase",
@@ -46,7 +55,10 @@
     },
     {
       "id": "implementing-plans-004",
-      "prompt": "The plan docs/rse/specs/plan-date-parsing.md says to change parse_date() in src/utils/dates.py, but I think someone moved that function into src/core/time.py last month. Go ahead and implement Phase 1 anyway, we're on branch feature/dates.",
+      "prompt": "The plan docs/rse/specs/plan-date-parsing.md says to change parse_date() in src/utils/dates.py, but I think someone moved that function into src/core/time.py last month. Go ahead and implement Phase 1 anyway. The repo is at input/dates/. It was copied in without its git history, so first run `git init -b feature/dates` there and commit everything as-is.",
+      "files": [
+        "files/dates"
+      ],
       "expected_output": "The agent reads the plan and the code, finds the mismatch, stops and reports it with options, and waits for the user's direction instead of guessing.",
       "assertions": [
         "The agent read the plan and checked where parse_date() actually lives before editing",
@@ -59,7 +71,10 @@
     },
     {
       "id": "implementing-plans-005",
-      "prompt": "We just finished the last phase of docs/rse/specs/plan-add-caching.md together. Write the implementation summary document for it.",
+      "prompt": "We just finished the last phase of docs/rse/specs/plan-add-caching.md together. Write the implementation summary document for it. The repo is at input/add-caching/. It was copied in without its git history, so first run `git init -b feature/add-caching` there and commit everything as-is.",
+      "files": [
+        "files/add-caching"
+      ],
       "expected_output": "A final implementation summary written to docs/rse/specs/implement-add-caching.md, after confirming that the work is genuinely done: each phase's automated verification passes, nothing is left unaccounted for, and the changes are not left on main or master. The document covers phases completed, files modified, tests run and remaining work, and points to validating-implementations as the next step.",
       "assertions": [
         "The agent confirmed each phase's automated verification passes and that no checklist item was silently skipped before declaring completion",
@@ -73,6 +88,7 @@
     {
       "id": "implementing-plans-neg-001",
       "prompt": "We need to add rate limiting to our public API. How should we build this? I don't want to write any code until we have a solid, phased design with success criteria.",
+      "files": [],
       "expected_output": "The agent treats this as a request to design a plan, not to execute one: it asks scoping questions or proposes a phased breakdown with success criteria for approval (or writes a plan), and writes no implementation code.",
       "assertions": [
         "The agent did not write implementation code",
@@ -85,7 +101,10 @@
     },
     {
       "id": "implementing-plans-neg-002",
-      "prompt": "Before I merge, verify the cache layer matches docs/rse/specs/plan-add-caching.md.",
+      "prompt": "Before I merge, verify the cache layer in input/add-caching/ matches its plan, docs/rse/specs/plan-add-caching.md.",
+      "files": [
+        "files/add-caching"
+      ],
       "expected_output": "The agent treats this as validating finished work against the plan: it reads the plan, inspects the code and re-runs the verification itself, and reports findings or a verdict, without implementing further phases.",
       "assertions": [
         "The agent did not implement new plan phases or write feature code",

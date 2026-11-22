@@ -34,7 +34,7 @@ Default **Collaborative**: state the scope and research plan (or ask one
 focused scoping question) and get a quick OK before investigating; present
 findings before writing. Use **Direct** when the user gives a specific
 directive with enough context or won't be available: state scope and plan,
-proceed, write the document, and note judgment calls in it. See
+proceed, write the document, noting judgment calls. See
 `ai-research-workflows:using-research-workflows`.
 
 ## Quick reference
@@ -49,12 +49,12 @@ Track steps as tasks.
 | 4. Investigate: `references/codebase-research.md` (internal), `references/prior-art-research.md` (external) | | |
 | 5. Present findings | Confirm (Collaborative) | |
 | 6. Write from `assets/research-template.md` | | `docs/rse/specs/research-<slug>.md` |
-| 7. Self-review the written document | Fix inline | |
+| 7. Self-review the document | Fix inline | |
 | 8. Ask the user to review it | Wait (Collaborative) | |
 | 9. Hand off: `planning-implementations`, or `running-experiments` if an approach is uncertain | | |
 
 At step 6, read `references/writing-and-review.md` (slug, codebase state,
-checklists, review request).
+checklists).
 
 ## Hard rules
 
@@ -62,5 +62,5 @@ checklists, review request).
 - **Every codebase finding cites `file:line`.** "Somewhere in the session module" is not a finding.
 - **Record the codebase state** (commit SHA via `git rev-parse --short HEAD`, and date) when the internal pass ran.
 - **Every prior-art claim cites a primary source**; label any secondary source. Run at least one disconfirming search for limitations, critiques and failures.
-- **Describe, don't change code.** A bug you find, even a one-liner, goes in the document with its anchor; the fix waits for planning.
+- **Describe; don't change code or draft the fix.** A bug you find, even a one-liner, goes in the document with its anchor; the fix goes to `planning-implementations`.
 - **Self-review before showing the document:** no placeholders (TBD), anchors and citations present, no contradictions, every sub-question answered or its gap named.

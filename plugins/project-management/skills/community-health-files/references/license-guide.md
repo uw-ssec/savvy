@@ -173,9 +173,10 @@ These are the standard identifiers recognized across all ecosystems.
 **Python (pyproject.toml):**
 ```toml
 [project]
-license = {text = "BSD-3-Clause"}
-# or with a license file:
-license = {file = "LICENSE"}
+license = "BSD-3-Clause"        # SPDX expression (PEP 639)
+license-files = ["LICENSE"]
+# The older table forms, license = {text = ...} or {file = ...}, are
+# deprecated: setuptools >= 77 warns on them.
 ```
 
 **Rust (Cargo.toml):**
@@ -239,10 +240,10 @@ full license text. Use the exact text from https://opensource.org/licenses/
 or https://choosealicense.com/.
 
 ```bash
-# Example: generate BSD-3-Clause license
+# Example: fetch the BSD-3-Clause text from the GitHub licenses API
 # Replace [year] and [fullname] with actual values
-curl -sL "https://choosealicense.com/licenses/bsd-3-clause/" | \
-  # Or simply copy the template from this skill's assets
+curl -sL "https://api.github.com/licenses/bsd-3-clause" | \
+  python3 -c "import json, sys; print(json.load(sys.stdin)['body'], end='')" > LICENSE
 ```
 
 ### Step 2: Add License to Project Configuration

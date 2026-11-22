@@ -173,7 +173,7 @@ Add a GitHub Actions workflow that runs all validation on every PR touching docs
 
 1. Copy `assets/vale-config.ini` to `.vale.ini` in the repo root
 2. Run `vale sync` to download style packages
-3. Add scientific terms to `.vale/styles/Vocab/Scientific/accept.txt`
+3. Add scientific terms to `.vale/styles/config/vocabularies/Scientific/accept.txt` (Vale 3.x location)
 4. Run `vale docs/` to see initial findings
 5. See `references/vale-configuration.md` for style package selection and custom rule examples
 

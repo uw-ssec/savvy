@@ -118,6 +118,10 @@ version: "1.2.0"
 The current version of the software. Should match the version in your
 project configuration file. See line 205 for version syncing strategies.
 
+The schema accepts a string or a number, so `version: 1.0.0` validates
+unquoted (YAML reads it as a string). Quote it anyway: YAML reads `1.10`
+as the number `1.1`, and cffconvert then cites "version 1.1".
+
 ### date-released
 
 ```yaml

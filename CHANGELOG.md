@@ -53,6 +53,8 @@ First tagged release. Only `ai-research-workflows` ships in it and moves to this
 #### Fixed
 
 - Fixed broken links in the `community-health-files` and `documentation-validation` skill references, refs #249.
+- Fixed `community-health-files` guidance: CFF 1.2.0 accepts an unquoted `version` (quoting is still advised), GitHub private vulnerability reporting must be enabled in repository settings before `SECURITY.md` can point to it, `pyproject.toml` uses the PEP 639 SPDX `license` string, and the license-fetch command now runs.
+- Fixed `documentation-validation` Vale guidance for Vale 3: vocabularies live under `<StylesPath>/config/vocabularies/<Name>/`, an empty `BasedOnStyles` (not `NO`) disables styles, the ignore-section example no longer negates its glob, the `occurrence` and `consistency` rule messages match what Vale passes, the strict recipe syncs `alex`, and the HTMLProofer example's line continuations work.
 
 ### research-software-design
 

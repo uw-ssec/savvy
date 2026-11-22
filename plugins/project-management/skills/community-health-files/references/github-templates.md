@@ -444,6 +444,10 @@ contact_links:
     about: Report security vulnerabilities privately
 ```
 
+The `security/advisories/new` link only lets outside reporters file a
+private report once a maintainer enables **Private vulnerability reporting**
+(repository Settings > Advanced Security). Enable it before linking to it.
+
 **`blank_issues_enabled: false`** forces users to use a template. This
 improves issue quality but may frustrate users with edge cases. Consider
 leaving it `true` for smaller projects.

@@ -72,13 +72,13 @@ body:
 ## Setup and Validation Workflow
 
 1. Create baseline files using templates below.
-2. Fill project-specific metadata (name, maintainers, contacts, citation fields).
+2. Fill project-specific metadata (name, maintainers, contacts, citation fields). If `SECURITY.md` points reporters to GitHub private vulnerability reporting, enable it under repository Settings > Advanced Security; until then, reporters cannot file a private report.
 3. Validate `CITATION.cff`:
    ```bash
    pip install cffconvert
    cffconvert --validate
    ```
-   **If validation fails:** check `date-released` is `YYYY-MM-DD`, `authors` is a list, and all required fields are present. Common error: `version` field must be a string (`"1.0.0"`, not `1.0.0`).
+   **If validation fails:** check `date-released` is `YYYY-MM-DD`, `authors` is a list, and all required fields are present. The CFF 1.2.0 schema accepts `version` as a string or a number, so unquoted `1.0.0` (which YAML reads as a string) is valid; quote versions anyway, because YAML turns `1.10` into the number `1.1`.
 4. Verify issue/PR templates render in GitHub UI by opening a new issue in the repository.
 5. Check repository Community Standards page (`github.com/org/repo/community`) and address flagged gaps.
 

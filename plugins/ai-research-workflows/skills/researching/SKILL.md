@@ -53,8 +53,8 @@ Track steps as tasks.
 | 8. Ask the user to review it | Wait (Collaborative) | |
 | 9. Hand off: `planning-implementations`, or `running-experiments` if an approach is uncertain | | |
 
-At step 6, read `references/writing-and-review.md` (slug, codebase state,
-checklists).
+Before step 5, read `references/writing-and-review.md` (presenting, slug,
+codebase state, checklists).
 
 ## Hard rules
 

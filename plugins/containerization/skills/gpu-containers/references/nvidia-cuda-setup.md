@@ -120,8 +120,8 @@ docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
 The CUDA driver is **backward compatible**: a newer host driver can run containers with older CUDA versions. (NVIDIA calls the reverse, an older driver running a newer CUDA, forward compatibility.) This means:
 
 - Host driver 550.x can run CUDA 12.4, 12.3, 12.2, ..., 11.x containers
-- Host driver 535.x fully supports CUDA 12.2 and older. Newer 12.x images still start on it when their `NVIDIA_REQUIRE_CUDA` lists the 535 branch, as the 12.3.2, 12.4.1, 12.6.3, 12.8.1 and 12.9.1 base tags do, and the code then runs through minor version compatibility (see Driver Compatibility)
-- The accepted branches differ per tag: `12.4.1` lists 470, 525 and 535; `12.9.1` lists 535, 550, 560, 565 and 570
+- Host driver 535.x fully supports CUDA 12.2 and older. Newer 12.x images can still start on it when their `NVIDIA_REQUIRE_CUDA` lists the 535 branch for your GPU's brand, as the 12.3.2, 12.4.1, 12.6.3, 12.8.1 and 12.9.1 base tags do, and the code then runs through minor version compatibility (see Driver Compatibility)
+- The accepted branches, and the GPU brands each applies to, differ per tag: `12.4.1` lists 470, 525 and 535 for every brand including GeForce; `12.9.1` lists 535, 550, 560, 565 and 570 for data center and professional brands only (no GeForce). Each `brand=...,driver>=...` entry needs both to match
 - A CUDA 12.4 image is refused on driver 530.x, because 530 is neither new enough nor a listed branch
 
 A listed branch only lets the container start. Check what an image accepts before choosing a driver:

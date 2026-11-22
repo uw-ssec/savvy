@@ -72,9 +72,9 @@ my-sci-package/
 [tool.hatch.build.targets.wheel]
 packages = ["src/my_sci_package"]
 
-# Data files inside the package directory are included automatically.
-# force-include is only for files outside it; listing data/ here fails
-# the build with "A second file is being added to the wheel archive".
+# Package data is included automatically unless git-ignored or excluded.
+# Don't force-include files already selected at the same wheel path: the
+# duplicate fails the build with "A second file is being added to the wheel archive".
 ```
 
 **Access data files in code:**

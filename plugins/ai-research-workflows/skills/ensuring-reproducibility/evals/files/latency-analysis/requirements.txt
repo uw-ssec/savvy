@@ -1,0 +1,1 @@
+# Dependencies. The project uses only the Python 3.12 standard library.

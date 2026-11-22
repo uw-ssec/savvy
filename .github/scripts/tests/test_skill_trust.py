@@ -275,6 +275,10 @@ def test_malformed_report_fails_closed(st, bad):
         lambda rep: rep["results"][0].update(findings=["not a finding"]),
         lambda rep: rep["results"][0].update(findings="not a list"),
         lambda rep: rep["results"][0].update(findings={"severity": "high"}),
+        lambda rep: rep["results"][0].pop("findings"),
+        lambda rep: rep["results"][0].update(findings=None),
+        lambda rep: rep["results"][0]["findings"].append({}),
+        lambda rep: rep["results"][0]["findings"].append({"severity": None, "check_name": "x"}),
     ],
 )
 def test_malformed_result_or_finding_marks_the_report_incomplete(st, tmp_path, capsys, mangle):

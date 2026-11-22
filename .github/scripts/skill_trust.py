@@ -357,12 +357,14 @@ def gate(report: dict, skill: str, acceptances: list[Acceptance], root: Path = P
     for res in results if isinstance(results, list) else []:
         # A result or finding that isn't the expected shape can't be read, so
         # the scan can't be trusted; record that rather than crash without a summary.
+        # SkillEvaluator always writes a findings list and a severity string on
+        # every finding, so anything else is treated the same way.
         findings = res.get("findings") if isinstance(res, dict) else None
-        if not isinstance(res, dict) or not isinstance(findings, list | None):
+        if not isinstance(findings, list):
             result.incomplete = True
             continue
-        for f in findings or []:
-            if not isinstance(f, dict):
+        for f in findings:
+            if not isinstance(f, dict) or not isinstance(f.get("severity"), str) or not f["severity"]:
                 result.incomplete = True
                 continue
             if str(f.get("severity", "")).lower() not in BLOCKING_SEVERITIES:

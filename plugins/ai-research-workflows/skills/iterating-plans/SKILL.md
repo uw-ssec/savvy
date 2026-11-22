@@ -34,8 +34,8 @@ Default mode: Collaborative (protocol: `ai-research-workflows:using-research-wor
      because a plan edit changes what later agents execute): reply with
      **Current state** (phases), **Proposed changes**, **Sections affected**,
      then "Does this match?" Don't touch the file until the user says yes.
-   - *Direct* (the user says not to check back: "already agreed", "don't ask",
-     "just do it"): list the intended edits, then apply them. Example:
+   - *Direct* (the user says not to check back: "no need to check back",
+     "don't ask", "just do it"): list the intended edits, then apply them. Example:
      "Applying: insert Phase 2, renumber old Phases 2–3 to 3–4."
 
    Push back on changes that conflict with existing phases.
@@ -60,10 +60,10 @@ worked pattern per change.
 
 | Change | Touch | Leave alone |
 |---|---|---|
-| Add a phase | New phase (each task cites `path/file.ext:12-30` for the file it changes; test first; Automated/Manual criteria); later numbers and references | Other phases |
+| Add a phase | New phase (each task names its file, cites `path/file.ext:12-30` for existing code it changes or calls, marks new files as new; test first; Automated/Manual criteria); later numbers and references | Other phases |
 | Cut scope | Its tasks, success criteria and tests; add it to "What We're NOT Doing" with the reason | Unrelated phases |
 | Update criteria | The items, in the right Automated or Manual list | Tasks |
-| New approach or experiment results | Implementation Approach; affected tasks; References (link the report); research criteria | Unaffected phases, Current State Analysis |
+| New approach or experiment results | Implementation Approach; affected tasks; References (link the report); research criteria | Unaffected phases; Current State Analysis unless the results disprove it |
 | Split or reorder | The phases, each independently testable; later numbers and references | Tasks that don't move |
 
 ## Common Mistakes

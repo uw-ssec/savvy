@@ -3,8 +3,8 @@ name: running-experiments
 description: >-
   Use when the best technical approach is genuinely uncertain and two or three
   candidate libraries, designs or implementations should be built and measured
-  head-to-head before committing. Triggers: should I use X or Y, X or Y for our
-  data, try both, prototype both, compare approaches, benchmark before
+  head-to-head before committing. Triggers: should I use X or Y, prototype both,
+  compare approaches, benchmark before
   committing, which is faster on our data, A/B two implementations. Not for
   surveying existing tools or papers (use researching).
 metadata:

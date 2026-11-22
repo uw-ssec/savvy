@@ -60,10 +60,10 @@ worked pattern per change.
 
 | Change | Touch | Leave alone |
 |---|---|---|
-| Add a phase | New phase (tasks with `file:line`, test first, Automated/Manual criteria); later numbers and references | Other phases |
+| Add a phase | New phase (each task cites `path/file.ext:12-30` for the file it changes; test first; Automated/Manual criteria); later numbers and references | Other phases |
 | Cut scope | Its tasks, success criteria and tests; add it to "What We're NOT Doing" with the reason | Unrelated phases |
 | Update criteria | The items, in the right Automated or Manual list | Tasks |
-| New approach or experiment results | Implementation Approach; affected tasks; References (link the report); research criteria | Unaffected phases |
+| New approach or experiment results | Implementation Approach; affected tasks; References (link the report); research criteria | Unaffected phases, Current State Analysis |
 | Split or reorder | The phases, each independently testable; later numbers and references | Tasks that don't move |
 
 ## Common Mistakes

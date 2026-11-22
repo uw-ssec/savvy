@@ -268,6 +268,27 @@ def test_malformed_report_fails_closed(st, bad):
     assert not res.passed
 
 
+@pytest.mark.parametrize(
+    "mangle",
+    [
+        lambda rep: rep["results"].append("not a result"),
+        lambda rep: rep["results"][0].update(findings=["not a finding"]),
+        lambda rep: rep["results"][0].update(findings="not a list"),
+        lambda rep: rep["results"][0].update(findings={"severity": "high"}),
+    ],
+)
+def test_malformed_result_or_finding_marks_the_report_incomplete(st, tmp_path, capsys, mangle):
+    # Used to raise AttributeError, so the gate died with no summary row.
+    rep = report(finding(severity="medium"))
+    mangle(rep)
+    res = st.gate(rep, SKILL, [])
+    assert res.incomplete
+    assert not res.passed
+    write_report(tmp_path / "reports", SKILL, rep)
+    assert run_gate(st, tmp_path) == 1
+    assert f"| `{SKILL}` | 0 | 0 | 0 | ❌ scan incomplete |" in capsys.readouterr().out
+
+
 def test_critical_finding_blocks(st):
     assert len(st.gate(report(finding(severity="critical")), SKILL, []).blocking) == 1
 

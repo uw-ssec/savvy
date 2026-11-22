@@ -351,7 +351,16 @@ def gate(report: dict, skill: str, acceptances: list[Acceptance], root: Path = P
         return digests[a.file_path] == a.file_sha256
 
     for res in results if isinstance(results, list) else []:
-        for f in res.get("findings") or []:
+        # A result or finding that isn't the expected shape can't be read, so
+        # the scan can't be trusted; record that rather than crash without a summary.
+        findings = res.get("findings") if isinstance(res, dict) else None
+        if not isinstance(res, dict) or not isinstance(findings, list | None):
+            result.incomplete = True
+            continue
+        for f in findings or []:
+            if not isinstance(f, dict):
+                result.incomplete = True
+                continue
             if str(f.get("severity", "")).lower() not in BLOCKING_SEVERITIES:
                 continue
             key = (

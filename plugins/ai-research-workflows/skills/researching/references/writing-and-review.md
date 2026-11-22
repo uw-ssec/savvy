@@ -8,7 +8,7 @@ reviewed `docs/rse/specs/research-<slug>.md` and the hand-off to planning.
 Present the synthesized findings in sections, codebase first and then prior
 art, with `file:line` anchors for code and citations for external sources.
 In Collaborative mode, confirm understanding *before* writing anything out.
-In Direct mode, go straight to writing and put the findings in the document.
+In Direct mode, present them briefly and go on to write without waiting.
 
 ## 6. Write the document
 

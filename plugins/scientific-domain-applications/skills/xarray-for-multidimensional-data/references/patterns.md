@@ -192,7 +192,7 @@ rolling_sum = ds.rolling(time=30).sum()
 **Resampling (time series):**
 ```python
 # Resample to monthly
-monthly = ds.resample(time="1M").mean()
+monthly = ds.resample(time="1ME").mean()  # "ME" = month end; "1M" raises on pandas >= 3
 
 # Resample to weekly
 weekly = ds.resample(time="1W").sum()
@@ -308,10 +308,10 @@ result = xr.apply_ufunc(
 
 **Vectorized operations:**
 ```python
-from scipy import stats
+from scipy import signal
 
 def detrend(data, axis):
-    return stats.detrend(data, axis=axis)
+    return signal.detrend(data, axis=axis)
 
 # Apply along specific dimension
 detrended = xr.apply_ufunc(
@@ -354,13 +354,11 @@ dt = xr.DataTree.from_dict({
     "/model_outputs/ensemble_2": xr.Dataset({"model_id": "GFDL"})
 })
 
-# Method 2: Build incrementally
+# Method 2: Build incrementally (assigning a node attaches it to the tree)
 root = xr.DataTree(name="root")
-observations = xr.DataTree(name="observations", parent=root)
-station_a = xr.DataTree(
-    name="station_a",
-    parent=observations,
-    data=xr.Dataset({"temp": (["time"], [15, 16, 17])})
+root["observations"] = xr.DataTree()
+root["observations/station_a"] = xr.DataTree(
+    xr.Dataset({"temp": (["time"], [15, 16, 17])})
 )
 ```
 
@@ -405,8 +403,11 @@ shallow_nodes = dt.filter(lambda node: node.depth <= 2)
 
 **Apply operations across tree:**
 ```python
-# Apply method to all datasets
-mean_tree = dt.mean(dim="time")
+# Apply method to all datasets (every node must support it: on the tree above,
+# string variables such as "location" make dt.mean(dim="time") raise TypeError)
+mean_tree = dt.map_over_datasets(
+    lambda ds: ds.mean(dim="time") if "time" in ds.dims else ds
+)
 
 # Map custom function to all datasets
 def add_metadata(ds):
@@ -415,12 +416,10 @@ def add_metadata(ds):
 
 dt_processed = dt.map_over_datasets(add_metadata)
 
-# Apply function with access to node information
-def label_by_path(ds, node):
-    ds.attrs["path"] = node.path
-    return ds
-
-dt_labeled = dt.map_over_datasets(label_by_path)
+# map_over_datasets passes only Datasets; for node information, loop over the subtree
+dt_labeled = dt.copy()
+for node in dt_labeled.subtree:
+    node.attrs["path"] = node.path
 ```
 
 **Coordinate inheritance:**
@@ -429,20 +428,18 @@ dt_labeled = dt.map_over_datasets(label_by_path)
 root_ds = xr.Dataset({
     "time": pd.date_range("2024-01-01", periods=100)
 })
-dt = xr.DataTree(data=root_ds)
+dt = xr.DataTree(root_ds)
 
 # Child nodes inherit parent coordinates
-child = xr.DataTree(
-    parent=dt,
-    data=xr.Dataset({"temp": (["time"], np.random.randn(100))})
+dt["child"] = xr.DataTree(
+    xr.Dataset({"temp": (["time"], np.random.randn(100))})
 )
-# child can use "time" coordinate without redefining it
+# dt["child"] can use "time" coordinate without redefining it
 
 # Important: Child dimensions must align with inherited coordinates
 # This will raise an error if lengths don't match:
-# bad_child = xr.DataTree(
-#     parent=dt,
-#     data=xr.Dataset({"temp": (["time"], np.random.randn(50))})  # Wrong length!
+# dt["bad_child"] = xr.DataTree(
+#     xr.Dataset({"temp": (["time"], np.random.randn(50))})  # Wrong length!
 # )
 ```
 
@@ -466,8 +463,8 @@ dt_diff = dt2 - dt1
 dt1.isomorphic(dt2)  # True if same node names and hierarchy
 
 # Iterate over multiple trees together
-for node1, node2 in xr.group_subtrees(dt1, dt2):
-    print(f"Comparing {node1.path}: {node1.ds} vs {node2.ds}")
+for path, (node1, node2) in xr.group_subtrees(dt1, dt2):
+    print(f"Comparing {path}: {node1.ds} vs {node2.ds}")
 ```
 
 **Save and load DataTree:**
@@ -478,7 +475,7 @@ dt.to_zarr("climate_tree.zarr")
 # Load from Zarr
 dt_loaded = xr.open_datatree("climate_tree.zarr", engine="zarr")
 
-# Save to NetCDF (flattened structure)
+# Save to NetCDF (one NetCDF4 group per node)
 dt.to_netcdf("climate_tree.nc")
 ```
 
@@ -637,7 +634,7 @@ das = [rioxarray.open_rasterio(f, masked=True) for f in files]
 
 # Combine with time dimension
 ds = xr.concat(das, dim="time")
-ds["time"] = pd.date_range("2020-01-01", periods=3, freq="1Y")
+ds["time"] = pd.date_range("2020-01-01", periods=3, freq="1YE")
 ds = ds.rio.write_crs(das[0].rio.crs)
 
 # Calculate change over time
@@ -652,7 +649,8 @@ def calculate_trend(x):
     slope, _, _, _, _ = stats.linregress(range(len(x)), x)
     return slope
 
-trend = ds.reduce(calculate_trend, dim="time")
+# reduce() would pass an axis= argument; apply_ufunc vectorizes a 1-D function
+trend = xr.apply_ufunc(calculate_trend, ds, input_core_dims=[["time"]], vectorize=True)
 trend = trend.rio.write_crs(ds.rio.crs)
 ```
 

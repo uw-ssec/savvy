@@ -83,7 +83,7 @@ def process_astronomical_image(filename, output_catalog='sources.fits'):
 
     # 4. Aperture photometry
     print("Performing aperture photometry...")
-    positions = np.transpose([sources['xcentroid'], sources['ycentroid']])
+    positions = np.transpose([sources['x_centroid'], sources['y_centroid']])  # photutils >= 3.0 names
 
     # Define apertures
     apertures = CircularAperture(positions, r=5.0)
@@ -102,8 +102,8 @@ def process_astronomical_image(filename, output_catalog='sources.fits'):
 
     # 5. Convert to sky coordinates
     print("Converting to sky coordinates...")
-    x_pix = phot_table['xcenter']
-    y_pix = phot_table['ycenter']
+    x_pix = phot_table['x_center']
+    y_pix = phot_table['y_center']
     sky_coords = wcs.pixel_to_world(x_pix, y_pix)
 
     # 6. Create output catalog
@@ -589,10 +589,11 @@ if __name__ == '__main__':
 Measure redshift from spectrum using line identification and cross-correlation.
 
 ```python
-from specutils import Spectrum1D
+from specutils import Spectrum  # Spectrum1D before specutils 2.0
 from specutils.analysis import template_correlate
 from specutils.manipulation import spectral_slab
 from astropy.io import fits
+import astropy.constants as const
 import astropy.units as u
 import numpy as np
 
@@ -615,7 +616,7 @@ def measure_redshift(spectrum_file, template_file=None):
 
     # 1. Load observed spectrum
     print("Loading observed spectrum...")
-    spectrum = Spectrum1D.read(spectrum_file)
+    spectrum = Spectrum.read(spectrum_file)
 
     # 2. Identify emission lines (simple peak finding)
     print("Identifying emission lines...")
@@ -681,10 +682,10 @@ def measure_redshift(spectrum_file, template_file=None):
     if template_file and best_z:
         print("Refining redshift with template correlation...")
 
-        template = Spectrum1D.read(template_file)
+        template = Spectrum.read(template_file)
 
         # Shift template to approximate redshift
-        template_shifted = Spectrum1D(
+        template_shifted = Spectrum(
             spectral_axis=template.spectral_axis * (1 + best_z),
             flux=template.flux
         )
@@ -698,12 +699,11 @@ def measure_redshift(spectrum_file, template_file=None):
             spec_region = spectral_slab(spectrum, wave_min, wave_max)
             template_region = spectral_slab(template_shifted, wave_min, wave_max)
 
-            # Correlate
-            result = template_correlate(spec_region, template_region,
-                                        redshift_range=(best_z-0.1, best_z+0.1),
-                                        redshift_step=0.0001)
-
-            refined_z = result[0]
+            # Correlate: returns (correlation, lag), lag in km/s relative to
+            # the already-shifted template
+            corr, lag = template_correlate(spec_region, template_region)
+            dv = lag[np.argmax(corr)]
+            refined_z = (1 + best_z) * (1 + (dv / const.c).decompose().value) - 1
             print(f"Refined redshift: z = {refined_z:.4f}")
         else:
             refined_z = best_z
@@ -735,7 +735,7 @@ if __name__ == '__main__':
 Calculate target observability from a specific location over time.
 
 ```python
-from astropy.coordinates import SkyCoord, EarthLocation, AltAz, get_sun, get_moon
+from astropy.coordinates import SkyCoord, EarthLocation, AltAz, get_sun, get_body
 from astropy.time import Time
 import astropy.units as u
 import numpy as np
@@ -780,10 +780,9 @@ def calculate_observability(target_coord, location, date,
 
     # 3. Calculate sun and moon positions
     sun_altaz = get_sun(times).transform_to(altaz_frame)
-    moon_altaz = get_moon(times).transform_to(altaz_frame)
+    moon_altaz = get_body('moon', times, location).transform_to(altaz_frame)
 
     # Moon illumination (simplified)
-    from astropy.coordinates import get_body
     moon_phase = ((times.jd - 2451550.1) % 29.53) / 29.53  # Approximate
 
     # 4. Calculate observability criteria
@@ -838,7 +837,7 @@ def calculate_observability(target_coord, location, date,
     hours = (times - time_start).to(u.hour).value
 
     axes[0].plot(hours, target_altaz.alt.deg, 'b-', linewidth=2, label='Target')
-    axes[0].axhline(min_altitude.deg, color='r', linestyle='--',
+    axes[0].axhline(min_altitude.to_value(u.deg), color='r', linestyle='--',
                     label=f'Min altitude ({min_altitude})')
     axes[0].fill_between(hours, 0, 90,
                           where=astronomical_night,
@@ -908,7 +907,7 @@ if __name__ == '__main__':
     )
 
     if obs_info['observable']:
-        print(f"\nTarget is observable for {obs_info['duration']:.1f}")
+        print(f"\nTarget is observable for {obs_info['duration'].to(u.hour):.1f}")
     else:
         print("\nTarget is not observable")
 ```

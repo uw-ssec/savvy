@@ -142,6 +142,6 @@ ds = ds.assign_coords(time=time)
 
 # For non-standard calendars (climate models)
 import cftime
-time_noleap = xr.cftime_range("2024-01-01", periods=365, calendar="noleap")
+time_noleap = xr.date_range("2024-01-01", periods=365, calendar="noleap", use_cftime=True)
 ```
 

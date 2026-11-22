@@ -60,19 +60,24 @@ if 'SIMPLE' not in header:
 
 **Problem:**
 ```python
-hdul = fits.open('huge.fits')  # Tries to load entire file into RAM
+hdul = fits.open('huge.fits')  # Memory-mapped by default (memmap=None -> use_memmap=True)
+data = hdul[0].data.astype(float)  # This copy is what loads everything into RAM
+# Scaled data (BZERO/BSCALE, e.g. uint16 images) is also read into memory on access
 ```
 
 **Solution:**
 ```python
-# Use memory mapping
-hdul = fits.open('huge.fits', memmap=True)
+# Memory mapping is already on; avoid whole-array copies and slice first
+hdul = fits.open('huge.fits')
 
 # Data accessed on-demand, not loaded into memory
 data_subset = hdul[0].data[100:200, 100:200]
 
+# Scaled data: keep the raw stored integers memory-mapped, apply BZERO/BSCALE per slice
+hdul = fits.open('huge.fits', do_not_scale_image_data=True)
+
 # For writing, use mode='update' for in-place modification
-hdul = fits.open('huge.fits', mode='update', memmap=True)
+hdul = fits.open('huge.fits', mode='update')
 hdul[0].data *= 2  # Modified on disk
 hdul.flush()
 ```
@@ -228,12 +233,12 @@ mag_ab = flux.to(u.ABmag, equivalencies=u.spectral_density(5000*u.angstrom))
 ```python
 c1 = SkyCoord(ra=10*u.deg, dec=20*u.deg, frame='fk5', equinox='J2000')
 c2 = SkyCoord(ra=11*u.deg, dec=21*u.deg, frame='fk5', equinox='J1950')
-sep = c1.separation(c2)  # Uses different equinoxes!
+sep = c1.separation(c2)  # Silently transforms c2 into c1's frame (equinox J2000) first
 ```
 
 **Solution:**
 ```python
-# Ensure frames match before operations
+# Make the frame conversion explicit so the intent is visible
 c1 = SkyCoord(ra=10*u.deg, dec=20*u.deg, frame='fk5', equinox='J2000')
 c2 = SkyCoord(ra=11*u.deg, dec=21*u.deg, frame='fk5', equinox='J1950')
 
@@ -248,7 +253,8 @@ sep = c1.separation(c2_j2000)  # Now consistent
 ```python
 c = SkyCoord(ra=10*u.deg, dec=20*u.deg)
 altaz = c.transform_to('altaz')
-# CoordinateFrameError: AltAz frame requires obstime and location
+# AttributeError: 'NoneType' object has no attribute 'to_geodetic'
+# (the missing location/obstime surfaces as None deep in the transform)
 ```
 
 **Solution:**
@@ -628,21 +634,21 @@ wcs_no_sip = WCS(header, relax=False)
 
 **Problem:**
 ```python
-hdul = fits.open('large_cube.fits')  # Loads entire 10GB file into RAM
-data = hdul[0].data
+hdul = fits.open('large_cube.fits')  # Memory-mapped by default...
+data = hdul[0].data * 1.0  # ...but any whole-cube operation materialises 10GB in RAM
 ```
 
 **Solution:**
 ```python
-# Use memory mapping
-hdul = fits.open('large_cube.fits', memmap=True)
+# Keep the memory map (the default) and touch only what you need
+hdul = fits.open('large_cube.fits')
 
 # Access only needed portion
 data_slice = hdul[0].data[100:200, :, :]  # Loads only this slice
 
 # Process in chunks
 def process_in_chunks(filename, chunk_size=100):
-    with fits.open(filename, memmap=True) as hdul:
+    with fits.open(filename) as hdul:
         data = hdul[0].data
         nz, ny, nx = data.shape
 
@@ -726,9 +732,8 @@ def filter_in_chunks(filename, condition, chunk_size=100000):
 
 **Problem:**
 ```python
-# Using deprecated function
-from astropy.coordinates import ICRS
-c = ICRS(ra=10, dec=20)  # DeprecationWarning
+# Using a function that was deprecated and then removed (Astropy 7.1)
+from astropy.coordinates import get_moon  # ImportError on Astropy >= 7.1
 ```
 
 **Solution:**
@@ -736,17 +741,17 @@ c = ICRS(ra=10, dec=20)  # DeprecationWarning
 # Check Astropy changelog for migration guide
 # Common deprecated patterns and replacements:
 
-# Old: Direct frame classes
-from astropy.coordinates import ICRS
-c = ICRS(ra=10*u.deg, dec=20*u.deg)
+# Old: get_moon(time)
+# New: get_body works for any solar-system body
+from astropy.coordinates import get_body
+from astropy.time import Time
+moon = get_body('moon', Time('2024-01-01'))
 
-# New: Use SkyCoord
-c = SkyCoord(ra=10*u.deg, dec=20*u.deg, frame='icrs')
+# Old: specutils Spectrum1D (deprecated in specutils 2.0)
+# New: from specutils import Spectrum
 
-# Old: cython_version
-from astropy import cython_version  # Deprecated
-
-# New: Not needed, Cython compilation automatic
+# Old: photutils 'xcentroid'/'ycentroid', 'xcenter'/'ycenter' columns (deprecated in 3.0)
+# New: 'x_centroid'/'y_centroid', 'x_center'/'y_center'
 
 # Check your Astropy version
 import astropy
@@ -756,11 +761,13 @@ print(astropy.__version__)
 # pip install --upgrade astropy
 ```
 
-### Issue: "fits.update() deprecated"
+### Issue: "fits.update() on the primary HDU fails"
 
 **Problem:**
 ```python
-fits.update('file.fits', data, 0)  # DeprecationWarning
+fits.update('file.fits', data, 0)
+# VerifyError: HDUList's 0th element is not a primary HDU.
+# (fits.update is not deprecated, but it writes an ImageHDU into slot 0)
 ```
 
 **Solution:**

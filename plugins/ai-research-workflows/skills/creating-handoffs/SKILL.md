@@ -3,9 +3,9 @@ name: creating-handoffs
 description: >-
   Use when work context must transfer to another session or person: pausing
   work, the context window running out, a collaborator or labmate taking over,
-  or picking this up tomorrow in a fresh session. Triggers: create a handoff,
-  hand off this work, summarize context for the next session, prepare a
-  handoff. Not for an end-of-project repository handover
+  or picking this up tomorrow. Triggers: create a handoff, hand off this work,
+  summarize context for the next session, prepare a handoff, write up the
+  current state for whoever takes over. Not for an end-of-project repository handover
   (project-management:project-handoff) or one result's provenance
   (ai-research-workflows:ensuring-reproducibility).
 metadata:
@@ -24,7 +24,7 @@ Default mode: Direct (protocol: `ai-research-workflows:using-research-workflows`
 
 ## Process
 
-1. **Gather the true state.** Run `git branch --show-current`, `git rev-parse --short HEAD`, `git status` and `git diff --stat`. Find workflow documents in `docs/rse/specs/` (then legacy `.agents/`), including earlier `handoff-*.md`. Re-run the tests rather than repeating anyone's belief about them. Take tasks and status from the conversation or the user's account, and check them against the repository.
+1. **Gather the true state.** Run `git branch --show-current`, `git rev-parse --short HEAD`, `git status` and `git diff --stat`. Find workflow documents in `docs/rse/specs/` (then legacy `.agents/`), including earlier `handoff-*.md`. Re-run the tests; don't repeat anyone's belief about them. Take tasks and status from the conversation or the user's account, and check them against the repository.
 2. **Write it.** Fill `assets/handoff-template.md`: every section that applies, delete the rest, no placeholder text left. Save to `docs/rse/specs/handoff-YYYY-MM-DD-HH-MM-<slug>.md` (current date and time, kebab-case slug), a new file even when an earlier handoff exists.
 3. **Present it.** Give the user the file path, phase, status and the prompt that resumes the work.
 
@@ -38,7 +38,7 @@ A handoff that hides broken state sends the next session down a false trail. In 
 - failing or unrun tests, by test id, with the status you observed;
 - results that are unverified or not yet reproduced.
 
-Leave the working tree as you found it. Don't commit, stash or revert work to make the handoff tidy.
+Leave the working tree as you found it: don't commit, stash or revert work to tidy the handoff.
 
 ## Quick reference
 
@@ -56,6 +56,6 @@ Leave the working tree as you found it. Don't commit, stash or revert work to ma
 ## Common mistakes
 
 - **Dumping raw history.** Pasting the conversation or git log buries what matters; distil a focused summary.
-- **No starting point.** Name the 2-3 critical files and the exact next skill, not "continue the work".
+- **No starting point.** Name the 2-3 critical files and the next skill, not "continue the work".
 - **Dropping research state.** Without it the work cannot be resumed or reproduced.
-- **Missing learnings.** Record why decisions were made and the dead ends hit.
+- **Missing learnings.** Record why decisions were made and dead ends hit.

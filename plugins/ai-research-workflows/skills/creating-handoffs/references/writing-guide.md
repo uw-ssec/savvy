@@ -94,7 +94,8 @@ Leave no bracketed placeholder text in the saved file.
 | Results must be made reproducible | `ai-research-workflows:ensuring-reproducibility` |
 | Research code needs tests and robustness | `ai-research-workflows:hardening-research-code` |
 
-The matching slash commands (`/implement`, `/validate` and so on) also work.
+In Claude Code and Cursor, the matching slash commands (`/implement`,
+`/validate` and so on) also work; in other clients, name the skill.
 
 ## Presenting the handoff
 

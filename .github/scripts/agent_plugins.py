@@ -47,7 +47,8 @@ Package checks, for every plugin:
   installed plugins with the same skill name make activation ambiguous);
 - each skills/<dir>/SKILL.md has Agent Skills frontmatter whose name is <dir>
   and a description of 100-1024 characters (shorter ones can't say when the
-  skill applies);
+  skill applies) that contains a trigger clause, "Use when" or "Use this
+  skill when" (an agent routes on name and description alone);
 - no file, symlink or relative Markdown/wiki link inside a skill resolves
   outside that skill, and every relative link resolves to a file (installed
   skills are copied on their own, so a link to ../sibling breaks);
@@ -97,6 +98,8 @@ MANIFEST_FIELDS = {"$schema", *SHARED, "extensions"}
 PLUGIN_NAME = re.compile(r"^(?!.*(?:--|\.\.))[a-z0-9](?:[a-z0-9.-]{0,62}[a-z0-9])?$")
 SKILL_NAME = re.compile(r"^(?!.*--)[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$")
 DESCRIPTION_LENGTH = (100, 1024)
+# The clause that tells an agent when to load a skill (CONTRIBUTING.md, Writing a Skill Description).
+TRIGGER_CLAUSE = re.compile(r"\buse\s+(?:this\s+skill\s+)?when\b", re.IGNORECASE)
 # Docs whose relative links aren't checked yet. Each entry needs an open issue.
 LINK_CHECK_SKIP = {
     # Index pages for topic files that were never added: #248.
@@ -408,6 +411,9 @@ def check_skills(pdir: Path, root: Path, errors: list[str]) -> None:
         if not isinstance(desc, str) or not lo <= len(desc) <= hi:
             errors.append(f"{srel}/SKILL.md: description must be a string of {lo}-{hi} characters"
                           " that says what the skill does and when to use it")
+        elif not TRIGGER_CLAUSE.search(desc):
+            errors.append(f"{srel}/SKILL.md: description needs a trigger clause (\"Use when ...\" or"
+                          " \"Use this skill when ...\") saying when an agent should load the skill")
         for k in ("license", "compatibility", "allowed-tools"):
             if k in fm and not isinstance(fm[k], str):
                 errors.append(f"{srel}/SKILL.md: {k} must be a string")

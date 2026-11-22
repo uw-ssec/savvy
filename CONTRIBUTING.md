@@ -36,7 +36,7 @@ Agents are stored in `plugins/{category}/agents/` as Markdown files. Each agent 
 ```markdown
 # Agent Name
 
-Brief description of what this agent does.
+Use when <the situation this agent handles>, or when <a second situation>. Covers <what it does>. Not for <a neighboring task> (use <the agent or skill that owns it>).
 
 ## Expertise
 
@@ -119,6 +119,7 @@ Before submitting your PR, ensure:
 - [ ] `pixi run plugins-check` passes (run `pixi run plugins-sync` first if you changed a manifest or the catalog)
 - [ ] `CHANGELOG.md` has an entry under `## [Unreleased]` for each plugin you changed
 - [ ] Any rename, removal, or intent-breaking skill change follows [the deprecation policy](docs/deprecation.md)
+- [ ] A new or edited skill description has a trigger clause, names a neighboring case it doesn't own, and passes the [three-way trigger test](#the-three-way-trigger-test)
 - [ ] A new skill has a catalog entry with an example prompt you've tried in Claude Code, and `pixi run catalog-check` passes (see [Skill Catalog](#-skill-catalog))
 - [ ] No sensitive information or credentials are included
 - [ ] The change passes the [security review checklist](#-security-review-checklist)
@@ -213,6 +214,38 @@ Some rules matter to clients other than Claude Code:
 - **Agent `skills:`** must be a YAML list (`skills:` then `  - name`), even for one skill. Claude Code accepts a string, but Copilot CLI silently skips an agent whose `skills` is a plain string, so `check` requires a list.
 - **Skill `metadata` values** must be strings, as the [Agent Skills spec](https://agentskills.io/specification) requires. List files space-separated (`references: references/a.md references/b.md`), and quote dates (`last-verified: '2026-10-27'`), because YAML otherwise reads them as dates. `check` fails on any other type.
 - **Agents and commands** don't load everywhere: agents load in Claude Code, Cursor and Antigravity CLI, and commands only in Claude Code and Cursor. Put anything other clients need in a skill, and update the matrix in [docs/install.md](docs/install.md) when client support changes.
+
+## ✍️ Writing a Skill Description
+
+An agent sees only a skill's `name` and `description` before it decides whether to load the skill. Those two fields are the whole routing surface, so the description has to say **when** the skill applies, not only what it covers. A list of topics gives the agent nothing to route on except keyword overlap with every sibling skill.
+
+Every `description` must:
+
+1. **Include a trigger clause**, `Use when ...` or `Use this skill when ...`, usually first, naming the situations and the phrasing a user would actually bring. `pixi run plugins-check` fails on a description without one.
+2. **Say what the skill does** in those situations: the artifacts it produces or the decisions it guides.
+3. **Name at least one neighboring case it does not own**, and where that case goes: `Not for X (use Y)`. This keeps sibling skills from competing for the same request. A command that runs a full workflow counts as a neighbor too, so say whether a request belongs to the skill or to the command.
+
+Compare a topic list:
+
+> Docker Compose patterns for multi-service research applications including web APIs, databases, message queues, Jupyter notebooks, and development workflows.
+
+with a description an agent can route on, from [`pixi-package-manager`](plugins/scientific-python-development/skills/pixi-package-manager/SKILL.md):
+
+> Use when the user works with pixi (pixi.toml, pixi.lock, pixi add/run/task/global/exec) or wants a reproducible scientific Python environment that mixes conda-forge and PyPI packages: creating environments, adding dependencies, defining tasks, multi-platform lockfiles, or migrating from conda environment.yml / requirements.txt. Not for pure uv/pip projects or for building and publishing packages to PyPI (use python-packaging).
+
+Two more in-repo examples: [`wireframing`](plugins/uiux-design-team/skills/wireframing/SKILL.md) names four distinct situations in its trigger clause, and [`researching`](plugins/ai-research-workflows/skills/researching/SKILL.md) follows its trigger clause with the phrasings users actually type (`Triggers: research the codebase, ...`), which helps with request 2 of the test below.
+
+Trigger wording is necessary but not sufficient. [`ux-writing`](plugins/uiux-design-team/skills/ux-writing/SKILL.md) has a trigger clause, yet when its catalog example prompt was run in Claude Code 2.1.330 (November 2026), the model answered from general knowledge and loaded no skill, twice in a row. A description can have the clause and still not fire when the model decides it can answer without help. If that happens, say what the skill adds beyond general knowledge (a project convention, a verified pitfall, a runnable asset) rather than restating the task.
+
+### The three-way trigger test
+
+Don't accept a new or rewritten description until it passes all three:
+
+1. **An obvious request**, phrased the way the docs would phrase it. The skill must load.
+2. **The same request phrased the way a tired person would type it** — short, informal, no keywords from the description. The skill must still load.
+3. **A neighboring request that belongs to a different skill or command.** The skill must **not** load.
+
+Most rewrites pass the first two and fail the third. A description that fires on everything is as broken as one that fires on nothing, and much harder to notice. Request 1 is the skill's `example` in [`docs/catalog.yml`](docs/catalog.yml), which `evals/catalog-triggers/trigger_test.py` runs (see [Skill Catalog](#-skill-catalog)); try requests 2 and 3 the same way, in Claude Code with only this repository's plugins loaded, and note the results in your pull request.
 
 ## 📚 Skill Catalog
 

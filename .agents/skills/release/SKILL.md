@@ -46,16 +46,24 @@ None. The version is the current date (see `docs/versioning.md`).
    plugin takes the new version. Keep the list for steps 5 and 6.
 
 5. Benchmark the changed pilot skills. Benchmarks report; they never gate the
-   release. If `changed-plugins` (step 4) lists `ai-research-workflows`, or this
-   is the first release, dispatch the benchmark workflow for the changed
-   skills:
+   release. If `changed-plugins` (step 4) prints `plugins/ai-research-workflows`,
+   or this is the first release, dispatch the benchmark workflow.
+   `changed-plugins` names plugins, not skills, so pick the skills from the
+   skill directories changed since the previous tag:
+
+   ```bash
+   git diff --name-only <previous-tag>..HEAD -- plugins/ai-research-workflows/skills/ | cut -d/ -f1-4 | sort -u
+   ```
+
+   Pass them comma-separated:
 
    ```bash
    gh workflow run benchmark-skills.yml -f skills=plugins/ai-research-workflows/skills/<skill>,...
    ```
 
-   `skills` takes full skill directories, comma-separated; an empty value runs
-   all pilot skills. See the workflow for `model` and `attempts`. The run
+   On the first release, or to refresh every benchmark, leave `skills` empty
+   (`-f skills=`): an empty value runs all pilot skills. See the workflow for
+   `model` and `attempts`. The run
    pushes each skill's `BENCHMARK.md` to a `benchmarks/<run_id>-<run_attempt>`
    branch. Open a pull request from it, review it, and merge it before
    tagging, then `git pull origin main` so the version bumps, commits and tag

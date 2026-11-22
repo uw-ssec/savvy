@@ -53,8 +53,9 @@ The file contains, in order:
 Get the short SHA with `git rev-parse --short HEAD`. If there is no
 `implement-[slug].md`, name the plan only and say so. Status rules: **Ready**
 only when every check you ran passed and every criterion is met; **Issues
-Found** when anything failed or is unexplained; **Incomplete** when phases are
-unfinished.
+Found** when anything failed or is unexplained, even if phases are also
+unfinished (failures take precedence); **Incomplete** when phases are
+unfinished and nothing that ran failed.
 
 ## Implementation Status per Phase
 
@@ -146,7 +147,8 @@ unfinished.
 ## References
 
 End the document with relative links to the plan and implementation summary,
-which sit in the same directory:
+computed from where each one actually is (a legacy plan under `.agents/` is
+not in the report's directory). When both sit beside the report:
 
 ```markdown
 ## References

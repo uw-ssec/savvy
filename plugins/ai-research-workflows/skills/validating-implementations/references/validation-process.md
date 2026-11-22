@@ -136,6 +136,8 @@ phases are unfinished, to `ai-research-workflows:implementing-plans`.
 - [ ] Read the entire plan (and the implementation summary, if any)
 - [ ] Ran every automated verification command myself and recorded its output
 - [ ] Investigated each failure to a root cause with a `file:line`
+- [ ] Checked that existing functionality still works (the full existing test
+      suite, not only the plan's checks) and reported any regression
 - [ ] Read the code for every phase, including phases marked complete
 - [ ] Listed every deviation from the plan, including missing documentation
 - [ ] For research results: confirmed reproducibility capture and re-ran the

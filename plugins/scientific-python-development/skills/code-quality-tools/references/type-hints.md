@@ -102,7 +102,7 @@ Matrix = NDArray[np.float64]  # 2D array
 
 def matrix_multiply(a: Matrix, b: Matrix) -> Matrix:
     """Multiply two matrices."""
-    return np.matmul(a, b)
+    return a @ b
 
 # More specific shape hints
 def normalize_vector(v: NDArray[np.float64]) -> NDArray[np.float64]:
@@ -131,7 +131,7 @@ Properly type functions with optional parameters and multiple accepted types:
 
 ```python
 import numpy as np
-from typing import Optional, Union
+from typing import Any, Optional, Union
 from pathlib import Path
 from numpy.typing import NDArray
 
@@ -161,7 +161,7 @@ def load_data(
     path = Path(filepath) if isinstance(filepath, str) else filepath
     
     # Load with optional skip_rows
-    kwargs = {"delimiter": delimiter}
+    kwargs: dict[str, Any] = {"delimiter": delimiter}
     if skip_rows is not None:
         kwargs["skiprows"] = skip_rows
     

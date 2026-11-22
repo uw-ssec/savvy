@@ -7,8 +7,8 @@
 | Pattern 1: Basic Ruff Configuration | 15–33 | Basic ruff setup in pyproject.toml for scientific Python |
 | Pattern 2: MyPy Configuration for Scientific Python | 34–50 | Configuring mypy strictness for scientific code |
 | Pattern 3: Pre-commit Configuration | 51–66 | Setting up pre-commit hooks for quality enforcement |
-| Pattern 4: Ruff Rule Selection for Scientific Python | 67–108 | Comprehensive ruff rule selection for scientific computing |
-| Pattern 5: Fixing Common Ruff Warnings | 109–171 | Solutions for frequent ruff warnings with examples |
+| Pattern 4: Ruff Rule Selection for Scientific Python | 67–106 | Comprehensive ruff rule selection for scientific computing |
+| Pattern 5: Fixing Common Ruff Warnings | 107–169 | Solutions for frequent ruff warnings with examples |
 
 ---
 
@@ -92,18 +92,16 @@ select = [
     "ANN",    # flake8-annotations
 ]
 
-# Customize docstring rules for NumPy style
-[tool.ruff.lint.pydocstyle]
-convention = "numpy"
-
 # Common rules to ignore in scientific code
 ignore = [
-    "E501",   # Line too long (formatter handles this)
-    "ANN101", # Missing type annotation for self
-    "ANN102", # Missing type annotation for cls
+    "E501",   # Line too long (formatter wraps what it can)
     "D100",   # Missing docstring in public module (optional)
     "D104",   # Missing docstring in public package (optional)
 ]
+
+# Customize docstring rules for NumPy style
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
 ```
 
 ## Pattern 5: Fixing Common Ruff Warnings

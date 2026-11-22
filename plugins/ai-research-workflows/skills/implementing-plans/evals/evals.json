@@ -3,7 +3,7 @@
   "evals": [
     {
       "id": "implementing-plans-001",
-      "prompt": "Please execute docs/rse/specs/plan-bootstrap-ci-pipeline.md. The repo is at input/bootstrap-ci/. It was copied in without its git history, so first run `git init -b feature/bootstrap-ci` there and commit everything as-is. Then go ahead and start with Phase 1.",
+      "prompt": "Please execute docs/rse/specs/plan-bootstrap-ci-pipeline.md. The repo is at input/bootstrap-ci/. It was copied in without its git history, so first run `git init -b feature/bootstrap-ci && git add -A && git -c user.name=dev -c user.email=dev@example.invalid commit -qm base` there. Then go ahead and start with Phase 1.",
       "files": [
         "files/bootstrap-ci"
       ],
@@ -21,7 +21,7 @@
     },
     {
       "id": "implementing-plans-002",
-      "prompt": "The plan for the new data-loader refactor is approved and sitting in docs/rse/specs/plan-dataloader-refactor.md. The repo is at input/dataloader/. It was copied in without its git history, so first run `git init -b main` there and commit everything as-is. Let's start building it.",
+      "prompt": "The plan for the new data-loader refactor is approved and sitting in docs/rse/specs/plan-dataloader-refactor.md. The repo is at input/dataloader/. It was copied in without its git history, so first run `git init -b main && git add -A && git -c user.name=dev -c user.email=dev@example.invalid commit -qm base` there. Let's start building it.",
       "files": [
         "files/dataloader"
       ],
@@ -38,7 +38,7 @@
     },
     {
       "id": "implementing-plans-003",
-      "prompt": "I finished reviewing docs/rse/specs/plan-survival-analysis.md yesterday and signed off. Phases 1 and 2 are already checked off in it from last week. Can you pick it back up and run the rest? The data directory data/cohort_v3 should be in place. The repo is at input/survival/. It was copied in without its git history, so first run `git init -b analysis/survival-models` there and commit everything as-is.",
+      "prompt": "I finished reviewing docs/rse/specs/plan-survival-analysis.md yesterday and signed off. Phases 1 and 2 are already checked off in it from last week. Can you pick it back up and run the rest? The data directory data/cohort_v3 should be in place. The repo is at input/survival/. It was copied in without its git history, so first run `git init -b analysis/survival-models && git add -A && git -c user.name=dev -c user.email=dev@example.invalid commit -qm base` there.",
       "files": [
         "files/survival"
       ],
@@ -55,7 +55,7 @@
     },
     {
       "id": "implementing-plans-004",
-      "prompt": "The plan docs/rse/specs/plan-date-parsing.md says to change parse_date() in src/utils/dates.py, but I think someone moved that function into src/core/time.py last month. Go ahead and implement Phase 1 anyway. The repo is at input/dates/. It was copied in without its git history, so first run `git init -b feature/dates` there and commit everything as-is.",
+      "prompt": "The plan docs/rse/specs/plan-date-parsing.md says to change parse_date() in src/utils/dates.py, but I think someone moved that function into src/core/time.py last month. Go ahead and implement Phase 1 anyway. The repo is at input/dates/. It was copied in without its git history, so first run `git init -b feature/dates && git add -A && git -c user.name=dev -c user.email=dev@example.invalid commit -qm base` there.",
       "files": [
         "files/dates"
       ],
@@ -71,7 +71,7 @@
     },
     {
       "id": "implementing-plans-005",
-      "prompt": "We just finished the last phase of docs/rse/specs/plan-add-caching.md together. Write the implementation summary document for it. The repo is at input/add-caching/. It was copied in without its git history, so first run `git init -b feature/add-caching` there and commit everything as-is.",
+      "prompt": "We just finished the last phase of docs/rse/specs/plan-add-caching.md together. Write the implementation summary document for it. The repo is at input/add-caching/. It was copied in without its git history, so first run `git init -b feature/add-caching && git add -A && git -c user.name=dev -c user.email=dev@example.invalid commit -qm base` there.",
       "files": [
         "files/add-caching"
       ],

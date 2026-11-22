@@ -55,7 +55,7 @@ Mitigation: the skill requires a pause for human verification after each phase (
 
 ## Version
 
-Released with the `ai-research-workflows` plugin; see its `plugin.json` version.
+Released with the `ai-research-workflows` plugin. The version is the release tag in the signed archive's name, `ai-research-workflows--implementing-plans-<version>.tar.gz`, without the `v` (for example `26.11.0`). The plugin's `plugin.json` shows the release in which the plugin last changed, so it can be older than the archive.
 
 ## Ethics
 

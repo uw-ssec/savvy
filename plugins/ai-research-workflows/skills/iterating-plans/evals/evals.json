@@ -3,7 +3,10 @@
   "evals": [
     {
       "id": "iterating-plans-001",
-      "prompt": "Update docs/rse/specs/plan-2025-03-12-auth-migration.md. I want to add a new phase between Phase 2 and Phase 3 for migrating existing user sessions to the new token format.",
+      "prompt": "Update docs/rse/specs/plan-2025-03-12-auth-migration.md. I want to add a new phase between Phase 2 and Phase 3 for migrating existing user sessions to the new token format. The repo is at input/auth-migration/.",
+      "files": [
+        "files/auth-migration"
+      ],
       "expected_output": "A proposal, not yet an edit: the agent reads the auth-migration plan in full, summarises its current phases, proposes a new session-migration phase between Phase 2 and Phase 3 (with tasks, file references, and Automated and Manual Verification criteria), notes that later phases would be renumbered, and asks the user to confirm before editing. The plan file is unchanged in this turn.",
       "assertions": [
         "The agent read the full plan file and presented the current state of the plan (its phases and scope) before proposing changes",
@@ -17,7 +20,10 @@
     },
     {
       "id": "iterating-plans-002",
-      "prompt": "The benchmark results came back and the batched-writes approach we planned in Phase 2 of our caching plan is actually slower than the baseline. Can you revise the plan to switch to write-through caching instead and fix whatever else in there no longer makes sense?",
+      "prompt": "The benchmark results came back and the batched-writes approach we planned in Phase 2 of our caching plan is actually slower than the baseline. Can you revise the plan to switch to write-through caching instead and fix whatever else in there no longer makes sense? The repo is at input/caching/.",
+      "files": [
+        "files/caching"
+      ],
       "expected_output": "A proposal, not yet an edit: the agent summarises the current plan, states the proposed switch to write-through caching and the sections it would change, and asks the user to confirm before editing.",
       "assertions": [
         "The agent located and read the caching plan file in full, asking which plan if it could not be identified",
@@ -32,7 +38,10 @@
     },
     {
       "id": "iterating-plans-003",
-      "prompt": "We're halfway through executing the API v2 rollout plan in docs/rse/specs/plan-api-v2-rollout.md. Phase 1 is done and Phase 2 is in progress, but product just told us the webhook retry work needs to be cut from scope and the admin dashboard needs to ship earlier. Please cut webhook retry from scope and move the admin dashboard phase to directly after Phase 2.",
+      "prompt": "We're halfway through executing the API v2 rollout plan in docs/rse/specs/plan-api-v2-rollout.md. Phase 1 is done and Phase 2 is in progress, but product just told us the webhook retry work needs to be cut from scope and the admin dashboard needs to ship earlier. Please cut webhook retry from scope and move the admin dashboard phase to directly after Phase 2. The repo is at input/api-v2/.",
+      "files": [
+        "files/api-v2"
+      ],
       "expected_output": "A proposal, not yet an edit: the agent reads the API v2 rollout plan in full, summarises its current phases, and proposes removing the webhook retry tasks (listing them under What We're NOT Doing) and moving the admin dashboard phase to directly after Phase 2, with the affected sections and phase renumbering. It notes that completed Phase 1 content stays untouched and asks the user to confirm before editing. The plan file is unchanged in this turn.",
       "assertions": [
         "The agent read the full plan and presented the current state of the plan before proposing changes",
@@ -47,7 +56,10 @@
     },
     {
       "id": "iterating-plans-004",
-      "prompt": "Phase 3 of docs/rse/specs/plan-search-index.md is too big, it covers both the indexer and the query API. Can you split it into two phases?",
+      "prompt": "Phase 3 of docs/rse/specs/plan-search-index.md is too big, it covers both the indexer and the query API. Can you split it into two phases? The repo is at input/search-index/.",
+      "files": [
+        "files/search-index"
+      ],
       "expected_output": "A proposal, not yet an edit: the agent states how Phase 3 would be split into an indexer phase and a query API phase, which sections are affected, and asks the user to confirm.",
       "assertions": [
         "The agent read the full plan before responding",
@@ -60,7 +72,10 @@
     },
     {
       "id": "iterating-plans-005",
-      "prompt": "In docs/rse/specs/plan-report-export.md the success criteria for Phase 2 just say 'works well' and 'tests pass'. Make them concrete.",
+      "prompt": "In docs/rse/specs/plan-report-export.md the success criteria for Phase 2 just say 'works well' and 'tests pass'. Make them concrete. The repo is at input/report-export/.",
+      "files": [
+        "files/report-export"
+      ],
       "expected_output": "A proposal, not yet an edit: the agent reads the plan, presents the current Phase 2 criteria and proposes replacing 'works well' and 'tests pass' with concrete runnable commands and observable outcomes, kept in separate Automated and Manual Verification lists, and asks the user to confirm before editing. The plan file is unchanged in this turn.",
       "assertions": [
         "The agent read the plan and presented the current Phase 2 success criteria before proposing changes",
@@ -75,7 +90,10 @@
     },
     {
       "id": "iterating-plans-neg-001",
-      "prompt": "The plan in docs/rse/specs/plan-bootstrap-ci-pipeline.md is approved and we're on branch feature/bootstrap-ci. Start building Phase 1.",
+      "prompt": "The plan in docs/rse/specs/plan-bootstrap-ci-pipeline.md is approved. The repo is at input/bootstrap-ci/. It was copied in without its git history, so first run `git init -b feature/bootstrap-ci && git add -A && git -c user.name=dev -c user.email=dev@example.invalid commit -qm base` there. Start building Phase 1.",
+      "files": [
+        "files/bootstrap-ci"
+      ],
       "expected_output": "Execution of Phase 1 of the approved plan. This belongs to implementing-plans, not to editing the plan.",
       "assertions": [
         "The agent treated the request as execution of the plan (read the plan, checked the branch, and began or prepared Phase 1) and did not treat it as a request to revise the plan",
@@ -88,6 +106,7 @@
     {
       "id": "iterating-plans-neg-002",
       "prompt": "We have no plan yet for the export feature. Design one.",
+      "files": [],
       "expected_output": "The agent treats this as creating a new implementation plan (scoping questions or a proposed phased breakdown), not as editing an existing plan.",
       "assertions": [
         "The agent did not edit or iterate on any existing plan file under docs/rse/specs/",

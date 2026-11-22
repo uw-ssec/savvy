@@ -1027,6 +1027,23 @@ def test_pack_layout(st, release_root, tmp_path):
         assert all(m.uid == 0 and m.gid == 0 and m.mtime == 0 for m in tar.getmembers())
 
 
+def test_pack_keeps_the_execute_bit(st, release_root, tmp_path):
+    # A script a skill ships must stay runnable after extraction; everything
+    # else stays 0644 so the archive does not depend on the checkout's umask.
+    script = release_root / PILOT_SKILL / "scripts" / "run.sh"
+    script.parent.mkdir()
+    script.write_text("#!/bin/sh\n", encoding="utf-8")
+    script.chmod(0o750)
+    alpha = staged_skill(st, release_root, tmp_path)
+    (alpha / "references" / "notes.md").chmod(0o600)
+    with tarfile.open(st.pack(alpha, "26.11.0", tmp_path / "dist")) as tar:
+        modes = {m.name.split("/", 1)[-1]: m.mode for m in tar.getmembers()}
+    assert modes["scripts/run.sh"] == 0o755
+    assert modes["scripts"] == 0o755
+    assert modes["references/notes.md"] == 0o644
+    assert modes["SKILL.md"] == 0o644
+
+
 def test_pack_is_deterministic(st, release_root, tmp_path):
     alpha = staged_skill(st, release_root, tmp_path)
     first = st.pack(alpha, "26.11.0", tmp_path / "d1").read_bytes()

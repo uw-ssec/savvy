@@ -487,7 +487,9 @@ def pack(staged: Path, version: str, out: Path) -> Path:
                 info.uid = info.gid = 0
                 info.uname = info.gname = ""
                 info.mtime = 0
-                info.mode = 0o755 if path.is_dir() else 0o644
+                # Normalised so the archive doesn't depend on the umask, but an
+                # executable a skill ships stays executable.
+                info.mode = 0o755 if path.is_dir() or info.mode & 0o111 else 0o644
                 if path.is_file():
                     with open(path, "rb") as fh:
                         tar.addfile(info, fh)

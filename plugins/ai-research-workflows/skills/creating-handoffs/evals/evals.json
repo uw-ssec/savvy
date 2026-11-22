@@ -3,7 +3,10 @@
   "evals": [
     {
       "id": "creating-handoffs-001",
-      "prompt": "Please write a handoff for the auth refactor I've been working on. I'm done for the day and someone else will pick it up tomorrow in a fresh session. I refactored src/auth/session.py to use JWTs: token refresh is done, logout is half done, and tests/test_logout.py::test_revoke fails. Nothing is committed yet.",
+      "prompt": "Please write a handoff for the auth refactor I've been working on. I'm done for the day and someone else will pick it up tomorrow in a fresh session. I refactored src/auth/session.py to use JWTs: token refresh is done, logout is half done, and tests/test_logout.py::test_revoke fails. Nothing is committed yet. The repo is at input/auth-jwt/. It was copied in without its git history, so first recreate it there: `git init -b feature/jwt-sessions && git add -A && git reset -q -- src/auth/session.py tests/test_logout.py && git -c user.name=dev -c user.email=dev@example.invalid commit -qm base` (those paths are this session's uncommitted work).",
+      "files": [
+        "files/auth-jwt"
+      ],
       "expected_output": "A handoff markdown file named in the pattern handoff-YYYY-MM-DD-HH-MM-<slug>.md (slug describing the auth refactor) saved under the project's docs/rse/specs/ area. It records the current git branch, short commit hash, and a summary of uncommitted changes, lists task statuses (completed, in progress, planned), names the 2-3 critical files to read first (with file:line references for recent changes), and gives prioritized next steps. Uncommitted or unpushed work and any failing or unrun tests are called out explicitly rather than glossed over.",
       "assertions": [
         "The agent ran git commands to capture the current branch, short commit hash, and git status/diff --stat output, and the resulting values appear in the handoff",
@@ -17,7 +20,10 @@
     },
     {
       "id": "creating-handoffs-002",
-      "prompt": "I'm about to run out of time and a teammate is taking over this branch tomorrow. Can you summarize all the context from what we did this session so they can pick up exactly where we left off? This session I added a CSV export endpoint in src/api/export.py; the endpoint works but the pagination is untested, and I have not committed anything.",
+      "prompt": "I'm about to run out of time and a teammate is taking over this branch tomorrow. Can you summarize all the context from what we did this session so they can pick up exactly where we left off? This session I added a CSV export endpoint in src/api/export.py; the endpoint works but the pagination is untested, and I have not committed anything. The repo is at input/csv-export/. It was copied in without its git history, so first recreate it there: `git init -b feature/csv-export && git add -A && git reset -q -- src/api/export.py tests/test_export.py && git -c user.name=dev -c user.email=dev@example.invalid commit -qm base` (those paths are this session's uncommitted work).",
+      "files": [
+        "files/csv-export"
+      ],
       "expected_output": "A persisted handoff document capturing the session's work for the teammate: tasks worked on with status, the current workflow phase, the git branch/commit/uncommitted-change state, relevant plan/research/implement documents found under docs/rse/specs/ (or legacy .agents/), recent code changes with file:line references, learnings or gotchas discovered, and prioritized next steps.",
       "assertions": [
         "The agent inspected the repository's git state and searched docs/rse/specs/ (and legacy .agents/) for existing research, plan, implement, validation, or handoff documents",
@@ -33,6 +39,7 @@
     {
       "id": "creating-handoffs-003",
       "prompt": "I've been training a model for 3 days. The sweep job is still running on the cluster (job id 48213), the last checkpoint is at outputs/run_07/ckpt_epoch40.pt, I used seed 1234 and the uv.lock is committed, but my eval script on the validation split is throwing a shape error I haven't fixed yet. I have to go on leave tomorrow, so prepare a handoff for whoever continues this.",
+      "files": [],
       "expected_output": "A handoff document that preserves the research state needed to resume: seed 1234, the uv.lock environment, dataset version/path details (or an explicit note that they were not provided), the checkpoint at outputs/run_07/ckpt_epoch40.pt, and the in-flight job 48213 with instructions on how to check or resume it. The broken validation eval script with the shape error appears in a prominent 'Known-broken / unverified' callout, and results are not presented as validated.",
       "assertions": [
         "The agent's handoff records seed 1234, the uv.lock environment, the checkpoint path outputs/run_07/ckpt_epoch40.pt, and job ID 48213 with how to check it or an explicit note that the scheduler command was not provided",
@@ -46,7 +53,10 @@
     },
     {
       "id": "creating-handoffs-004",
-      "prompt": "My context window is nearly full and I'm stopping here. We're in the middle of Phase 2 of docs/rse/specs/plan-cache-layer.md. Two tests are still failing (tests/test_eviction.py::test_ttl and tests/test_eviction.py::test_lru_order). Write this up so a fresh session can continue.",
+      "prompt": "My context window is nearly full and I'm stopping here. We're in the middle of Phase 2 of docs/rse/specs/plan-cache-layer.md. Two tests are still failing (tests/test_eviction.py::test_ttl and tests/test_eviction.py::test_lru_order). Write this up so a fresh session can continue. The repo is at input/cache-layer/. It was copied in without its git history, so first run `git init -b feature/cache-layer && git add -A && git -c user.name=dev -c user.email=dev@example.invalid commit -qm base` there.",
+      "files": [
+        "files/cache-layer"
+      ],
       "expected_output": "A handoff file recording the current workflow phase (implementation of Phase 2), a reference to the plan by path, the two failing tests named explicitly, next steps in priority order and the 2-3 critical files the next session must read first.",
       "assertions": [
         "The agent wrote a handoff file in docs/rse/specs/ named handoff-YYYY-MM-DD-HH-MM-<slug>.md",
@@ -61,7 +71,10 @@
     },
     {
       "id": "creating-handoffs-005",
-      "prompt": "Yesterday's handoff is at docs/rse/specs/handoff-2026-03-02-10-15-etl-fix.md. Today I finished the retry logic it listed as the next step but the schema migration is still open. Please create a new handoff for tomorrow.",
+      "prompt": "Yesterday's handoff is at docs/rse/specs/handoff-2026-03-02-10-15-etl-fix.md. Today I finished the retry logic it listed as the next step but the schema migration is still open. Please create a new handoff for tomorrow. The repo is at input/etl-fix/. It was copied in without its git history, so first recreate it there: `git init -b fix/etl-retry && git add -A && git reset -q -- src/etl/retry.py src/etl/load.py && git -c user.name=dev -c user.email=dev@example.invalid commit -qm base` (those paths are this session's uncommitted work).",
+      "files": [
+        "files/etl-fix"
+      ],
       "expected_output": "A new handoff document that references the previous handoff by path, marks the retry logic as done, keeps the schema migration open as a next step, and captures the current repository state.",
       "assertions": [
         "The agent wrote a new timestamped handoff-YYYY-MM-DD-HH-MM-<slug>.md file rather than only editing the earlier handoff",
@@ -76,6 +89,7 @@
     {
       "id": "creating-handoffs-neg-001",
       "prompt": "I finished the rate limiter and I'm about to open a PR. Can you check that it matches docs/rse/specs/plan-rate-limiter.md and that nothing was missed?",
+      "files": [],
       "expected_output": "The agent treats this as validation of finished work against the plan (reads the plan, compares it with the code, runs the checks), not as a handoff. No handoff file is created.",
       "assertions": [
         "The agent did not create a handoff-*.md file",
@@ -88,6 +102,7 @@
     {
       "id": "creating-handoffs-neg-002",
       "prompt": "Summarize what src/etl/loader.py does so I can explain it in standup.",
+      "files": [],
       "expected_output": "A short explanation of what src/etl/loader.py does, based on reading the code (or a request for the file if it cannot be found). This is code understanding, not a handoff, and no handoff document is created.",
       "assertions": [
         "The agent read src/etl/loader.py (or said it could not find it) and explained what the module does",

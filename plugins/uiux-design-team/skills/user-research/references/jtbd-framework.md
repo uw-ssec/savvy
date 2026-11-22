@@ -213,6 +213,8 @@ For each outcome, survey users on two dimensions (1-10 scale):
 Opportunity Score = Importance + max(Importance - Satisfaction, 0)
 ```
 
+Both inputs must be on the same 0-10 scale. Ulwick's later ODI practice computes each as the proportion of respondents giving a high rating (for example, the percentage rating 4 or 5 on a 5-point scale, divided by 10) rather than a raw average.
+
 High opportunity scores (high importance, low satisfaction) indicate underserved needs ripe for innovation. Low opportunity scores (low importance, or high satisfaction) indicate areas where current solutions are adequate.
 
 **Using ODI results in design:**

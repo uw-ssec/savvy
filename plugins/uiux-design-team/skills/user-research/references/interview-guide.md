@@ -250,7 +250,7 @@ After completing all interviews (not after each one individually), synthesize th
 
 ## Competitive Audit Process (moved from SKILL.md)
 
-1. **Identify competitors** — 4-6 direct (same problem, same audience) + 2-3 indirect (different solution, same JTBD).
+1. **Identify competitors** — 3-5 direct (same problem, same audience) + 2-3 indirect (different solution, same JTBD).
 2. **Define criteria** — 8-12 dimensions: onboarding, feature parity, pricing, IA, visual quality, a11y, mobile, performance, content, support, integrations, community.
 3. **Document** — screenshots, recorded task flows, strengths/weaknesses per criterion, consistent 1-5 scoring.
 4. **Gap analysis** — criteria where all competitors score ≤ 2 = market-wide opportunity.

@@ -48,14 +48,24 @@ SUS Score: 34 * 2.5 = 85
 
 ### Interpretation
 
+Sauro-Lewis curved grading scale with Bangor et al. adjective ratings (MeasuringU, "5 Ways to Interpret a SUS Score"):
+
 | SUS Score | Grade | Adjective Rating | Percentile |
 |-----------|-------|-------------------|------------|
-| 90-100 | A+ | Best Imaginable | 96-100% |
-| 80-89 | A | Excellent | 85-96% |
-| 70-79 | B | Good | 65-85% |
-| 60-69 | C | OK / Fair | 41-65% |
-| 50-59 | D | Poor | 15-41% |
-| 0-49 | F | Awful | 0-15% |
+| 84.1-100 | A+ | Best Imaginable | 96-100% |
+| 80.8-84.0 | A | Excellent | 90-95% |
+| 78.9-80.7 | A- | — | 85-89% |
+| 77.2-78.8 | B+ | — | 80-84% |
+| 74.1-77.1 | B | — | 70-79% |
+| 72.6-74.0 | B- | — | 65-69% |
+| 71.1-72.5 | C+ | Good | 60-64% |
+| 65.0-71.0 | C | — | 41-59% |
+| 62.7-64.9 | C- | — | 35-40% |
+| 51.7-62.6 | D | OK | 15-34% |
+| 25.1-51.6 | F | Poor | 2-14% |
+| 0-25.0 | F | Worst Imaginable | 0-1.9% |
+
+Bangor et al. (2008) acceptability ranges: above 70 acceptable, 50-70 marginal, below 50 not acceptable.
 
 **Key benchmarks:**
 - Average SUS score across 500+ studies: **68**
@@ -395,12 +405,12 @@ Each item rated 1 (Strongly Disagree) to 5 (Strongly Agree):
 - Sum all adjusted scores and multiply by 2.5
 
 **Interpretation**
-- < 50: unacceptable; significant redesign needed
-- 50-67: marginal; address notable issues
-- 68: industry average
-- 68-80: good
-- 80-90: excellent
-- > 90: exceptional, best-in-class
+- < 50: not acceptable; significant redesign needed
+- 50-70: marginal; address notable issues
+- 68: industry average (50th percentile, grade C)
+- > 70: acceptable
+- 80.8+: grade A, "Excellent"
+- 84.1+: grade A+, "Best Imaginable" (top 4%)
 
 ## Severity Rating Decision Criteria (moved from SKILL.md)
 

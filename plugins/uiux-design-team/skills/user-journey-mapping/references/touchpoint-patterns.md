@@ -344,9 +344,9 @@ Score each touchpoint on three dimensions:
 - 1: Minor, rarely noticed
 
 **2. Current Quality (1-5, inverted for priority):** How well does this touchpoint perform today?
-- 1: Excellent (low priority for improvement)
+- 1: Poor (high priority for improvement)
 - 3: Adequate but not exceptional
-- 5: Poor (high priority for improvement)
+- 5: Excellent (low priority for improvement)
 
 **3. Reach (1-5):** What percentage of customers encounter this touchpoint?
 - 5: 100% of customers

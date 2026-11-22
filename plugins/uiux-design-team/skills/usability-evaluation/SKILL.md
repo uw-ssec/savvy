@@ -41,8 +41,8 @@ Full descriptions: [nielsen-heuristics.md](references/nielsen-heuristics.md).
 | 0 | Not a problem | Disagreement; not a usability issue | None |
 | 1 | Cosmetic | Noticed but doesn't affect task | Backlog |
 | 2 | Minor | Slows user; can still complete | Next iteration |
-| 3 | Major | Significant difficulty; some fail | Before next release |
-| 4 | Catastrophe | Cannot complete task | Immediate |
+| 3 | Major | Significant difficulty; some fail | High priority: fix before next release; defer only with explicit product approval |
+| 4 | Catastrophe | Cannot complete task | Immediate; blocks release |
 
 ## Finding template (use this exact format)
 
@@ -88,12 +88,12 @@ Any "no" = a usability finding. Document step number, failed question, recommend
 
 ## SUS quick reference
 
-Administer the 10-item SUS questionnaire post-task. Score:
+Administer the 10-item SUS questionnaire post-test (once, after all tasks). Score:
 - Odd items: score − 1
 - Even items: 5 − score
 - Sum × 2.5 = SUS score (0-100)
 
-**Benchmarks:** < 50 unacceptable · 50-67 marginal · 68 industry avg · 68-80 good · 80-90 excellent · > 90 best-in-class.
+**Benchmarks** (Bangor et al. acceptability; Sauro-Lewis curved grades): < 50 not acceptable · 50-70 marginal · 68 industry avg (50th percentile, grade C) · > 70 acceptable · 80.8+ grade A (Excellent) · 84.1+ grade A+ (Best Imaginable, top 4%).
 
 Full questionnaire, alternative scales (SEQ, NASA-TLX, SUPR-Q), scorecards: [scoring-methods.md](references/scoring-methods.md).
 

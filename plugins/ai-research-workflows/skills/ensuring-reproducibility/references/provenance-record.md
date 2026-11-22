@@ -28,9 +28,10 @@ A complete provenance record includes:
   For each RNG in use, state whether its seed was found; an unseeded RNG is a
   finding, not an omission.
 - **Configuration and parameters**: all non-default flags, hyperparameters,
-  or config file contents that affect the result. A seed written in a README
-  or comment is not captured if the code reads it from a config file that was
-  not pinned; record the config file's contents or the commit that holds it.
+  or config file contents that affect the result. A seed stated only in prose
+  or a code comment is not captured if the code reads it from a config file
+  that was not pinned; record the config file's contents or the commit that
+  holds it.
 - **Exact commands**: the full shell commands run, in order, from a fresh
   checkout to the result, so someone can copy-paste them into a clean
   environment. One command per line, no paraphrase ("run the training
@@ -114,7 +115,8 @@ R, Julia, Rust, or any other runtime.
 ```markdown
 ## Reproducibility
 
-**Status:** verified | unverified (reason)
+**Status:** verified | unverified (reason, and the minimal clean-room run,
+such as one seed on a data subset, that would verify it)
 
 - Environment: Python 3.12.3 on Ubuntu 24.04; lockfile `pixi.lock`
   (or: no lockfile; versions below read with `pip freeze`)

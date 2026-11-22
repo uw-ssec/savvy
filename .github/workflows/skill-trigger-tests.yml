@@ -63,12 +63,17 @@ jobs:
         run: |
           # Word splitting of SKILLS is intended: one argument per plugin/skill pair.
           # shellcheck disable=SC2086
+          # Exit 1 means some skills missed their fixtures: reported, not a failure.
+          # Exit 2 means runs failed on API or CLI errors, or bad input: fail the job.
+          status=0
           pixi run -e ci python evals/catalog-triggers/trigger_test.py --fixtures \
             --model "$MODEL" --repeats "$REPEATS" --jobs 6 \
-            --out out/results.jsonl --summary out/summary.md $SKILLS \
-            || echo "Some skills missed their fixtures; see the summary."
-          test -s out/summary.md
-          cat out/summary.md >> "$GITHUB_STEP_SUMMARY"
+            --out out/results.jsonl --summary out/summary.md $SKILLS || status=$?
+          if [ -s out/summary.md ]; then cat out/summary.md >> "$GITHUB_STEP_SUMMARY"; fi
+          if [ "$status" -gt 1 ]; then
+            echo "::error::trigger_test.py exited $status (failed runs or bad input)"
+            exit "$status"
+          fi
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()

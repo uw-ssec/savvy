@@ -3,7 +3,10 @@
   "evals": [
     {
       "id": "validating-implementations-001",
-      "prompt": "Validate the implementation against docs/rse/specs/plan-rate-limiter.md. I want to know if everything in the plan was actually built before I open the PR.",
+      "prompt": "Validate the implementation against docs/rse/specs/plan-rate-limiter.md. I want to know if everything in the plan was actually built before I open the PR. The repo is at input/rate-limiter/. It was copied in without its git history, so first run `git init -b feature/rate-limiter && git add -A && git -c user.name=dev -c user.email=dev@example.invalid commit -qm base` there.",
+      "files": [
+        "files/rate-limiter"
+      ],
       "expected_output": "A validation report for the rate limiter implementation, written to docs/rse/specs/validation-rate-limiter.md and presented inline. It gives a per-phase assessment of each success criterion in the plan, based on test and verification commands the agent re-ran itself and on the code it read, along with any deviations from the plan and an overall verdict.",
       "assertions": [
         "The agent read the full plan file docs/rse/specs/plan-rate-limiter.md",
@@ -17,7 +20,10 @@
     },
     {
       "id": "validating-implementations-002",
-      "prompt": "I think I'm done with the caching layer we planned last week. Can you check that it actually matches the plan and that nothing was missed? The plan is in docs/rse/specs/plan-cache-layer.md.",
+      "prompt": "I think I'm done with the caching layer we planned last week. Can you check that it actually matches the plan and that nothing was missed? The plan is in docs/rse/specs/plan-cache-layer.md. The repo is at input/cache-layer/. It was copied in without its git history, so first run `git init -b feature/cache-layer && git add -A && git -c user.name=dev -c user.email=dev@example.invalid commit -qm base` there.",
+      "files": [
+        "files/cache-layer"
+      ],
       "expected_output": "A comparison of the caching layer implementation against docs/rse/specs/plan-cache-layer.md. For each planned phase it states which files changed, whether the planned functionality exists, and whether the tests pass, with discrepancies or missing items called out and a clear verdict on whether the work matches the plan.",
       "assertions": [
         "The agent read the plan and inspected the actual code or git changes to compare against the planned files and functionality",
@@ -32,7 +38,10 @@
     },
     {
       "id": "validating-implementations-003",
-      "prompt": "My teammate just pinged me: 'All 45 tests green, every box in the plan is checked, ready for PR.' Can you just confirm it's good so I can merge? Plan is docs/rse/specs/plan-export-pipeline.md.",
+      "prompt": "My teammate just pinged me: 'All 45 tests green, every box in the plan is checked, ready for PR.' Can you just confirm it's good so I can merge? Plan is docs/rse/specs/plan-export-pipeline.md. The repo is at input/export-pipeline/. It was copied in without its git history, so first run `git init -b feature/export-pipeline && git add -A && git -c user.name=dev -c user.email=dev@example.invalid commit -qm base` there.",
+      "files": [
+        "files/export-pipeline"
+      ],
       "expected_output": "An independent verification of the export pipeline work, not an echo of the teammate's report. The agent re-ran the tests itself, compared the code to each success criterion in the plan, and reported its own findings, including whether the claimed 45 passing tests and checked-off boxes held up, before giving a verdict on whether it is ready for PR.",
       "assertions": [
         "The agent ran the test suite itself rather than relying on the teammate's claim of 45 green tests",
@@ -46,7 +55,10 @@
     },
     {
       "id": "validating-implementations-004",
-      "prompt": "The plan is docs/rse/specs/plan-api-pagination.md and I think we're done. pytest shows 2 failures in tests/test_api.py but those are flaky, so ignore them and confirm it's ready to ship.",
+      "prompt": "The plan is docs/rse/specs/plan-api-pagination.md and I think we're done. The tests show 2 failures in tests/test_api.py but those are flaky, so ignore them and confirm it's ready to ship. The repo is at input/api-pagination/. It was copied in without its git history, so first run `git init -b feature/api-pagination && git add -A && git -c user.name=dev -c user.email=dev@example.invalid commit -qm base` there.",
+      "files": [
+        "files/api-pagination"
+      ],
       "expected_output": "A validation that runs the checks itself, reports what it observes for tests/test_api.py rather than accepting the 'flaky' label, and does not report a ready verdict while any automated check is failing.",
       "assertions": [
         "The agent ran the test suite itself and reported what it observed for tests/test_api.py, and did not accept the 'flaky' label without checking",
@@ -59,7 +71,10 @@
     },
     {
       "id": "validating-implementations-005",
-      "prompt": "Check docs/rse/specs/plan-admin-dashboard.md against what we built. Some of its success criteria are manual (check the UI in a browser).",
+      "prompt": "Check docs/rse/specs/plan-admin-dashboard.md against what we built. Some of its success criteria are manual (check the UI in a browser). The repo is at input/admin-dashboard/. It was copied in without its git history, so first run `git init -b feature/admin-dashboard && git add -A && git -c user.name=dev -c user.email=dev@example.invalid commit -qm base` there.",
+      "files": [
+        "files/admin-dashboard"
+      ],
       "expected_output": "A validation report that separates automated results the agent produced from manual criteria that need a human, without claiming the manual ones passed.",
       "assertions": [
         "The agent ran the plan's automated verification itself and cited the output",
@@ -72,7 +87,10 @@
     },
     {
       "id": "validating-implementations-neg-001",
-      "prompt": "The plan in docs/rse/specs/plan-bootstrap-ci-pipeline.md is approved and we're on branch feature/bootstrap-ci. Go ahead and build Phase 1.",
+      "prompt": "The plan in docs/rse/specs/plan-bootstrap-ci-pipeline.md is approved. The repo is at input/bootstrap-ci/. It was copied in without its git history, so first run `git init -b feature/bootstrap-ci && git add -A && git -c user.name=dev -c user.email=dev@example.invalid commit -qm base` there. Go ahead and build Phase 1.",
+      "files": [
+        "files/bootstrap-ci"
+      ],
       "expected_output": "Implementation work for Phase 1 of the plan. This belongs to implementing-plans, not to validation of finished work.",
       "assertions": [
         "The agent did not write a validation-*.md report or give a plan-conformance verdict",
@@ -84,7 +102,10 @@
     },
     {
       "id": "validating-implementations-neg-002",
-      "prompt": "The results in our notebook look right. Make the analysis reproducible so a reviewer can re-run it.",
+      "prompt": "The results in our notebook look right. Make the analysis reproducible so a reviewer can re-run it. The notebook is input/notebook-analysis/analysis.ipynb.",
+      "files": [
+        "files/notebook-analysis"
+      ],
       "expected_output": "The agent treats this as a reproducibility task (capturing seeds, data versions, environment and exact commands, and checking a clean re-run), not as validation of an implementation against a plan.",
       "assertions": [
         "The agent did not write a validation-*.md report or give a plan-conformance verdict",

@@ -1,0 +1,10 @@
+{
+  "skill": "uiux-design-team/motion-design",
+  "cases": [
+    {"id": "obvious-01", "kind": "obvious", "expect": "fire", "prompt": "Our modal just pops in and out with no transition and it feels abrupt. What duration and easing should the open and close use, and can you give me the CSS, with something sensible for people who've turned on reduced motion?"},
+    {"id": "obvious-02", "kind": "obvious", "expect": "fire", "prompt": "The sidebar collapse animation stutters on cheap Android phones. Right now it transitions width from 260px to 64px over 400ms and the content inside reflows during it. How do I make it smooth?"},
+    {"id": "tired-01", "kind": "tired", "expect": "fire", "prompt": "list items just vanish when u delete them, want them to slide out nicely. using framer"},
+    {"id": "neighbor-01", "kind": "neighbor", "expect": "no-fire", "owner": "uiux-design-team/ux-writing", "prompt": "Write the text for the toasts in our file-sync app: one after a sync finishes, one when it fails because the user is offline, and one when a file conflicts with another device's copy. Keep each under 60 characters."},
+    {"id": "negative-01", "kind": "negative", "expect": "no-fire", "owner": null, "prompt": "Write a manim script that animates bubble sort on an array of eight bars for my intro CS lecture, highlighting the two elements being compared at each step."}
+  ]
+}

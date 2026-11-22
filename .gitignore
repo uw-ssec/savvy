@@ -227,3 +227,6 @@ __marimo__/
 # Claude Code history
 .claude-history/
 .lycheecache
+
+# npm install of the pinned Claude Code CLI for skill-trigger-tests.yml
+evals/catalog-triggers/node_modules/

@@ -1,0 +1,37 @@
+{
+  "skill": "uiux-design-team/design-tokens",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Our lab's design tokens are a single flat JSON file of hex values that the web app and a SwiftUI field-data app both copy by hand. Restructure them into global, alias and component tiers and configure Style Dictionary v4 to output CSS variables, Swift and Android resources from one source."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Before we publish our token package, check it for broken references, alias cycles, names that aren't kebab-case, and component tokens that point straight at palette values like color.blue.500 instead of a semantic name. It should fail the build, not just print warnings."
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "style dictionary build passes but android colors.xml is missing half the colors??"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "uiux-design-team/color-systems",
+      "prompt": "Generate an accessible 50-950 shade scale from our purple #7C3AED and tell me which shades pass AA as text on white and which work as backgrounds for white text."
+    },
+    {
+      "id": "negative-01",
+      "kind": "negative",
+      "expect": "no-fire",
+      "owner": null,
+      "prompt": "Our FastAPI app's JWT access tokens expire after 15 minutes and users keep getting logged out. How should I implement refresh tokens safely?"
+    }
+  ]
+}

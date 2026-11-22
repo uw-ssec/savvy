@@ -1,0 +1,44 @@
+{
+  "skill": "zarr-chunk-optimization/synthetic-data",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Our production radar dataset is restricted and can't be copied to the benchmarking cluster. Generate a stand-in Zarr array with shape (2000, 1024, 1024), float32, chunks (50, 256, 256), zstd compression and a fixed seed so we can compare chunk shapes."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Cut a roughly 10 GB sample along the time axis from our 4 TB temperature Zarr array so I can run chunking benchmarks on a laptop."
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "need a fake zarr to test chunk benchmarks on, like 3650x180x360 floats, dont have the real data yet"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "zarr-data-format/compression-codecs",
+      "prompt": "Which compressor gives the best ratio on our real float32 precipitation data in Zarr: Blosc zstd, LZ4 or plain Zstd? I want to measure it on an actual sample of the data."
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "zarr-chunk-optimization/chunking-strategy",
+      "prompt": "I already have three test Zarr stores with different chunk layouts. Time map reads and point time-series reads against each one and compare peak memory."
+    },
+    {
+      "id": "negative-01",
+      "kind": "negative",
+      "expect": "no-fire",
+      "owner": null,
+      "prompt": "Generate 500 rows of fake customer names and email addresses as a CSV to test my web app's signup form."
+    }
+  ]
+}

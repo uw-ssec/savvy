@@ -1,0 +1,37 @@
+{
+  "skill": "uiux-design-team/grid-layout-systems",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Lay out a monitoring dashboard for our HPC cluster: a fixed left nav, a header, and a main area on a 12-column grid where some panels span 8 columns and some span 4, plus a row of stat cards that reflows without media queries. Should the cards use Grid or Flexbox?"
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "On our publications page each card has a title, an abstract and an author row, but the author rows don't line up across a row of cards because the abstracts are different lengths. How do I make the inner parts of each card align with the cards next to it in CSS?"
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "grid or flexbox for a wall of plot thumbnails? just want them to wrap nicely"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "uiux-design-team/responsive-design",
+      "prompt": "Our field-survey web app is used on phones outdoors and on desktops in the lab. Set up the breakpoints, make tap targets big enough for gloved fingers, and serve the site photos at the right resolution for each device with srcset."
+    },
+    {
+      "id": "negative-01",
+      "kind": "negative",
+      "expect": "no-fire",
+      "owner": null,
+      "prompt": "In matplotlib, how do I make a 3x4 grid of subplots that share the y-axis and have one colorbar for all of them?"
+    }
+  ]
+}

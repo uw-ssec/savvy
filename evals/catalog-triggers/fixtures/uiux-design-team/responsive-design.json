@@ -1,0 +1,10 @@
+{
+  "skill": "uiux-design-team/responsive-design",
+  "cases": [
+    {"id": "obvious-01", "kind": "obvious", "expect": "fire", "prompt": "Our marketing site was built desktop-only and now 60% of traffic is on phones. The three-column feature section overflows, the hero image is a 2400px JPEG everywhere, and the nav links are tiny. Help me rework it mobile-first with sensible breakpoints and properly sized images."},
+    {"id": "obvious-02", "kind": "obvious", "expect": "fire", "prompt": "We have a product card that shows up both in a narrow sidebar and in the wide main grid. Our media queries are based on the viewport, so the card looks cramped in the sidebar on desktop. How do I make it adapt to the space it's actually placed in?"},
+    {"id": "tired-01", "kind": "tired", "expect": "fire", "prompt": "site looks broken on my iphone. buttons r tiny and stuff runs off the side"},
+    {"id": "neighbor-01", "kind": "neighbor", "expect": "no-fire", "owner": "uiux-design-team/grid-layout-systems", "prompt": "For our admin page, should the top toolbar (title on the left, three buttons on the right) use Flexbox or CSS Grid? And how do I set up a 12-column grid for the KPI cards and charts below it so nested panels line up with the columns?"},
+    {"id": "negative-01", "kind": "negative", "expect": "no-fire", "owner": null, "prompt": "My React Native app crashes on Android tablets as soon as the device is rotated to landscape. The stack trace mentions a null view in onConfigurationChanged. How do I debug this?"}
+  ]
+}

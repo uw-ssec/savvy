@@ -1,0 +1,37 @@
+{
+  "skill": "ai-research-workflows/iterating-plans",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Our implementation plan for a new regridding module has four phases. Reviewers want the conservative-regridding work split into its own phase and a numerical accuracy check added to the success criteria. Revise the plan with targeted edits and keep everything else intact."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "The experiment showed the Numba version of our particle solver is 3x faster than the Cython one. Update our existing implementation plan to use Numba, drop the Cython phase, and keep the phase numbering and cross-references consistent."
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "need to tweak the plan, scope changed, we're not doing the web dashboard anymore"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "ai-research-workflows/planning-implementations",
+      "prompt": "There's no plan yet. Design from scratch how we'd add uncertainty propagation to our climate emulator, with phases and success criteria."
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "ai-research-workflows/validating-implementations",
+      "prompt": "Every phase of our regridding plan is checked off. Verify the code actually matches the plan and that each success criterion passes before I open the PR."
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "skill": "zarr-data-format/data-migration",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Convert a directory of 15 years of daily NetCDF files, packed as int16 with scale_factor and add_offset, into one Zarr store, and verify the values, attributes and time coordinate match the originals before we delete them."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "We have 80 TB of HDF5 satellite granules on S3 and can't afford to copy them. Can we serve them as a virtual Zarr store with VirtualiZarr and Icechunk instead, and what breaks if the files have different chunk shapes?"
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "converted my .h5 to zarr and now all the dims are phony_dim_0 phony_dim_1, wtf"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "zarr-chunk-optimization/rechunking",
+      "prompt": "Our Zarr v3 store is chunked (1, 721, 1440). Rewrite it into (365, 60, 60) chunks at a new location and validate it against the original before we switch."
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "zarr-data-format/cloud-storage-backends",
+      "prompt": "Reading our Zarr store from Azure Blob fails with a credentials error inside a GitHub Actions job. How should adlfs get its credentials without a hardcoded key?"
+    }
+  ]
+}

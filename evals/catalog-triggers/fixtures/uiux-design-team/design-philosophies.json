@@ -1,0 +1,37 @@
+{
+  "skill": "uiux-design-team/design-philosophies",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Critique this landing page for our bioinformatics tool against Gestalt principles: logo and nav top-left, a search box centered and floating alone, three feature cards left-aligned below it, and a red 'Join our workshop' banner pinned top-right. Tie every issue to a named principle and give it a severity."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "We're designing the control software UI for a shared microscopy facility: booking, instrument settings and acquisition. Which design framework should be our backbone (Rams, Nielsen, Material, Apple HIG), what should play a supporting role, and what are the pitfalls of mixing them?"
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "the settings page feels cluttered and i can't explain why to my team. is there a principled way to say what's wrong with it"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "uiux-design-team/usability-evaluation",
+      "prompt": "Twelve grad students filled out the 10-item SUS questionnaire after testing our data-upload tool. Their raw 1-5 responses are in a table I can paste. Compute each participant's score and the mean, and tell me how it compares to the usual benchmarks."
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "uiux-design-team/design-case-studies",
+      "prompt": "How does Airbnb use the peak-end rule in its booking and post-stay flow? I want specific screens and moments, not theory."
+    }
+  ]
+}

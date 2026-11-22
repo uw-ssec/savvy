@@ -1,0 +1,43 @@
+{
+  "skill": "containerization/compose-orchestration",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Write a compose.yml for our lab's data portal: a FastAPI service, Postgres 16 with persistent storage, Redis, and a Celery worker. The API crashes on startup because Postgres isn't ready yet, so make the startup order reliable."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "I want one command that starts a local stack for our summer students: JupyterLab, a PostGIS database and a MinIO bucket for sample data. Add an optional pgAdmin service that only starts when someone asks for it."
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "api container cant reach the db container, connection refused on localhost:5432. both are in the same docker-compose file. help"
+    },
+    {
+      "id": "tired-02",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "how do i make the worker wait till rabbitmq is actually up, depends_on alone isnt cutting it"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "containerization/devcontainers",
+      "prompt": "I want VS Code to open our repo inside a container with Python 3.12, the Jupyter extension and pre-commit installed on first launch, and the same setup should work in GitHub Codespaces."
+    },
+    {
+      "id": "negative-01",
+      "kind": "negative",
+      "expect": "no-fire",
+      "owner": null,
+      "prompt": "Write a regular expression that matches ISO 8601 timestamps like 2024-03-05T14:22:10Z in our instrument log lines."
+    }
+  ]
+}

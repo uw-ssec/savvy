@@ -1,0 +1,44 @@
+{
+  "skill": "zarr-data-format/zarr-fundamentals",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Using zarr-python 3, build a store with an observations group holding a (365, 180, 360) float32 temperature array with dimension names and units, plus a sharded version where each shard holds 10 inner chunks. Then show how to read a scattered set of points with vindex."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Our zarr 2 code uses zarr.ProcessSynchronizer and DirectoryStore and crashes on zarr 3 with AttributeError. What replaces them, and how do I keep parallel workers from wiping out each other's writes to the same array?"
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "zarr v2 or v3 for a new project? whats actually different"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "zarr-data-format/zarr-xarray-integration",
+      "prompt": "to_zarr raises 'would overlap multiple Dask chunks' when I write my xarray Dataset after calling .chunk() on data I opened from another Zarr store. How do I fix the encoding?"
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "zarr-data-format/data-migration",
+      "prompt": "Upgrade our existing Zarr v2 archive of glacier velocity fields to Zarr v3, keeping the CF attributes and fill values, and check the result against the original."
+    },
+    {
+      "id": "negative-01",
+      "kind": "negative",
+      "expect": "no-fire",
+      "owner": null,
+      "prompt": "How do I stack two NumPy arrays along a new axis?"
+    }
+  ]
+}

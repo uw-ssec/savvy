@@ -1,0 +1,37 @@
+{
+  "skill": "supply-chain-security/supply-chain-incident-response",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "An advisory says axios 1.14.1 was malicious. Our frontend's package-lock.json had it for two days in March and CI ran npm ci on main and two PR branches in that time. Walk us through containment, which secrets to rotate, and the incident report."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "A GitHub Action we use for linting had its v2 tag force-pushed to a malicious commit last Tuesday, and our workflows reference @v2. Our CI holds PyPI and AWS credentials. What do we need to check and rotate?"
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "pypi package we depend on got hijacked, bad version was up for 6 hrs and our nightly build ran then. what now"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "supply-chain-security/supply-chain-threat-awareness",
+      "prompt": "Do a supply-chain posture review of our repo ahead of our grant's security review: lockfiles, action pinning, install scripts, cooldowns. Nothing has happened; we just want to know where we stand."
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "containerization/container-security",
+      "prompt": "Trivy reports a HIGH openssl CVE in the Debian base layer of our analysis image. Rebuild on a patched base and re-scan to confirm it's gone."
+    }
+  ]
+}

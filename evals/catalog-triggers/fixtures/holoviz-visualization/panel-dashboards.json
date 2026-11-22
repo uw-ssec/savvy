@@ -1,0 +1,37 @@
+{
+  "skill": "holoviz-visualization/panel-dashboards",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Build a Panel app for our lab instruments: a sidebar with a date picker and an instrument selector, a main area with a plot that pulls new readings every 5 seconds, all in the FastListTemplate and served with panel serve."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "I want a multi-page Python web app where collaborators upload a plate reader CSV, the app validates the columns, and a second page shows a summary table and plots. What's the cleanest way to structure the state and pages with Panel and Param?"
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "my panel app freezes whenever the model fit runs, whole ui locks up for like 30 sec"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "holoviz-visualization/lumen-dashboards",
+      "prompt": "Our analysts don't write Python. They want a dashboard defined entirely in a YAML config: one CSV source, a region filter, a bar chart and a table, launched from the command line."
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "holoviz-visualization/parameterization",
+      "prompt": "I have a plain Python class holding simulation settings (timestep, grid size, solver name). Convert it to a Parameterized class with bounds and allowed values so bad settings raise errors on assignment. No UI, it's for a headless batch runner on the cluster."
+    }
+  ]
+}

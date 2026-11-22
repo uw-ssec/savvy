@@ -1,0 +1,37 @@
+{
+  "skill": "ai-research-workflows/validating-implementations",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "My colleague says the new spectral analysis module is finished and every box in the plan is checked. Before I open a PR, verify it against the plan's success criteria yourself and write a validation report."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Is the parallel I/O work in our astronomy pipeline really complete? Re-run the plan's automated checks and compare the code against each phase of the plan."
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "think its done, can u double check it matches the plan b4 i PR"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "ai-research-workflows/hardening-research-code",
+      "prompt": "Our orbit integration code runs, but we've never checked it against anything. Add tests against the analytic two-body solution and confirm energy is conserved to a tolerance we can justify."
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "ai-research-workflows/implementing-plans",
+      "prompt": "Phase 1 of our parallel I/O plan is approved and nothing has been written yet. Start implementing it."
+    }
+  ]
+}

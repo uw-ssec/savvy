@@ -1,0 +1,37 @@
+{
+  "skill": "ai-research-workflows/planning-implementations",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Our seismic waveform processing package needs to export picked arrivals to QuakeML. The change touches the picker, the catalog class and the CLI. Before anyone codes, design it as phases with file-level tasks, tests first, and automated versus manual success criteria."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "How should we build GPU support into our hydrology model? Lay out the approach, what we're explicitly not doing, and a phased plan the team can review before implementation starts."
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "want to add netcdf output to our sim code, can u map out how we'd do it before i start hacking"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "ai-research-workflows/iterating-plans",
+      "prompt": "We already have an approved plan for adding NetCDF output to our simulation code. The experiments showed compression is too slow, so add a phase for chunked writes and update the success criteria without rewriting the rest of the plan."
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "ai-research-workflows/implementing-plans",
+      "prompt": "The phased plan for QuakeML export in our seismic package was approved yesterday. Start building it phase by phase and tick off the tasks as you go."
+    }
+  ]
+}

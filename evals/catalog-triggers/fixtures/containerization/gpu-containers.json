@@ -1,0 +1,43 @@
+{
+  "skill": "containerization/gpu-containers",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Build a container for training our protein-structure model with PyTorch 2.4 and CUDA 12.4. The lab servers have NVIDIA driver 535; which base image is compatible, and how do I check the GPUs are visible inside the container?"
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "We have an AMD MI250 node. Set up a Docker container that runs our TensorFlow model on ROCm, including the device flags it needs."
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "docker run --gpus all -> could not select device driver with capabilities: [[gpu]]. ubuntu box, nvidia drivers installed"
+    },
+    {
+      "id": "tired-02",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "multi gpu DDP in docker dies with NCCL error and bus error, single gpu fine"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "containerization/singularity-apptainer",
+      "prompt": "Write an Apptainer definition file for our OpenMPI fluid-dynamics code and an sbatch script that runs it across 4 nodes with srun on the university cluster."
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "scientific-python-development/pixi-package-manager",
+      "prompt": "I want a CUDA PyTorch environment alongside a CPU-only one for laptops, defined in the same pixi manifest with one lockfile. No containers involved."
+    }
+  ]
+}

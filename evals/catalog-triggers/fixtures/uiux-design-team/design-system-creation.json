@@ -1,0 +1,37 @@
+{
+  "skill": "uiux-design-team/design-system-creation",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Our research computing group runs five web apps (two Flask, two React, one Panel dashboard) that all look different. We want to start a shared design system from nothing: audit what exists, set up a token pipeline with Style Dictionary and a Storybook, and decide governance, meaning who approves new components and how releases are versioned."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "We audited our three internal portals and counted 14 grays, 6 button styles and 11 font sizes. Tell us what to systematize first, then lay out the scaffolding for a shared system: repo structure, token build, component tiers, and semver releases with changesets."
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "every app our team ships looks totally different. how do we get one shared system going"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "uiux-design-team/design-tokens",
+      "prompt": "Our Style Dictionary build succeeds, but the generated Android colors.xml is missing all the semantic colors like color_primary. The web CSS output looks fine. What's going on with the aliases?"
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "uiux-design-team/typography-systems",
+      "prompt": "Pick a font pairing for our lab's publications site and give me a fluid type scale with clamp() values from mobile to desktop, plus sensible line height and line length for long abstracts."
+    }
+  ]
+}

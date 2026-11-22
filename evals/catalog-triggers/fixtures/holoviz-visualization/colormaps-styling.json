@@ -1,0 +1,37 @@
+{
+  "skill": "holoviz-visualization/colormaps-styling",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "I'm plotting sea surface temperature anomalies from -3 to +3 °C in HoloViews and currently using 'jet'. Which perceptually uniform diverging colormap should I switch to so zero reads as neutral, and how do I set symmetric color limits and a labeled colorbar?"
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "A reviewer said our hvPlot heatmaps of gene expression are unreadable for colorblind readers and turn to mush when printed in grayscale. Recommend a colorblind-safe sequential colormap from colorcet and show how to apply it consistently across all six panels of the figure."
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "rainbow cmap on my wind direction plot has a weird seam at 0/360, what should i use instead"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "uiux-design-team/color-systems",
+      "prompt": "We're building the web frontend for our lab's data portal. Generate a brand color palette with 50-950 shade scales from our primary teal #0f766e, mapped to semantic CSS custom properties, with dark mode variants that pass WCAG AA contrast."
+    },
+    {
+      "id": "negative-01",
+      "kind": "negative",
+      "expect": "no-fire",
+      "owner": null,
+      "prompt": "What paint color should I use for my home office walls to reduce eye strain during long days at the computer?"
+    }
+  ]
+}

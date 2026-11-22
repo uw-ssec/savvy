@@ -155,6 +155,7 @@ First tagged release. Only `ai-research-workflows` ships in it and moves to this
 
 #### Added
 
+- Every skill has a trigger fixture in `evals/catalog-triggers/fixtures/`: prompts that must load it, including tired-user phrasing, and neighboring prompts that must not. `trigger_test.py --fixtures` runs them with repeats and a 2-of-3 pass threshold, `test-scripts` checks every fixture, and the **Skill trigger tests** workflow runs them weekly and on demand without gating pull requests. Results for Haiku, Sonnet and Opus 5.5 are recorded in `evals/catalog-triggers/results/`.
 - [CONTRIBUTING.md](CONTRIBUTING.md) explains how to write a skill description an agent can route on: a trigger clause, what the skill does, and a neighboring case it doesn't own, checked with a three-way trigger test. `plugins-check` now fails on a skill description without a `Use when` or `Use this skill when` clause.
 - `CHANGELOG.md`, a [versioning policy](docs/versioning.md), and a [deprecation policy](docs/deprecation.md).
 - [docs/codespaces.md](docs/codespaces.md), with the Codespaces and LiteLLM gateway setup moved out of the README.

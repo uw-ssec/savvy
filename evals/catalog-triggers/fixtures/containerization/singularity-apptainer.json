@@ -1,0 +1,37 @@
+{
+  "skill": "containerization/singularity-apptainer",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Write an Apptainer definition file for our genomics pipeline (samtools, bcftools, Python 3.11) with a %test section, then show how to build the .sif and run it from a Slurm job."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "I need to run our MPI ocean model in a container on the university cluster. Should I use the hybrid or bind approach with the host's OpenMPI, and how do I launch it with srun?"
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "cluster has no docker, how do i use my docker hub image there"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "containerization/podman",
+      "prompt": "On my workstation I run containers with rootless Podman. How do I make one of them a user-level systemd service that starts at boot?"
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "containerization/dockerfile-patterns",
+      "prompt": "Write a Dockerfile for a Julia package that bakes in a precompiled sysimage while keeping the final image small."
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "skill": "containerization/podman",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Our lab server has Podman but no Docker and no root access. Show me how to run our existing docker run commands for the data-ingest container rootless, and what changes with volume permissions."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Turn our long-running metadata harvester container into a systemd user service with Quadlet so it restarts on failure and comes back after the lab server reboots."
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "podman run -v ./data:/data gives permission denied inside the container on fedora. same thing works with docker"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "containerization/compose-orchestration",
+      "prompt": "Add a health check and a depends_on condition to our docker-compose.yml so the Celery worker waits until Redis is accepting connections."
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "containerization/singularity-apptainer",
+      "prompt": "The cluster admins want .sif images only. Convert our image from GHCR and show me how to bind-mount the scratch filesystem when the job runs."
+    },
+    {
+      "id": "negative-01",
+      "kind": "negative",
+      "expect": "no-fire",
+      "owner": null,
+      "prompt": "Write a bash one-liner that counts the total number of lines across all .csv files in a directory."
+    }
+  ]
+}

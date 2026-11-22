@@ -1,0 +1,37 @@
+{
+  "skill": "holoviz-visualization/lumen-ai",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Our field station keeps sensor readings in a DuckDB database. I want a chat interface where technicians type questions like 'which sensors had gaps last week' and get back SQL results and plots, using Claude as the LLM. How do I set that up with Lumen?"
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Build a self-service natural-language analytics app over our clinical trial Parquet tables. It has to run on a local Llama model through Ollama because the data can't leave the hospital network, and it should use our data dictionary document as context so the generated SQL gets the column meanings right."
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "want my PI to just ask questions about the survey data in plain english and get charts back, no sql. holoviz has something for this right?"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "holoviz-visualization/lumen-dashboards",
+      "prompt": "Write a Lumen YAML spec for a fixed dashboard over our bird count CSV: a dropdown filter by species, a line chart of counts per year, and a table underneath. No LLM or chat involved, just a static layout."
+    },
+    {
+      "id": "negative-01",
+      "kind": "negative",
+      "expect": "no-fire",
+      "owner": null,
+      "prompt": "Summarize the main causes of the 2008 financial crisis in three short paragraphs."
+    }
+  ]
+}

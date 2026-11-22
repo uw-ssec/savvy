@@ -1,0 +1,37 @@
+{
+  "skill": "uiux-design-team/usability-evaluation",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "We gave the SUS questionnaire to 12 people after moderated sessions. Participant 1 answered 4, 2, 5, 1, 4, 2, 5, 2, 4, 1 and I'm not sure I scored the even-numbered items right. How is SUS scored, and is a team average of about 61 something to worry about?"
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "First-time users of our expense app need to submit a receipt: open the app, tap +, choose Scan, crop the photo, pick a category, tap Submit. Step through this as someone who has never seen the app and tell me where they're likely to get stuck."
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "team logged like 40 ux issues on the new checkout. which ones do we actually fix before launch"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "uiux-design-team/design-philosophies",
+      "prompt": "Critique our landing page using Gestalt principles: proximity, similarity, figure-ground, and common region. The feature cards, testimonials, and pricing blocks all blur together."
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "uiux-design-team/ab-testing-strategy",
+      "prompt": "We changed the wording on the booking button and want to know whether conversion improved. How many users per variant do we need to detect a two-point lift, and how long should the test run?"
+    }
+  ]
+}

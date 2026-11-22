@@ -1,0 +1,43 @@
+{
+  "skill": "uiux-design-team/accessibility-audit",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Our lab's public data portal (a React app on GitHub Pages) has to meet WCAG 2.2 AA before our NSF program review next month. Walk me through checking it properly: which automated scanners to run against the staging URL, what still has to be tested by hand with a keyboard and a screen reader, and how to write up the findings by success criterion so we can track fixes."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "The university's disability resources office flagged our course site for a computational biology class: the icon-only toolbar buttons have no accessible name, the citation modal traps keyboard focus and Escape doesn't close it, and the figure captions are light gray (#9CA3AF) on white. Help me fix each one and record which WCAG criterion it fails."
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "can someone using only a keyboard actually get through our dataset download page? need to check before launch, no idea where to start"
+    },
+    {
+      "id": "tired-02",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "voiceover just reads 'button, button, button' on our plot toolbar lol. how do i fix that"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "uiux-design-team/color-systems",
+      "prompt": "We're designing the theme for a new climate-model viewer from scratch. Starting from our teal #0F766E, generate a full 50-950 shade scale plus success, warning and error colors, and map them to semantic CSS variables for light and dark themes."
+    },
+    {
+      "id": "negative-01",
+      "kind": "negative",
+      "expect": "no-fire",
+      "owner": null,
+      "prompt": "In Python, how do I convert a hex color string like '#1A5490' into an (r, g, b) tuple of ints without pulling in any extra libraries?"
+    }
+  ]
+}

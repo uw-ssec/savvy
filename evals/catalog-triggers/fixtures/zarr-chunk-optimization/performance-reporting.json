@@ -1,0 +1,44 @@
+{
+  "skill": "zarr-chunk-optimization/performance-reporting",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Here are our Zarr chunking benchmark results, mean wall time over 5 runs. Chunks (1,721,1440): map 0.3 s, point series 52 s, peak 210 MB. Chunks (240,90,90): map 4.8 s, series 1.1 s, peak 1.9 GB. Chunks (24,180,360): map 1.0 s, series 6.2 s, peak 640 MB. Our workload is 60% maps and 40% series and the memory budget is 1.5 GB. Rank them and write up a recommendation for the data committee."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Compute the performance bias for these Zarr chunk configs and say which are balanced and which are biased: A has map 0.5 ± 0.05 s and series 12 ± 1 s; B has map 2.1 ± 0.3 s and series 1.8 ± 0.2 s; C has map 1.0 ± 0.4 s and series 3.0 ± 0.2 s. Are any of them effectively tied?"
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "got chunk benchmark numbers, boss wants a 1 pager on which to pick. (1,512,512): 0.2s maps 30s series. (100,64,64): 2s maps 0.8s series"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "zarr-chunk-optimization/chunking-strategy",
+      "prompt": "I haven't measured anything yet. Set up a benchmark that times map reads and point time-series reads for three candidate chunk shapes on a sample of our ERA5-like Zarr store."
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "zarr-chunk-optimization/access-pattern-analysis",
+      "prompt": "Before we compare any benchmark results, help me work out how much weight each team's reads should get: the modelers say they mostly look at fields, the validation people pull station time series, and nobody has numbers."
+    },
+    {
+      "id": "negative-01",
+      "kind": "negative",
+      "expect": "no-fire",
+      "owner": null,
+      "prompt": "Make a bar chart comparing my lab's monthly electricity bills for 2025."
+    }
+  ]
+}

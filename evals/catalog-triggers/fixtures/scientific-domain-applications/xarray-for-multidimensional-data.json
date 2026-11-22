@@ -1,0 +1,10 @@
+{
+  "skill": "scientific-domain-applications/xarray-for-multidimensional-data",
+  "cases": [
+    {"id": "obvious-01", "kind": "obvious", "expect": "fire", "prompt": "I have 30 years of daily NetCDF temperature files, one per year. Open them together, compute an area-weighted global mean time series, and keep memory under control with Dask."},
+    {"id": "obvious-02", "kind": "obvious", "expect": "fire", "prompt": "Clip a GeoTIFF of land surface temperature to a bounding box, reproject it to EPSG:3857 with the rio accessor, and save the result."},
+    {"id": "tired-01", "kind": "tired", "expect": "fire", "prompt": "ds.mean over lat and lon gives a weird global avg, feels like the poles are overweighted?"},
+    {"id": "neighbor-01", "kind": "neighbor", "expect": "no-fire", "owner": "zarr-data-format/zarr-xarray-integration", "prompt": "When I append daily files to a Zarr store with to_zarr(append_dim='time'), it raises 'would overlap multiple Dask chunks'. How do I align the chunks?"},
+    {"id": "neighbor-02", "kind": "neighbor", "expect": "no-fire", "owner": "zarr-data-format/data-migration", "prompt": "Convert our archive of NetCDF4 files to Zarr v3 and make sure scale_factor, _FillValue and the time units survive the conversion."}
+  ]
+}

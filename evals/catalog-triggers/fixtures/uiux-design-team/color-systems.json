@@ -1,0 +1,43 @@
+{
+  "skill": "uiux-design-team/color-systems",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Our observatory's web dashboard uses one brand blue (#1D4ED8) and hard-coded hex values everywhere. Generate a 50-950 shade scale from it, map the shades to semantic tokens like primary, surface, on-surface and error as CSS custom properties, and add a dark theme where all text and UI pairs still pass WCAG AA."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "We're adding dark mode to a genomics analysis web app. Someone just inverted the colors, so the success/warning/error badges look neon and some secondary text is unreadable on the dark panels. How should we remap the colors for dark mode, and how can we check contrast for every pair automatically in CI?"
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "need light and dark colors for our lab site off one green, #2F855A. css vars pls"
+    },
+    {
+      "id": "tired-02",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "half our buttons fail contrast and nobody knows which gray we're supposed to use anymore. can you sort out our colors"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "holoviz-visualization/colormaps-styling",
+      "prompt": "I'm plotting sea surface temperature anomalies with hvPlot and want a perceptually uniform diverging colormap that's colorblind-safe and centered on zero. Which colorcet map should I use and how do I apply it?"
+    },
+    {
+      "id": "negative-01",
+      "kind": "negative",
+      "expect": "no-fire",
+      "owner": null,
+      "prompt": "In matplotlib, how do I give each bar in a bar chart its own color from a list I already have?"
+    }
+  ]
+}

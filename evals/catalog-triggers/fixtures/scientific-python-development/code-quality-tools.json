@@ -1,0 +1,11 @@
+{
+  "skill": "scientific-python-development/code-quality-tools",
+  "cases": [
+    {"id": "obvious-01", "kind": "obvious", "expect": "fire", "prompt": "Add ruff and mypy configuration to the pyproject.toml of our ocean-model post-processing package, and wire both into a pre-commit config so they run on every commit."},
+    {"id": "obvious-02", "kind": "obvious", "expect": "fire", "prompt": "Running ruff on our legacy hydrology codebase reports about 900 errors. How do we adopt it without fixing everything at once, while still blocking new violations?"},
+    {"id": "tired-01", "kind": "tired", "expect": "fire", "prompt": "mypy in pre-commit keeps failing on imports of my own package but passes fine in CI, why"},
+    {"id": "neighbor-01", "kind": "neighbor", "expect": "no-fire", "owner": "scientific-python-development/python-testing", "prompt": "My pytest suite for a spectral fitting library takes 20 minutes. How do I mark the slow integration tests and skip them by default in local runs?"},
+    {"id": "neighbor-02", "kind": "neighbor", "expect": "no-fire", "owner": "supply-chain-security/supply-chain-hardened-ci-cd", "prompt": "Our lint workflow runs on pull_request_target with write-all permissions so it can comment on PRs from forks. Is that safe, and how should we restructure it?"},
+    {"id": "negative-01", "kind": "negative", "expect": "no-fire", "owner": null, "prompt": "How do I set up ESLint and Prettier for a TypeScript monorepo?"}
+  ]
+}

@@ -30,7 +30,7 @@ criterion. "Just confirm it's good" is a request to validate, not to
 rubber-stamp. If you cannot run commands or read files here, say so and give
 no verdict.
 
-Default mode: Direct (protocol: `ai-research-workflows:using-research-workflows`).
+Default mode: Direct (`ai-research-workflows:using-research-workflows`).
 
 ## Quick reference
 
@@ -44,8 +44,8 @@ Default mode: Direct (protocol: `ai-research-workflows:using-research-workflows`
 
 1. **Read the whole plan**, phase by phase.
 2. **Run every Automated Verification command verbatim** (for example
-   `pixi run pytest`). Run all of them even after one fails, and record each
-   command's actual output.
+   `pixi run pytest`). Run all of them, even after a failure, and record
+   each actual output.
 3. **Read the actual code** for each phase against its criteria. A `[x]`
    means "claimed complete", nothing more.
 4. **Investigate every failure.** Re-run it, read the error, and name the root
@@ -71,10 +71,10 @@ triage.
 ## The report
 
 Write it to `docs/rse/specs/validation-<slug>.md` (slug from
-`plan-<slug>.md`) **and** present it inline. "Chat only" still gets the
-file, with its provenance and References: it is the verdict's record. If the
-user forbids writing files, don't, and say the verdict has no record. The
-report:
+`plan-<slug>.md`) **and** present it inline. A chat-only request still gets
+the file, with its provenance and References: it is the verdict's record.
+Only an explicit ban on writing files stops it; then say the verdict has no
+record. The report:
 
 - opens with provenance: plan, implementation summary, commit
   (`git rev-parse --short HEAD`) and date;

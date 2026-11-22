@@ -23,6 +23,10 @@ First tagged release. Only `ai-research-workflows` ships in it and moves to this
 - Initial tagged release.
 - Capability metadata, a skill card and a public eval task set on each skill, as part of the skill trust evidence pilot ([#293](https://github.com/uw-ssec/savvy/issues/293)).
 
+#### Changed
+
+- `using-research-workflows`: slim the entry point to the rule, instruction priority, decision tree and pointers; move workflow patterns, red flags and common mistakes to `references/workflow-patterns.md` and document naming and deferral to `references/conventions.md`; an explicitly skipped step is skipped while urgency only selects Direct mode ([#162](https://github.com/uw-ssec/savvy/issues/162)).
+
 ### containerization
 
 #### Added

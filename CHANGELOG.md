@@ -34,6 +34,10 @@ First tagged release. Only `ai-research-workflows` ships in it and moves to this
 
 - Initial tagged release.
 
+#### Fixed
+
+- Fixed the `download-script-dev` skill's CONUS404 store path (`s3://hytest/conus404/conus404_hourly.zarr` on the USGS OSN endpoint; `s3://mdmf/gdp/CONUS404/hourly.zarr` does not exist) and its USGS RDB parsing, which turned the per-site headers and data-type rows of a multi-site response into data rows; the new `parse_rdb` splits the response per site. Also fixed examples that fail against the live services and current libraries: CONUS404 has no `RAINC`/`RAINNC` (precipitation is `PREC_ACC_NC`) and needs `crs` kept as a coordinate for `rio.clip` and `drop_encoding()` before writing Zarr; the HRRR pipeline now merges Herbie's per-level Datasets, searches with the level, masks the curvilinear grid with `regionmask`, and uses the `"1D"` frequency alias; and the IRIS station query uses a channel that returns data.
+
 ### holoviz-visualization
 
 #### Added

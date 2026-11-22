@@ -64,7 +64,34 @@ Used by: USGS, Synoptic
 import requests
 import pandas as pd
 import io
+import re
 import time
+
+def parse_rdb(text):
+    """Parse an NWIS RDB response into one DataFrame.
+
+    A multi-site response holds one table per site: each has its own
+    `agency_cd ...` header and data-type row (5s 15s 20d ...), and the value
+    columns carry a per-site time-series ID (e.g. 151445_00060).
+    """
+    blocks, skip_type_row = [], False
+    for line in text.splitlines():
+        if line.startswith("#") or not line.strip():
+            continue
+        if line.startswith("agency_cd"):
+            blocks.append([line])           # header of a new site table
+            skip_type_row = True
+        elif skip_type_row:
+            skip_type_row = False           # data-type row under each header
+        elif blocks:
+            blocks[-1].append(line)
+    frames = []
+    for block in blocks:
+        df = pd.read_csv(io.StringIO("\n".join(block)), sep="\t", dtype={"site_no": str})
+        # Drop the time-series ID prefix: 151445_00060 -> 00060, 151445_00060_cd -> 00060_cd
+        df.columns = [re.sub(r"^\d+_(\d{5})", r"\1", c) for c in df.columns]
+        frames.append(df)
+    return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 
 def query_usgs_api(sites, start_date, end_date, parameter_codes, format="rdb"):
     """Query USGS instantaneous values API."""
@@ -83,14 +110,8 @@ def query_usgs_api(sites, start_date, end_date, parameter_codes, format="rdb"):
     )
     response.raise_for_status()
 
-    # Parse RDB format: skip comment lines (#) and data-type row
-    lines = [line for line in response.text.splitlines() if not line.startswith("#")]
-    if len(lines) < 2:
-        return pd.DataFrame()
-
-    # First line is headers, second is data types (skip it), rest is data
-    df = pd.read_csv(io.StringIO("\n".join([lines[0]] + lines[2:])), sep="\t")
-    return df
+    # RDB: one table (header + data-type row) per site
+    return parse_rdb(response.text)
 
 def query_usgs_bulk(site_list, start_date, end_date, parameter_codes, batch_size=10, delay=1.0):
     """Query USGS API in batches to avoid rate limiting."""
@@ -196,12 +217,14 @@ from concurrent.futures import ThreadPoolExecutor
 
 def download_hrrr_range(date_range, model="hrrr", product="sfc", fxx=0, search_pattern=":TMP:2 m", max_workers=8):
     """Download HRRR data for a date range using Herbie."""
-    dates = pd.date_range(date_range[0], date_range[1], freq="1d")
+    dates = pd.date_range(date_range[0], date_range[1], freq="1D")
 
     def download_day(date):
         try:
             H = Herbie(date, model=model, product=product, fxx=fxx)
-            return H.xarray(search_pattern)
+            ds = H.xarray(search_pattern)
+            # Fields on different levels (2 m, 10 m) come back as a list of Datasets
+            return xr.merge(ds, compat="override") if isinstance(ds, list) else ds
         except Exception as e:
             print(f"  Failed for {date}: {e}")
             return None
@@ -235,6 +258,7 @@ import xarray as xr
 import geopandas as gpd
 import numpy as np
 import pandas as pd
+import regionmask
 from herbie import Herbie
 from concurrent.futures import ThreadPoolExecutor
 
@@ -246,7 +270,7 @@ CONFIG = {
     "model": "hrrr",
     "product": "sfc",
     "date_range": ("2024-01-01", "2024-01-31"),
-    "frequency": "1d",
+    "frequency": "1D",
     "forecast_hour": 0,
     "parameters": {
         "TMP:2 m": "temperature_2m",
@@ -268,9 +292,9 @@ def main():
         "wgrib2 not found in PATH. Install via: conda install -c conda-forge wgrib2"
     )
 
-    # Build search pattern from parameters
-    param_names = [p.split(":")[0] for p in CONFIG["parameters"]]
-    search_pattern = ":(?:" + "|".join(param_names) + "):"
+    # Build search pattern from parameters, keeping the level ("TMP:2 m"):
+    # the bare name (":TMP:") also matches every pressure level
+    search_pattern = ":(?:" + "|".join(CONFIG["parameters"]) + ")"
 
     # Load AOI
     aoi = gpd.read_file(CONFIG["aoi_path"])
@@ -287,7 +311,9 @@ def main():
             product=CONFIG["product"],
             fxx=CONFIG["forecast_hour"],
         )
-        return H.xarray(search_pattern)
+        ds = H.xarray(search_pattern)
+        # Fields on different levels (2 m, 10 m) come back as a list of Datasets
+        return xr.merge(ds, compat="override") if isinstance(ds, list) else ds
 
     with ThreadPoolExecutor(max_workers=CONFIG["max_workers"]) as executor:
         datasets = []
@@ -297,12 +323,19 @@ def main():
 
     # Combine
     ds = xr.concat(datasets, dim="time")
-    print(f"Combined dataset: {ds.dims}")
+    print(f"Combined dataset: {dict(ds.sizes)}")
 
-    # Spatial subset
-    aoi_reproj = aoi.to_crs(ds.rio.crs)
-    ds_clipped = ds.rio.clip(aoi_reproj.geometry)
-    print(f"Clipped to AOI: {ds_clipped.dims}")
+    # cfgrib names the fields t2m/u10/v10; rename them to the CONFIG names
+    cfgrib_names = {"TMP:2 m": "t2m", "UGRD:10 m": "u10", "VGRD:10 m": "v10"}
+    ds = ds.rename({cfgrib_names[k]: v for k, v in CONFIG["parameters"].items()})
+
+    # Spatial subset: HRRR is curvilinear (2-D latitude/longitude, no x/y
+    # coordinate values), so mask with regionmask instead of rio.clip
+    mask = regionmask.from_geopandas(aoi.to_crs("EPSG:4326")).mask(
+        ds.longitude, ds.latitude, wrap_lon=180
+    )
+    ds_clipped = ds.where(mask.notnull(), drop=True)
+    print(f"Clipped to AOI: {dict(ds_clipped.sizes)}")
 
     # Derive wind speed
     if "u_wind_10m" in ds_clipped and "v_wind_10m" in ds_clipped:
@@ -334,6 +367,7 @@ if __name__ == "__main__":
 import xarray as xr
 import s3fs
 import geopandas as gpd
+import rioxarray  # registers the .rio accessor
 
 # ============================================================
 # Configuration — modify these parameters before running
@@ -342,7 +376,7 @@ CONFIG = {
     "source": "CONUS404",
     "dataset_kind": "daily",
     "date_range": ("2020-01-01", "2020-12-31"),
-    "variables": ["T2", "RAINC", "RAINNC"],
+    "variables": ["T2", "PREC_ACC_NC"],
     "aoi_path": "../data/GIS/StudyArea.json",
     "output_path": "../data/weather_data/conus404_study_2020.zarr",
     "output_format": "zarr",
@@ -370,8 +404,9 @@ def main():
         consolidated=True,
     )
 
-    # Select variables and time range
-    ds = ds[CONFIG["variables"]].sel(
+    # Select variables and time range; make "crs" a coordinate so it survives
+    # the selection and ds.rio.crs can read the Lambert Conformal projection
+    ds = ds.set_coords("crs")[CONFIG["variables"]].sel(
         time=slice(CONFIG["date_range"][0], CONFIG["date_range"][1])
     )
     print(f"Selected {len(CONFIG['variables'])} variables, {len(ds.time)} timesteps")
@@ -380,11 +415,12 @@ def main():
     aoi = gpd.read_file(CONFIG["aoi_path"])
     aoi_reproj = aoi.to_crs(ds.rio.crs)
     ds_clipped = ds.rio.clip(aoi_reproj.geometry)
-    print(f"Clipped to AOI: {ds_clipped.dims}")
+    print(f"Clipped to AOI: {dict(ds_clipped.sizes)}")
 
     # Save
     print(f"Writing to {CONFIG['output_path']}...")
-    ds_clipped.to_zarr(CONFIG["output_path"], mode="w")
+    # Drop the source store's Zarr v2 codecs, which Zarr v3 cannot reuse
+    ds_clipped.drop_encoding().to_zarr(CONFIG["output_path"], mode="w")
     print(f"Saved. Dataset size: {ds_clipped.nbytes / 1e6:.1f} MB")
 
 
@@ -405,6 +441,7 @@ if __name__ == "__main__":
 import requests
 import pandas as pd
 import io
+import re
 from pathlib import Path
 import time
 
@@ -430,6 +467,33 @@ CONFIG = {
 API_URL = "https://nwis.waterservices.usgs.gov/nwis/iv/"
 
 
+def parse_rdb(text):
+    """Parse an NWIS RDB response into one DataFrame.
+
+    A multi-site response holds one table per site: each has its own
+    `agency_cd ...` header and data-type row (5s 15s 20d ...), and the value
+    columns carry a per-site time-series ID (e.g. 151445_00060).
+    """
+    blocks, skip_type_row = [], False
+    for line in text.splitlines():
+        if line.startswith("#") or not line.strip():
+            continue
+        if line.startswith("agency_cd"):
+            blocks.append([line])           # header of a new site table
+            skip_type_row = True
+        elif skip_type_row:
+            skip_type_row = False           # data-type row under each header
+        elif blocks:
+            blocks[-1].append(line)
+    frames = []
+    for block in blocks:
+        df = pd.read_csv(io.StringIO("\n".join(block)), sep="\t", dtype={"site_no": str})
+        # Drop the time-series ID prefix: 151445_00060 -> 00060, 151445_00060_cd -> 00060_cd
+        df.columns = [re.sub(r"^\d+_(\d{5})", r"\1", c) for c in df.columns]
+        frames.append(df)
+    return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+
+
 def query_batch(sites, start, end, param_codes):
     """Query USGS API for a batch of sites."""
     params = {
@@ -441,12 +505,7 @@ def query_batch(sites, start, end, param_codes):
     }
     response = requests.get(API_URL, params=params, timeout=120)
     response.raise_for_status()
-
-    lines = [l for l in response.text.splitlines() if not l.startswith("#")]
-    if len(lines) < 2:
-        return pd.DataFrame()
-
-    return pd.read_csv(io.StringIO("\n".join([lines[0]] + lines[2:])), sep="\t")
+    return parse_rdb(response.text)
 
 
 def main():

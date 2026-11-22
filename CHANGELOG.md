@@ -23,6 +23,10 @@ First tagged release. Only `ai-research-workflows` ships in it and moves to this
 - Initial tagged release.
 - Capability metadata, a skill card and a public eval task set on each skill, as part of the skill trust evidence pilot ([#293](https://github.com/uw-ssec/savvy/issues/293)).
 
+#### Changed
+
+- `running-experiments`: `SKILL.md` is a short entry point (Iron Law, red flags, process table, checklist) with detail moved to `references/running-the-comparison.md` and `references/reporting.md`. It now says what to do when the user asks not to run anything and how to keep and clean up prototypes, and its description adds "try both" and "which is faster on our data" triggers ([#161](https://github.com/uw-ssec/savvy/issues/161)).
+
 ### containerization
 
 #### Added

@@ -101,6 +101,9 @@ jobs:
           SKILL_EVAL_LLM_MODEL: ${{ inputs.model }}
           ANTHROPIC_API_KEY: ${{ secrets.LITELLM_API_KEY }}
           ANTHROPIC_BASE_URL: ${{ secrets.LITELLM_PROXY_URL }}
+          # Recorded on BENCHMARK.md, which otherwise says "Evaluated source: not recorded".
+          SOURCE_REPOSITORY: ${{ github.repository }}
+          SOURCE_REVISION: ${{ github.sha }}
         run: |
           # Reports and Harbor results stay outside the checkout. Keep going past a
           # failed skill: benchmarks are advisory.
@@ -113,7 +116,9 @@ jobs:
               -o "$RUNNER_TEMP/reports/$name" \
               --results-dir "$RUNNER_TEMP/results/$name" \
               --model "$MODEL" \
-              --n-attempts "$ATTEMPTS"; then
+              --n-attempts "$ATTEMPTS" \
+              --evaluated-source-repository "$SOURCE_REPOSITORY" \
+              --evaluated-source-revision "$SOURCE_REVISION"; then
               echo "::warning::benchmark failed for $skill"
               echo "$skill" >> "$RUNNER_TEMP/failed.txt"
             fi

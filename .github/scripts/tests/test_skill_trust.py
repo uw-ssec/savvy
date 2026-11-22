@@ -899,6 +899,21 @@ def test_benchmark_select_step_rejects_bad_inputs(tmp_path, env):
     assert "::error::" in proc.stdout
 
 
+def test_benchmark_run_step_records_the_evaluated_source(tmp_path):
+    # Without these flags BENCHMARK.md says "Evaluated source: not recorded".
+    doc = yaml.safe_load((WORKFLOWS / "benchmark-skills.yml").read_text(encoding="utf-8"))
+    step = next(s for s in doc["jobs"]["run"]["steps"] if s.get("name") == "Run benchmarks")
+    assert step["env"]["SOURCE_REPOSITORY"] == "${{ github.repository }}"
+    assert step["env"]["SOURCE_REVISION"] == "${{ github.sha }}"
+    (tmp_path / "skills.txt").write_text(f"{SKILL}\n", encoding="utf-8")
+    env = {"MODEL": "m", "ATTEMPTS": "1", "SOURCE_REPOSITORY": "uw-ssec/savvy", "SOURCE_REVISION": "a" * 40}
+    proc, _ = run_step(step["run"], tmp_path, env, {"pixi": 'echo "$@" >> "$RUNNER_TEMP/calls.txt"\n'})
+    assert proc.returncode == 0, proc.stderr
+    call = (tmp_path / "calls.txt").read_text(encoding="utf-8").split()
+    assert call[call.index("--evaluated-source-repository") + 1] == "uw-ssec/savvy"
+    assert call[call.index("--evaluated-source-revision") + 1] == "a" * 40
+
+
 def key_check(tmp_path, report_text, key="sk-secret-123"):
     reports = tmp_path / "reports"
     reports.mkdir()

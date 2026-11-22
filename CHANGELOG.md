@@ -23,6 +23,10 @@ First tagged release. Only `ai-research-workflows` ships in it and moves to this
 - Initial tagged release.
 - Capability metadata, a skill card and a public eval task set on each skill, as part of the skill trust evidence pilot ([#293](https://github.com/uw-ssec/savvy/issues/293)).
 
+#### Changed
+
+- `hardening-research-code`: SKILL.md is now a short entry point (Iron Law, a criteria quick-reference table, the tolerance rule, the workflow and red flags), with the per-test-type detail moved to `references/techniques.md`; it now says what to do when a correctness test fails on the current code, and its description covers more trigger phrasings and names neighboring skills ([#156](https://github.com/uw-ssec/savvy/issues/156)).
+
 ### containerization
 
 #### Added

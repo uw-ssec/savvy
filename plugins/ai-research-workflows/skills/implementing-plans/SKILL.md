@@ -3,8 +3,8 @@ name: implementing-plans
 description: >-
   Use when an approved implementation plan (a docs/rse/specs/plan-*.md file) is
   ready to build, or a partly built plan needs resuming. Triggers: implement the
-  plan, execute the plan, run the plan, start building, the plan is approved,
-  go build it, start phase 1, continue or resume implementation. Not for
+  plan, execute the plan, run the plan, start building, approved plan, start
+  phase 1, continue or resume implementation. Not for
   designing a plan (planning-implementations), changing one (iterating-plans), or checking
   finished work against one (validating-implementations).
 metadata:

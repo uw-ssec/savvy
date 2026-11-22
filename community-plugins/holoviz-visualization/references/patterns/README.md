@@ -22,7 +22,7 @@ Common patterns:
 - Real-time data streaming
 - File upload handling
 - OAuth authentication
-- WebSocket communication
+- Server-pushed updates (periodic callbacks)
 
 **See**: [Panel Patterns](./panel-patterns.md)
 
@@ -96,7 +96,7 @@ Common patterns:
 - Panel + HoloViews dashboards
 - Datashader + HoloViews pipelines
 - GeoViews + Datashader maps
-- Lumen + custom components
+- Shared Param classes across libraries
 - FastAPI + Panel apps
 
 **See**: [Integration Patterns](./integration-patterns.md)
@@ -110,7 +110,7 @@ Common patterns:
 Common patterns:
 - Data caching strategies
 - Lazy loading
-- Streaming large datasets
+- Sending less data to the browser
 - Web worker offloading
 - Async/await patterns
 
@@ -135,18 +135,20 @@ class Dashboard(param.Parameterized):
         # Filter data by date_range
         return plot
 
-pn.Row(Dashboard.param, Dashboard().view).servable()
+dashboard = Dashboard()
+pn.Row(dashboard.param, dashboard.view).servable()
 ```
 → See [Panel Patterns](./panel-patterns.md#pattern-1-param-based-dashboard) for full example
 
 **Large Data Visualization (Datashader + HoloViews)**:
 ```python
+import pandas as pd
 import holoviews as hv
-from holoviews.operation.datashader import datashade
+from holoviews.operation.datashader import rasterize
 
 df = pd.read_parquet('large_data.parquet')  # 10M+ rows
 points = hv.Points(df, ['x', 'y'])
-datashade(points)  # Renders instantly
+rasterize(points).opts(cmap='fire')  # Re-aggregates on every zoom
 ```
 → See [Datashader Patterns](./datashader-patterns.md#pattern-1-basic-datashading) for full example
 
@@ -171,7 +173,7 @@ gts.OSM() * points
 | 1M+ point scatter | Datashader Scatter | [Datashader Patterns](./datashader-patterns.md) |
 | Geographic map | Basic Map with Tiles | [GeoViews Patterns](./geoviews-patterns.md) |
 | Overlaid plots | HoloViews Overlay | [HoloViews Patterns](./holoviews-patterns.md) |
-| Real-time streaming | WebSocket Streaming | [Panel Patterns](./panel-patterns.md) |
+| Real-time streaming | Real-Time Streaming | [Panel Patterns](./panel-patterns.md) |
 | API integration | FastAPI + Panel | [Integration Patterns](./integration-patterns.md) |
 | Performance issues | Caching & Lazy Loading | [Performance Patterns](./performance-patterns.md) |
 
@@ -179,16 +181,16 @@ gts.OSM() * points
 
 | Data Size | Recommended Approach | Pattern |
 |-----------|---------------------|---------|
-| < 10K rows | Standard hvPlot | [HoloViews Patterns](./holoviews-patterns.md) |
+| < 10K rows | Standard hvPlot | [HoloViews Patterns](./holoviews-patterns.md#pattern-8-basic-hvplot) |
 | 10K - 100K rows | HoloViews + optimization | [Performance Patterns](./performance-patterns.md) |
 | 100K - 10M rows | Datashader | [Datashader Patterns](./datashader-patterns.md) |
-| 10M+ rows | Datashader + streaming | [Datashader Patterns](./datashader-patterns.md) |
+| 10M+ rows | Datashader + Dask | [Datashader Patterns](./datashader-patterns.md) |
 
 ### By Interactivity Needs
 
 | Interactivity | Pattern | File |
 |---------------|---------|------|
-| Static plot | Basic hvPlot | [HoloViews Patterns](./holoviews-patterns.md) |
+| Static plot | Basic hvPlot | [HoloViews Patterns](./holoviews-patterns.md#pattern-8-basic-hvplot) |
 | Hover tools | HoloViews with tooltips | [HoloViews Patterns](./holoviews-patterns.md) |
 | Selection/Linking | Streams | [HoloViews Patterns](./holoviews-patterns.md) |
 | Full dashboard | Panel application | [Panel Patterns](./panel-patterns.md) |
@@ -322,12 +324,12 @@ When adding new patterns to these resources:
    - Panel + HoloViews
    - Datashader + HoloViews
    - FastAPI + Panel
-   - Lumen extensions
+   - Shared Param classes
 
 7. **[Performance Patterns](./performance-patterns.md)** (Loaded when: Optimizing performance)
    - Caching
    - Lazy loading
-   - Streaming
+   - Data reduction
    - Async patterns
 
 ---

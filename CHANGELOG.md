@@ -43,6 +43,7 @@ First tagged release. Only `ai-research-workflows` ships in it and moves to this
 #### Fixed
 
 - Fixed broken HoloViz, Panel, Lumen, hvPlot, and Param documentation links in the README and the `colormaps-styling`, `lumen-ai`, `lumen-dashboards`, and `parameterization` skills, refs #249.
+- Added the 23 topic files that the `references/` index pages for best practices, patterns, and troubleshooting linked to but that were never committed (about 99 dead links), refs #248. Every Python example was run against Panel 1.10, HoloViews 1.23, hvPlot 0.13, Datashader 0.19, GeoViews 1.16, and Param 2.4. The index pages are now link-checked like the rest of the plugin.
 
 ### project-management
 

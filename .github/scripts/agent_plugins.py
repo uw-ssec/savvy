@@ -98,12 +98,7 @@ PLUGIN_NAME = re.compile(r"^(?!.*(?:--|\.\.))[a-z0-9](?:[a-z0-9.-]{0,62}[a-z0-9]
 SKILL_NAME = re.compile(r"^(?!.*--)[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$")
 DESCRIPTION_LENGTH = (100, 1024)
 # Docs whose relative links aren't checked yet. Each entry needs an open issue.
-LINK_CHECK_SKIP = {
-    # Index pages for topic files that were never added: #248.
-    "community-plugins/holoviz-visualization/references/best-practices/README.md",
-    "community-plugins/holoviz-visualization/references/patterns/README.md",
-    "community-plugins/holoviz-visualization/references/troubleshooting/README.md",
-}
+LINK_CHECK_SKIP: set[str] = set()
 SKILL_FIELDS = {"name", "description", "license", "compatibility", "metadata", "allowed-tools"}
 MCP_VARIANTS = {
     "stdio": ({"type", "command"}, {"args", "env", "cwd"}),

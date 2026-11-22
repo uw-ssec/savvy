@@ -4,7 +4,7 @@ Format follows NVIDIA's Skill Card template (NVIDIA/Trustworthy-AI). Sections no
 
 ## Description
 
-Instructs an agent to write a handoff document that carries the current working context (tasks, phase, critical files, learnings, research state, verification status, next steps) to a later session or person. It is a set of written instructions plus one template (`assets/handoff-template.md`); it ships no code.
+Instructs an agent to write a handoff document that carries the current working context (tasks, phase, critical files, learnings, research state, verification status, next steps) to a later session or person. It is a set of written instructions, one reference (`references/writing-guide.md`) and one template (`assets/handoff-template.md`); it ships no code.
 
 ## Owner
 
@@ -31,7 +31,7 @@ Requires API key or external credential: No. Credential type: none. The skill de
 Capability declarations (`metadata` in `SKILL.md`) and what each implies:
 
 - `capability-network: none`. The skill does not direct any network access.
-- `capability-shell: runs-commands`. The skill directs the agent to run `git status`, `git diff --stat` and to read the current branch and commit hash. These are read-only git queries as written, but the agent runs them with the user's permissions.
+- `capability-shell: runs-commands`. The skill directs the agent to run `git branch --show-current`, `git rev-parse --short HEAD`, `git status` and `git diff --stat`, which are read-only git queries, and to re-run the project's test suite so the handoff reports the observed status. The reference suggests scheduler status queries (`squeue -j <id>`, `sacct -j <id>`) for the handoff to record. The agent runs these with the user's permissions, and the test suite runs the project's own code. The skill tells the agent to leave the working tree as it found it: not to commit, stash or revert work.
 - `capability-file: write`. The skill directs the agent to write `docs/rse/specs/handoff-YYYY-MM-DD-HH-MM-<slug>.md` and to read existing workflow documents in `docs/rse/specs/` (and legacy `.agents/`).
 - `capability-environment: none`. No environment variables are read.
 - `capability-mcp: none`. No MCP tools are used.
@@ -39,7 +39,7 @@ Capability declarations (`metadata` in `SKILL.md`) and what each implies:
 Accepted security findings: none for this skill in `.github/skill-security-accepted.yml`.
 
 Risk: the handoff is built from the conversation and working tree, so it can leave out or misstate the true state of the work (failing tests, uncommitted changes).
-Mitigation: the skill requires the agent to surface uncommitted or unpushed work, failing or unrun tests and unverified results in a "Known-broken / unverified" callout. A person should still read the handoff before relying on it.
+Mitigation: the skill requires the agent to re-run the tests and to surface uncommitted or unpushed work, failing or unrun tests and unverified results in a "Known-broken / unverified" callout. A person should still read the handoff before relying on it.
 
 Risk: the handoff is a file in a repository path (`docs/rse/specs/`) that the surrounding workflow treats as committed and version-controlled. Conversation content the agent copies into it, including anything sensitive that appeared in the session, can end up in version control. The skill does not instruct the agent to filter secrets.
 Mitigation: review the handoff before committing it.
@@ -64,4 +64,5 @@ The handoff is a record other people may rely on, so it must be honest: the skil
 ## Reference(s)
 
 - [SKILL.md](SKILL.md)
+- [references/writing-guide.md](references/writing-guide.md)
 - [assets/handoff-template.md](assets/handoff-template.md)

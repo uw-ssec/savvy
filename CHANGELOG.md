@@ -23,6 +23,10 @@ First tagged release. Only `ai-research-workflows` ships in it and moves to this
 - Initial tagged release.
 - Capability metadata, a skill card and a public eval task set on each skill, as part of the skill trust evidence pilot ([#293](https://github.com/uw-ssec/savvy/issues/293)).
 
+#### Changed
+
+- `creating-handoffs`: slimmed `SKILL.md` to an entry point with a quick-reference table and moved the section-by-section detail, next-skill table and summary format to `references/writing-guide.md`; the skill now has the agent re-run the tests, leave the working tree as it found it, and check its account of the work against the repository, and its description names more triggers and its neighbors ([#154](https://github.com/uw-ssec/savvy/issues/154)).
+
 ### containerization
 
 #### Added

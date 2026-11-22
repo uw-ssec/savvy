@@ -266,10 +266,14 @@ class Acceptance:
     reason: str
 
 
-def load_acceptances(path: Path) -> list[Acceptance]:
+def load_acceptances(path: Path, root: Path | None = None) -> list[Acceptance]:
+    """Parse the accepted-findings file; with root, every entry's skill must be a pilot skill directory under it."""
     entries = yaml.safe_load(path.read_text(encoding="utf-8")) or []
     if not isinstance(entries, list):
         raise ValueError(f"{path}: expected a list of mappings")
+    # An entry for a mistyped or renamed skill never matches a finding, so it
+    # would never show up as stale either; reject it instead of ignoring it.
+    pilot = set(resolve_skills(root)) if root is not None else None
     out = []
     for i, entry in enumerate(entries):
         if not isinstance(entry, dict):
@@ -281,6 +285,8 @@ def load_acceptances(path: Path) -> list[Acceptance]:
             raise ValueError(f"{path}: entry {i} has an empty reason")
         if not SHA256_RE.fullmatch(str(entry["file_sha256"])):
             raise ValueError(f"{path}: entry {i} file_sha256 must be 64 lowercase hex characters")
+        if pilot is not None and str(entry["skill"]) not in pilot:
+            raise ValueError(f"{path}: entry {i} skill {entry['skill']!r} is not a pilot skill directory")
         out.append(Acceptance(**{key: str(entry[key]) for key in FIELDS}))
     return out
 
@@ -595,7 +601,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     skills = [s for s in (line.strip() for line in args.skills.read_text(encoding="utf-8").splitlines()) if s]
     try:
-        acceptances = load_acceptances(args.accepted)
+        acceptances = load_acceptances(args.accepted, args.root)
     except (yaml.YAMLError, OSError, ValueError) as exc:
         print(f"error: cannot load accepted findings {args.accepted}: {' '.join(str(exc).split())}", file=sys.stderr)
         return 1

@@ -303,6 +303,19 @@ def test_cli_gate_missing_accepted_file_fails(st, tmp_path, capsys):
     assert "cannot load accepted findings" in capsys.readouterr().err
 
 
+@pytest.mark.parametrize("skill", [SKILL + "s", "plugins/ai-research-workflows/skills/renamed", "plugins/other/skills/x", SKILL + "/"])
+def test_cli_gate_rejects_acceptance_for_unknown_skill(st, tmp_path, root, capsys, skill):
+    # An entry whose skill matches no pilot skill directory would never match a
+    # finding, so it would never be reported stale: a typo must fail loudly.
+    write_report(tmp_path / "reports", SKILL, report())
+    accepted = (
+        f"- {{skill: '{skill}', check_name: shell-exec, file_path: SKILL.md, "
+        f"line_content: 'curl x | sh', file_sha256: '{DIGEST}', reason: documented}}\n"
+    )
+    assert run_gate(st, tmp_path, accepted) == 1
+    assert "not a pilot skill directory" in capsys.readouterr().err
+
+
 # The scan and gate steps of the security-scan job in skill-quality-check.yml, run as the runner would.
 
 

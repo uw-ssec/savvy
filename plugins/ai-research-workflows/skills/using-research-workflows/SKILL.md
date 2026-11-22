@@ -5,8 +5,8 @@ description: >-
   modifying code, surveying prior art, planning, experimenting, implementing,
   validating, reproducing, or hardening — and before reading code to "just
   check" or before editing. Triggers: research workflow, which skill should I
-  use, where do I start, which stage are we in, what's the next step, guide me
-  through the workflow, structured development. Not for plain
+  use, where do I start, guide me through the workflow, structured
+  development. Not for plain
   web or ops work (containerization:dockerfile-patterns).
 metadata:
   capability-network: none

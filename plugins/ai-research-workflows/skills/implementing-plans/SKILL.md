@@ -77,8 +77,8 @@ work → `ai-research-workflows:validating-implementations`.
 
 ## References
 
-- `references/workflow.md`: step detail (drift vs. mismatch, resuming,
-  several phases, finish checklist).
+- `references/workflow.md`: read before the first phase or a resume
+  (drift vs. mismatch, several phases, finish checklist).
 - `references/templates.md`: read before the phase-complete pause, a mismatch
   report, or the completion summary.
 - `assets/implement-template.md`: read when writing `implement-<slug>.md`.

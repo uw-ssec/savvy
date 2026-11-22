@@ -88,7 +88,9 @@ Criteria → Automated Verification"). For each, record the command and its
 result:
 
 Also run the existing test suite: the phase must add the tests the plan calls
-for and introduce no regressions.
+for, test any new behavior even where the plan names no test, handle the
+failure paths it introduces (no silently swallowed errors), and introduce no
+regressions.
 
 - Passes: note the output.
 - Fails: investigate and fix before going on. Don't move to the next phase on a
@@ -144,11 +146,13 @@ Before declaring the implementation done, confirm it is:
 - [ ] Every phase's automated verification passes now (re-run them).
 - [ ] No plan task was silently skipped; any skipped or changed task is listed
       as a deviation.
-- [ ] Tests the plan calls for are written and passing, with no regressions.
+- [ ] Tests the plan calls for, and tests for any other new behavior, are
+      written and passing, with no regressions.
 - [ ] The changes are on a feature branch, not left on `main`/`master`
       (unless the user explicitly consented to working there).
 - [ ] Every phase task in your task list is done, and no open issue or
-      blocker remains unreported.
+      blocker remains. If one does, the implementation is not done: report
+      it and stop.
 - [ ] Manual verification items are listed for the user and left unticked
       unless the user confirmed them.
 

@@ -23,6 +23,10 @@ First tagged release. Only `ai-research-workflows` ships in it and moves to this
 - Initial tagged release.
 - Capability metadata, a skill card and a public eval task set on each skill, as part of the skill trust evidence pilot ([#293](https://github.com/uw-ssec/savvy/issues/293)).
 
+#### Changed
+
+- `iterating-plans`: SKILL.md cut to a short entry point (from about 1,000 words) with a numbered, required consistency scan, a Quick Reference table and confirmation keyed to the interaction mode (Collaborative confirms before editing; Direct states the edits, then applies them). The message templates and edit guidance moved to `references/iteration-patterns.md`, and the description adds split, reorder and feedback triggers and names its neighbors ([#158](https://github.com/uw-ssec/savvy/issues/158)).
+
 ### containerization
 
 #### Added

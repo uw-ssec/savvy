@@ -18,13 +18,13 @@ metadata:
 
 # Researching
 
-Desk research for planning: the current codebase (internal), published work
-and tools (external), or both, in one research document.
+Desk research for planning: the current codebase (internal pass), external
+prior art (papers, tools), or both, in one research document.
 
 ## When to use
 
 - Before a change: how the code works and what depends on it.
-- Learning whether a method or library exists and how options compare on published evidence.
+- Whether a method or library exists, and how options compare on published evidence.
 - **Not** for a quick "how does X work?" with no change planned: answer from the code.
 - **Not** for building and timing prototypes (`ai-research-workflows:running-experiments`) or writing the plan (`ai-research-workflows:planning-implementations`).
 
@@ -58,7 +58,7 @@ self-review checklist, review request).
 
 ## Hard rules
 
-- **Scope first.** No prior-art search for a current-code question, or the reverse.
+- **Scope first.** Skip the prior-art pass for a current-code question, and vice versa.
 - **Every codebase finding cites `file:line`.** "Somewhere in the session module" is not a finding.
 - **Record the codebase state** (commit SHA via `git rev-parse --short HEAD`, and date) when the internal pass ran.
 - **Every prior-art claim cites a primary source**; label any secondary source. Run at least one disconfirming search for limitations, critiques and failures.

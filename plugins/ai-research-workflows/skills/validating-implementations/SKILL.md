@@ -2,9 +2,8 @@
 name: validating-implementations
 description: >-
   Use when an implementation is claimed complete and must be checked against
-  its plan before a PR or merge. Triggers: validate the implementation, is it
-  really complete or correct, verify it matches the plan, re-run the plan's
-  checks, check before PR or merge, ready for PR, all tests pass so confirm
+  its plan before a PR or merge. Triggers: validate the implementation, verify
+  it matches the plan, check before PR or merge, ready for PR, all tests pass so confirm
   it, success criteria, validation report. Not for unfinished work
   (ai-research-workflows:implementing-plans) or a plan that is itself wrong
   (ai-research-workflows:iterating-plans).

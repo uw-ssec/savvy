@@ -6,9 +6,9 @@
 |---------|-------|-------------|
 | Pattern 9: Testing Numerical Algorithms | 15–52 | Testing stability, convergence, and conservation laws |
 | Pattern 10: Testing with Different NumPy dtypes | 53–79 | Parametrized tests across float and integer dtypes |
-| Pattern 11: Testing Random/Stochastic Code | 80–112 | Fixed seeds and statistical property verification |
-| Pattern 12: Testing Data Pipelines | 113–152 | End-to-end and stage-by-stage pipeline testing |
-| Pattern 13: Property-Based Testing with Hypothesis | 153–182 | Using hypothesis for generative scientific testing |
+| Pattern 11: Testing Random/Stochastic Code | 80–108 | Fixed seeds and statistical property verification |
+| Pattern 12: Testing Data Pipelines | 109–148 | End-to-end and stage-by-stage pipeline testing |
+| Pattern 13: Property-Based Testing with Hypothesis | 149–179 | Using hypothesis for generative scientific testing |
 
 ---
 
@@ -20,7 +20,7 @@ from pytest import approx
 
 def test_numerical_stability():
     """Test algorithm is numerically stable."""
-    data = np.array([1e10, 1.0, -1e10])
+    data = np.array([1e16, 1.0, -1e16])  # naive summation gives 0.0
     result = stable_sum(data)
     assert result == approx(1.0)
 
@@ -82,19 +82,16 @@ def test_integer_and_float_types(dtype):
 ```python
 def test_random_with_seed():
     """Test random code with fixed seed for reproducibility."""
-    np.random.seed(42)
-    result1 = generate_random_samples(n=100)
-    
-    np.random.seed(42)
-    result2 = generate_random_samples(n=100)
+    result1 = generate_random_samples(n=100, rng=np.random.default_rng(42))
+    result2 = generate_random_samples(n=100, rng=np.random.default_rng(42))
     
     # Should get identical results with same seed
     assert np.array_equal(result1, result2)
 
 def test_statistical_properties():
     """Test statistical properties of random output."""
-    np.random.seed(123)
-    samples = generate_normal_samples(n=100000, mean=0, std=1)
+    rng = np.random.default_rng(123)
+    samples = generate_normal_samples(n=100000, mean=0, std=1, rng=rng)
     
     # Test mean and std are close to expected (not exact due to randomness)
     assert np.mean(samples) == approx(0, abs=0.01)
@@ -103,8 +100,7 @@ def test_statistical_properties():
 @pytest.mark.parametrize("seed", [42, 123, 456])
 def test_reproducibility_with_seeds(seed):
     """Test reproducibility with different seeds."""
-    np.random.seed(seed)
-    result = stochastic_algorithm()
+    result = stochastic_algorithm(rng=np.random.default_rng(seed))
     
     # Should complete successfully regardless of seed
     assert result.success
@@ -155,16 +151,17 @@ def test_pipeline_stages_independently():
 For complex scientific code, consider property-based testing:
 
 ```python
-from hypothesis import given, strategies as st
+from hypothesis import assume, given, strategies as st
 from hypothesis.extra.numpy import arrays
 import numpy as np
 
-@given(arrays(np.float64, shape=st.integers(1, 100)))
+@given(arrays(np.float64, shape=st.integers(1, 100),
+              elements=st.floats(-1e6, 1e6)))
 def test_mean_is_bounded(arr):
-    """Mean should be between min and max."""
-    if len(arr) > 0 and not np.any(np.isnan(arr)):
-        mean = np.mean(arr)
-        assert np.min(arr) <= mean <= np.max(arr)
+    """Mean should be between min and max, up to rounding."""
+    mean = np.mean(arr)
+    tol = 1e-9 * np.max(np.abs(arr))
+    assert np.min(arr) - tol <= mean <= np.max(arr) + tol
 
 @given(
     x=arrays(np.float64, shape=10, elements=st.floats(-100, 100)),
@@ -172,11 +169,11 @@ def test_mean_is_bounded(arr):
 )
 def test_linear_fit_properties(x, y):
     """Test properties of linear regression."""
-    if not (np.any(np.isnan(x)) or np.any(np.isnan(y))):
-        slope, intercept = fit_linear(x, y)
-        
-        # Predictions should be finite
-        predictions = slope * x + intercept
-        assert np.all(np.isfinite(predictions))
+    assume(np.std(x) > 1e-3)  # a fit needs distinct x values
+    slope, intercept = fit_linear(x, y)
+
+    # Predictions should be finite
+    predictions = slope * x + intercept
+    assert np.all(np.isfinite(predictions))
 ```
 

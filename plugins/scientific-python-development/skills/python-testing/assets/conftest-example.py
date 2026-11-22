@@ -9,10 +9,14 @@ def test_data_dir():
     return Path(__file__).parent / "data"
 
 @pytest.fixture
-def sample_array():
+def rng():
+    """Provide a seeded random generator (no global state)."""
+    return np.random.default_rng(42)
+
+@pytest.fixture
+def sample_array(rng):
     """Provide sample NumPy array."""
-    np.random.seed(42)
-    return np.random.randn(100)
+    return rng.standard_normal(100)
 
 @pytest.fixture
 def temp_output_dir(tmp_path):
@@ -23,7 +27,7 @@ def temp_output_dir(tmp_path):
 
 @pytest.fixture(autouse=True)
 def reset_random_state():
-    """Reset random state before each test."""
+    """Reset legacy global NumPy random state before each test (for code that still uses np.random.*)."""
     np.random.seed(42)
 
 @pytest.fixture(scope="session")

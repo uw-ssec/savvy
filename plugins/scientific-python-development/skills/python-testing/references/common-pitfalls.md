@@ -4,8 +4,8 @@
 
 | Section | Lines | Description |
 |---------|-------|-------------|
-| Pitfall 1: Testing Implementation Instead of Behavior | 14–31 | Testing behavior and outcomes rather than internal details |
-| Pitfall 2: Non-Deterministic Tests | 32–49 | Fixing random seed issues for reproducible tests |
+| Pitfall 1: Testing Implementation Instead of Behavior | 14–32 | Testing behavior and outcomes rather than internal details |
+| Pitfall 2: Non-Deterministic Tests | 33–49 | Fixing random seed issues for reproducible tests |
 | Pitfall 3: Exact Floating-Point Comparisons | 50–65 | Using approx for floating-point assertions |
 | Pitfall 4: Testing Too Much in One Test | 66–111 | Splitting monolithic tests into focused test functions |
 
@@ -42,9 +42,9 @@ def test_random_sampling():
 **Good:**
 ```python
 def test_random_sampling():
-    np.random.seed(42)  # Fixed seed
-    samples = generate_samples()
-    assert samples[0] == approx(0.4967, rel=1e-4)
+    rng = np.random.default_rng(42)  # Fixed seed, local to this test
+    samples = generate_samples(rng)
+    assert samples[0] == approx(0.3047, rel=1e-4)
 ```
 
 ## Pitfall 3: Exact Floating-Point Comparisons

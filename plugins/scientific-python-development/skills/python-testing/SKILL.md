@@ -53,7 +53,8 @@ from hypothesis.extra.numpy import arrays
 @given(arrays(np.float64, shape=st.integers(1, 50),
               elements=st.floats(-100, 100, allow_nan=False)))
 def test_mean_bounded(arr):
-    assert np.min(arr) <= np.mean(arr) <= np.max(arr)
+    # Rounding can put the mean an ulp outside [min, max]; allow for it
+    assert np.min(arr) - 1e-9 <= np.mean(arr) <= np.max(arr) + 1e-9
 ```
 
 ### pytest configuration (`pyproject.toml`)

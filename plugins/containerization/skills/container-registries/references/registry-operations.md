@@ -56,9 +56,9 @@ steps:
       client-id: ${{ secrets.AZURE_CLIENT_ID }}
       tenant-id: ${{ secrets.AZURE_TENANT_ID }}
       subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-  - uses: azure/docker-login@15c4aadf093404726ab2ff205b2cdd33fa6d054c # v2
-    with:
-      login-server: myregistry.azurecr.io
+  # azure/docker-login is unmaintained and needs a username/password;
+  # reuse the OIDC session instead
+  - run: az acr login --name myregistry
 ```
 
 ## Post-Publish Validation Commands

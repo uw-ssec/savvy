@@ -183,7 +183,7 @@ cosign verify --key cosign.pub myregistry/myapp:latest
 
 ```yaml
 - name: Sign image with cosign
-  uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5 # v3.10.1
+  uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3 (cosign v3.1.4)
 
 - name: Sign the image
   run: |
@@ -220,6 +220,8 @@ SLSA (Supply-chain Levels for Software Artifacts) is a framework for describing 
 
 ### Generating Provenance with GitHub Actions
 
+The SLSA GitHub generator is no longer actively maintained; its README points new projects to [GitHub artifact attestations](https://docs.github.com/en/actions/concepts/security/artifact-attestations) (`actions/attest-build-provenance`, verified with `gh attestation verify`). Existing workflows keep working:
+
 ```yaml
 # Called as a job (not a step) after a `build` job that outputs the digest
 provenance:
@@ -232,7 +234,7 @@ provenance:
   # slsa-verifier checks the ref, so it can't be SHA-pinned.
   uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0
   with:
-    image: myregistry/myapp
+    image: ghcr.io/myorg/myapp   # GITHUB_TOKEN below only authenticates to ghcr.io
     digest: ${{ needs.build.outputs.digest }}
     registry-username: ${{ github.actor }}
   secrets:
@@ -444,7 +446,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install cosign
-        uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5 # v3.10.1
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3 (cosign v3.1.4)
 
       - name: Verify image signature
         run: |
@@ -519,16 +521,28 @@ spec:
 ```yaml
 name: Full Supply Chain Verification
 
+# Runs on pushes to main: it pushes and signs, and pull requests from forks
+# get neither registry secrets nor an OIDC token.
 on:
-  pull_request:
+  push:
     branches: [main]
+
+permissions: {}
 
 jobs:
   verify:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write    # keyless signing
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5 # v3.10.1
+        with:
+          persist-credentials: false
+      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3 (cosign v3.1.4)
+      # Also needed before the steps below: a docker/login-action step for
+      # myregistry, and syft, grype and crane installed (pinned and verified,
+      # as in the install examples above).
 
       - name: Build image
         run: docker build -t myapp:${{ github.sha }} .

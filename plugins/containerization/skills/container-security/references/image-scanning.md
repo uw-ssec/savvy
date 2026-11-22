@@ -452,6 +452,8 @@ jobs:
   trivy-scan:
     runs-on: ubuntu-latest
     permissions:
+      actions: read          # SARIF upload in private repositories
+      contents: read
       security-events: write
     steps:
       - name: Checkout code
@@ -496,6 +498,8 @@ jobs:
   grype-scan:
     runs-on: ubuntu-latest
     permissions:
+      actions: read          # SARIF upload in private repositories
+      contents: read
       security-events: write
     steps:
       - name: Checkout code
@@ -541,6 +545,9 @@ jobs:
   nightly-scan:
     runs-on: ubuntu-latest
     permissions:
+      actions: read          # SARIF upload in private repositories
+      contents: read
+      packages: read
       security-events: write
       issues: write
     steps:
@@ -548,6 +555,13 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
+
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       # Resolve the deployed tag to a digest once; scan that immutable reference
       - name: Resolve production image digest

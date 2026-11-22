@@ -57,6 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     permissions:
+      actions: read          # SARIF upload in private repositories
       contents: read
       security-events: write
 
@@ -118,6 +119,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     permissions:
+      actions: read          # SARIF upload in private repositories
       contents: read
       packages: read
       security-events: write
@@ -127,6 +129,15 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
+
+      # packages: read only scopes the token; Docker still needs a login
+      # to read a private image.
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       # Resolve the published tag to a digest once, then pull and scan that
       # immutable reference, so the report names exactly what was scanned.

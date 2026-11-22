@@ -26,15 +26,16 @@ env:
   # IMAGE_NAME defaults to <owner>/<repo> (e.g., myorg/myapp)
   IMAGE_NAME: ${{ github.repository }}
 
+# Deny by default; the job grants only what it needs.
+permissions: {}
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
     permissions:
       contents: read     # checkout code
-      packages: write    # push to GHCR
-      attestations: write # generate provenance
-      id-token: write    # OIDC token for signing
+      packages: write    # push to GHCR (BuildKit's sbom/provenance need nothing more)
 
     steps:
       # --------------------------------------------------------------------

@@ -387,7 +387,8 @@ srun --mpi=pmix_v4 -n 64 apptainer exec image.sif ./my_mpi_app
 
 ```
 %post
-    # Install PMIx from source for version control
+    # Install PMIx from source for version control. 4.2.9 ends the 4.2 series;
+    # match the PMIx your cluster's Slurm uses, or use a 5.x release for new builds.
     PMIX_VERSION=4.2.9
     # The release notes publish SHA-1 912c70f5...; this is the SHA-256 of the same file
     PMIX_SHA256=00ddb36fb81c31519972079a218c3cdd903510fc3910abaf4d484068fa29e884

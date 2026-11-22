@@ -179,7 +179,7 @@ jobs:
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: digests-${{ matrix.platform }}
+          name: digests-${{ matrix.runner }}   # artifact names can't contain '/'
           path: /tmp/digests/*
 
   merge:
@@ -572,7 +572,7 @@ For more control over SBOM format and content, generate it after building:
 
 ### SLSA Provenance
 
-For SLSA Level 3 provenance (non-forgeable build attestation), use the SLSA GitHub generator:
+For SLSA Level 3 provenance (non-forgeable build attestation), the SLSA GitHub generator works as shown. The SLSA GitHub generator is no longer actively maintained; its README points new projects to [GitHub artifact attestations](https://docs.github.com/en/actions/concepts/security/artifact-attestations) (`actions/attest-build-provenance`, verified with `gh attestation verify`). Existing workflows keep working.
 
 ```yaml
 # Called as a job (not a step) after a `build` job that outputs the digest

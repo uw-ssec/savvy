@@ -11,10 +11,10 @@ license = "BSD-3-Clause"
 license-files = ["LICENSE"]
 requires-python = ">=3.13"
 authors = [
-    {name = "Research Team", email = "team@university.edu"},
+    {name = "Research Team", email = "team@example.edu"},
 ]
 maintainers = [
-    {name = "Lead Maintainer", email = "maintainer@university.edu"},
+    {name = "Lead Maintainer", email = "maintainer@example.edu"},
 ]
 keywords = ["scientific-computing", "data-analysis", "research"]
 classifiers = [
@@ -90,7 +90,7 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "NPY", "RUF"]
-ignore = ["E501"]  # Line too long (handled by formatter)
+ignore = ["E501"]  # Line too long (formatter wraps what it can)
 
 # Pytest configuration
 [tool.pytest.ini_options]

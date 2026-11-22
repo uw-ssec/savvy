@@ -13,7 +13,6 @@ author = "Your Name"
 # Extensions
 extensions = [
     "sphinx.ext.autodoc",
-    "sphinx.ext.napoleon",  # NumPy/Google style docstrings
     "sphinx.ext.viewcode",
     "sphinx.ext.mathjax",   # Math rendering
     "sphinx.ext.intersphinx",

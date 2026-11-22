@@ -4,7 +4,7 @@ Format follows NVIDIA's Skill Card template (NVIDIA/Trustworthy-AI). Sections no
 
 ## Description
 
-A routing skill for the `ai-research-workflows` plugin. It tells the agent to pick and invoke the matching workflow skill (researching, planning, iterating on plans, experimenting, implementing, validating, reproducing, hardening, handing off) before acting on a research-software task, and explains the Collaborative and Direct interaction modes and the document naming scheme. It is a short entry point plus three reference documents (interaction modes, workflow patterns, and document and deferral conventions) and ships no code.
+A routing skill for the `ai-research-workflows` plugin. It tells the agent to pick and invoke the matching workflow skill (researching, planning, iterating on plans, experimenting, implementing, validating, reproducing, hardening, handing off) before acting on a research-software task, has the agent state that route (mode and skill) at the start of its reply, and explains the Collaborative and Direct interaction modes and the document naming scheme. It is a short entry point plus three reference documents (interaction modes, workflow patterns, and document and deferral conventions) and ships no code.
 
 ## Owner
 

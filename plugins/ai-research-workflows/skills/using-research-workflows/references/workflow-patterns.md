@@ -66,6 +66,8 @@ These thoughts mean you are about to skip a skill you should invoke:
   but failing to confirm the right mode leads to unnecessary interruptions
   (Collaborative when Direct is wanted) or unreviewed decisions (Direct when
   Collaborative is needed).
+- **Keeping a skill that doesn't fit** — if an invoked skill turns out not to
+  fit, drop it. But check first: invoke, then decide.
 - **Treating this skill as a substitute for the specialist skills** — this
   meta-skill routes and compels; the actual work happens in the individual
   skills. Invoke the right specialist skill rather than asking this one to execute.

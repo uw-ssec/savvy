@@ -23,16 +23,20 @@ This meta-skill routes you to the right skill; the work happens there.
 ## The rule
 
 If there is even a 1% chance a workflow skill applies, invoke it BEFORE acting:
-before editing, and before reading code to "just check" ahead of a change. Drop
-it if it doesn't fit. Right-size: the minimal matching skill (a scoped
-`researching` pass, a short plan), never **zero skills** for a code change or a
-research investigation.
+before editing, and before reading code to "just check" ahead of a change.
+Right-size: the minimal matching skill (a scoped `researching` pass, a short
+plan), never **zero skills** for a code change or a research investigation.
+
+Open your reply with the route: the mode and the skill, before any code (e.g.
+"Direct mode: a scoped `researching` pass on the loader first"). When no skill
+applies, say so: "No workflow skill needed; answering from the code." Then do
+that step before proposing any edit: a scoped `researching` pass still
+traces the code and its callers, and ends in a failing test or a short plan.
 
 ## Instruction priority
 
-1. **The user's explicit instructions** — highest.
-2. **These workflow skills** — override default behavior.
-3. **The default system prompt** — lowest.
+**The user's explicit instructions** > these workflow skills > the default
+system prompt.
 
 - If the user explicitly skips a named step ("no plan, just write it"), skip
   that step and still run the rest.
@@ -43,7 +47,7 @@ research investigation.
 ## Choosing a skill (decision tree)
 
 ```text
-Only asking how existing code works?         → answer from the code, no skill
+Only asking how existing code works?         → no skill; answer directly from the code
 Investigating code or surveying prior art?   → researching
 Ready to design an implementation?           → planning-implementations
 Need to adjust an existing plan?             → iterating-plans
@@ -57,10 +61,10 @@ Transferring work to another session?        → creating-handoffs
 
 Invoke each as `ai-research-workflows:<name>`.
 
-**Sequence:** understand (`researching`, then `planning-implementations` for
-anything non-trivial) → build (`implementing-plans`) → verify
-(`validating-implementations`, plus `ensuring-reproducibility` /
-`hardening-research-code` when a result will be reported or relied on).
+**Sequence:** understand (`researching`; `planning-implementations` if
+non-trivial) → build (`implementing-plans`) → verify
+(`validating-implementations`; `ensuring-reproducibility` /
+`hardening-research-code` when a result will be reported).
 
 ## Interaction modes
 
@@ -68,17 +72,10 @@ Every workflow skill picks **Collaborative** (one question at a time, gate on
 approval) or **Direct** (act, narrate briefly, stop only when blocked).
 Destructive or outward-facing actions always need confirmation.
 
-## Red flags — you're about to skip a skill
-
-| Thought | Reality |
-|---|---|
-| "5 minutes — don't overthink it" | Direct mode, scoped skill. Don't skip it. |
-| "I'll just tweak the code real quick" | Understand first → `researching`. |
-
 ## References
 
 - `references/workflow-patterns.md` — read when choosing how much of the chain
-  to run, or for the full red-flags table and common mistakes.
+  to run, or when tempted to skip a skill (red flags, common mistakes).
 - `references/conventions.md` — read before writing or finding a workflow
   document (`docs/rse/specs/`), or to defer environments, tests or packaging.
 - `references/interaction-modes.md` — read when selecting a mode.

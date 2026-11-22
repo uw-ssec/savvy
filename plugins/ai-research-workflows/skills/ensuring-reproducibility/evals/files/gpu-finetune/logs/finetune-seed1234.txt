@@ -1,8 +1,0 @@
-started  python finetune.py --seed 1234 --data data/train_v3.jsonl
-python   3.12.7
-torch    2.5.1+cu124 (installed with pip; no lockfile committed)
-device   NVIDIA A100-SXM4-80GB
-epoch 1  loss 0.598
-epoch 2  loss 0.421
-epoch 3  loss 0.344
-final    eval loss 0.312

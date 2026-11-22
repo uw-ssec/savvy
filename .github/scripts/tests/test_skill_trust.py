@@ -37,7 +37,9 @@ def finding(severity="high", check="shell-exec", path="SKILL.md", line="curl x |
 
 
 def report(*findings, status="failed"):
-    return {"overall_status": status, "results": [{"validator": "v", "findings": list(findings)}]}
+    """A report with every security validator's result; the findings sit under the SkillSpector one."""
+    others = [{"validator": v, "findings": []} for v in ("Code Risk Analysis", "Secrets Detection", "PII Scan", "Unicode Smuggling Detection")]
+    return {"overall_status": status, "results": [{"validator": "Security Scan", "findings": list(findings)}, *others]}
 
 
 def accept(st, **kw):
@@ -142,6 +144,25 @@ def test_report_with_no_validator_results_fails(st):
     res = st.gate({"overall_status": "passed", "results": []}, SKILL, [])
     assert res.incomplete
     assert not res.passed
+
+
+def test_schema_only_report_fails(st):
+    # A report without the security validators' results says nothing about the
+    # skill's safety, however clean it is.
+    res = st.gate({"overall_status": "passed", "results": [{"validator": "SCHEMA", "findings": []}]}, SKILL, [])
+    assert res.incomplete
+    assert not res.passed
+
+
+@pytest.mark.parametrize(
+    "validator", ["Security Scan", "Code Risk Analysis", "Secrets Detection", "PII Scan", "Unicode Smuggling Detection"]
+)
+def test_report_missing_or_skipping_a_security_validator_fails(st, validator):
+    rep = report()
+    rep["results"] = [r for r in rep["results"] if r["validator"] != validator]
+    assert st.gate(rep, SKILL, []).incomplete
+    rep["results"].append({"validator": validator, "findings": [], "skipped": True})
+    assert st.gate(rep, SKILL, []).incomplete
 
 
 def test_load_rejects_empty_reason(st, tmp_path):

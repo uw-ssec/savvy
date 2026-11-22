@@ -6,7 +6,8 @@ select-pilot  Read skill directories on stdin and print the pilot ones.
 gate          Read each skill's skillevaluator-output-*.json and print a Markdown
               table for the job summary. A skill fails on any unaccepted
               high/critical finding, any accepted-findings entry that no longer
-              matches, an incomplete scan, or a missing/unreadable report.
+              matches, an incomplete scan (a scanner reported incomplete, or a
+              security validator missing or skipped), or a missing/unreadable report.
               Exits 1 if any skill fails.
 
 changed-plugins  Print the plugin directories changed since a tag, ignoring
@@ -64,6 +65,17 @@ import yaml
 # supply-chain-security is deferred; re-adding it is a one-line change here.
 PILOT_PLUGINS: tuple[str, ...] = ("ai-research-workflows",)
 BLOCKING_SEVERITIES = {"high", "critical"}
+# The Tier 1 validators (names as SkillEvaluator 707fb9a reports them) whose
+# results the gate needs before it trusts a report: SkillSpector, Bandit and
+# Semgrep, Gitleaks, PII and invisible-Unicode checks. A report missing any of
+# them, or marking one skipped, did not scan the skill and fails closed.
+SECURITY_VALIDATORS: tuple[str, ...] = (
+    "Security Scan",
+    "Code Risk Analysis",
+    "Secrets Detection",
+    "PII Scan",
+    "Unicode Smuggling Detection",
+)
 FIELDS = ("skill", "check_name", "file_path", "line_content", "file_sha256", "reason")
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
 PLUGIN_ROOTS = ("plugins", "community-plugins")
@@ -313,6 +325,10 @@ def gate(report: dict, skill: str, acceptances: list[Acceptance], root: Path = P
     missing_scanner = bool(report.get("incomplete_scans")) or (
         isinstance(results, list) and any(isinstance(r, dict) and r.get("incomplete_scans") for r in results)
     )
+    ran = {
+        r.get("validator") for r in results if isinstance(r, dict) and isinstance(r.get("validator"), str) and not r.get("skipped")
+    } if isinstance(results, list) else set()
+    missing_scanner = missing_scanner or not ran.issuperset(SECURITY_VALIDATORS)
     result = GateResult(
         incomplete=report.get("overall_status") not in ("passed", "failed")
         or not isinstance(results, list)

@@ -3,7 +3,7 @@ name: planning-implementations
 description: >-
   Use when a feature, refactor, or multi-file change needs to be designed before
   coding. Triggers: plan X, design the implementation, how should we build X,
-  map out how we'd do it, create an implementation plan, phased plan, success
+  create an implementation plan, phased plan, success
   criteria, design before coding. Not for changing an existing plan (use
   iterating-plans) or executing an approved one (use implementing-plans).
 metadata:

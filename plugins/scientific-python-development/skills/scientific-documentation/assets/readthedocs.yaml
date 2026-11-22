@@ -10,13 +10,12 @@ build:
   tools:
     python: "3.12"
 
+  # System packages: declare them here rather than running apt-get in jobs
+  # apt_packages:
+  #   - graphviz
+
   # Install dependencies and build steps
   jobs:
-    # Post-create-environment step (before install)
-    # Useful for system dependencies
-    # post_create_environment:
-    #   - apt-get update
-    #   - apt-get install -y graphviz
 
     # Post-install step (after package installation)
     post_install:
@@ -70,10 +69,7 @@ python:
 search:
   # Ranking for search results
   ranking:
-    "docs/tutorials/*": 2
-    "docs/guides/*": 1
+    "tutorials/*": 2
+    "guides/*": 1
 
-# Redirects for renamed/moved pages (optional)
-# redirects:
-#   old-page.html: new-page.html
-#   guides/old-guide.html: guides/new-guide.html
+# Redirects are configured in the Read the Docs dashboard, not in this file.

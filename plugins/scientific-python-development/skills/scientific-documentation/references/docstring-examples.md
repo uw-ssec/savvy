@@ -16,8 +16,8 @@ Comprehensive examples of NumPy-style docstrings for scientific Python code.
 | Type Hints Integration | 667–705 | Combining type hints with docstrings |
 | Common Patterns | 706–777 | Validator functions and decorator docstrings |
 | Best Practices | 778–788 | Eight guidelines for effective docstrings |
-| Tools for Validation | 789–810 | numpydoc, pydocstyle, and darglint validation |
-| Resources | 811–815 | Links to NumPy style guide, PEP 257, and numpydoc docs |
+| Tools for Validation | 789–814 | numpydoc, pydocstyle, and darglint validation |
+| Resources | 815–819 | Links to NumPy style guide, PEP 257, and numpydoc docs |
 
 ---
 
@@ -791,10 +791,12 @@ def validate_fitted(method):
 ### numpydoc validation
 
 ```bash
-python -m numpydoc --validate mymodule.myfunction
+python -m numpydoc validate mymodule.myfunction
 ```
 
 ### pydocstyle
+
+pydocstyle is deprecated; Ruff's `D` rules replace it (`ruff check --select D`).
 
 ```bash
 pip install pydocstyle
@@ -802,6 +804,8 @@ pydocstyle mypackage/
 ```
 
 ### darglint
+
+darglint is archived; pydoclint is the maintained successor.
 
 ```bash
 pip install darglint

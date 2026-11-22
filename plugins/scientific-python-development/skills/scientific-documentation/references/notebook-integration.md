@@ -7,13 +7,13 @@ Guide to integrating Jupyter notebooks into Sphinx and MkDocs documentation for 
 | Section | Lines | Description |
 |---------|-------|-------------|
 | Why Include Notebooks? | 20–27 | Benefits of including notebooks in documentation |
-| Sphinx Integration | 28–159 | nbsphinx and MyST-NB setup, execution control, custom rendering |
-| MkDocs Integration | 160–218 | mkdocs-jupyter plugin setup and notebook execution |
-| Best Practices | 219–378 | Notebook structure, code cells, data management, dependencies |
-| Gallery Integration | 379–430 | Using sphinx-gallery with Python scripts |
-| CI/CD Integration | 431–488 | Testing notebooks in GitHub Actions and pytest |
-| Common Issues | 489–540 | Troubleshooting execution, output, and build failures |
-| Resources | 541–547 | Links to nbsphinx, MyST-NB, mkdocs-jupyter, and more |
+| Sphinx Integration | 28–150 | nbsphinx and MyST-NB setup, execution control, custom rendering |
+| MkDocs Integration | 151–209 | mkdocs-jupyter plugin setup and notebook execution |
+| Best Practices | 210–370 | Notebook structure, code cells, data management, dependencies |
+| Gallery Integration | 371–422 | Using sphinx-gallery with Python scripts |
+| CI/CD Integration | 423–490 | Testing notebooks in GitHub Actions and pytest |
+| Common Issues | 491–542 | Troubleshooting execution, output, and build failures |
+| Resources | 543–549 | Links to nbsphinx, MyST-NB, mkdocs-jupyter, and more |
 
 ---
 
@@ -54,8 +54,8 @@ nbsphinx_prolog = """
 {% set docname = env.doc2path(env.docname, base=None) %}
 
 .. note::
-   This page was generated from `{{ docname }}`_.
-   Download it :download:`here <{{ docname }}>`.
+   This page was generated from ``{{ docname }}``.
+   Download it :download:`here </{{ docname }}>`.
 """
 
 # Exclude checkpoint files
@@ -111,19 +111,10 @@ Add to notebook cell metadata:
 }
 ```
 
-**Hide output cells**:
+**Hide output cells** (MyST-NB tag; nbsphinx ignores it):
 ```json
 {
   "tags": ["hide-output"]
-}
-```
-
-**Custom cell classes**:
-```json
-{
-  "nbsphinx": {
-    "cell_class": "warning"
-  }
 }
 ```
 
@@ -294,6 +285,7 @@ docs/
 
 **Option 3: Download from URL**:
 ```python
+from pathlib import Path
 from urllib.request import urlretrieve
 
 url = "https://example.com/data.csv"
@@ -423,7 +415,7 @@ sphinx_gallery_conf = {
     "doc_module": "mypackage",
     "reference_url": {"mypackage": None},
     "download_all_examples": False,
-    "notebook_images": True,  # Generate Jupyter notebooks
+    "notebook_images": True,  # Embed images in the generated notebooks
     "within_subsection_order": FileNameSortKey,
 }
 ```
@@ -443,10 +435,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1          # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0      # v7.1.0
         with:
           python-version: "3.11"
 
@@ -482,8 +476,16 @@ NOTEBOOKS_DIR = Path("docs/notebooks")
 )
 def test_notebook(notebook):
     """Test that notebook runs without errors."""
-    # pytest-notebook will execute the notebook
-    pass
+    import nbformat
+    from nbclient import NotebookClient
+
+    nb = nbformat.read(notebook, as_version=4)
+    NotebookClient(
+        nb,
+        timeout=600,
+        kernel_name="python3",
+        resources={"metadata": {"path": str(notebook.parent.resolve())}},  # run from the notebook's dir
+    ).execute()
 ```
 
 ## Common Issues

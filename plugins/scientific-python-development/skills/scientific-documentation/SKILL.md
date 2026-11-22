@@ -64,7 +64,6 @@ End-to-end sequence for a new project. Run each step and verify before proceedin
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
-    "sphinx.ext.napoleon",      # NumPy/Google docstrings
     "sphinx.ext.mathjax",
     "sphinx.ext.intersphinx",
     "sphinx.ext.viewcode",
@@ -72,8 +71,8 @@ extensions = [
     "myst_parser",
 ]
 html_theme = "pydata_sphinx_theme"
-napoleon_numpy_docstring = True
 autosummary_generate = True
+numpydoc_class_members_toctree = False  # avoids missing-stub warnings with autosummary
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
@@ -81,7 +80,7 @@ intersphinx_mapping = {
 }
 ```
 
-See `assets/sphinx-conf-scientific.py` for the full annotated file including theme options, myst extensions, nbsphinx, and version switcher config.
+See `assets/sphinx-conf-scientific.py` for the full annotated file including theme options, myst extensions, and nbsphinx.
 
 ### MkDocs — minimal `mkdocs.yml` additions
 

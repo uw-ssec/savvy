@@ -10,9 +10,9 @@ A comprehensive guide to Sphinx extensions commonly used in scientific Python do
 | Scientific Python Extensions | 275–519 | numpydoc, sphinx_autodoc_typehints, myst_parser, nbsphinx, sphinx-gallery |
 | Theme Extensions | 520–587 | pydata_sphinx_theme and furo configuration |
 | Utility Extensions | 588–666 | sphinx-copybutton, sphinx-design, sphinxcontrib-bibtex |
-| Debugging and Quality | 667–705 | coverage and linkcheck extensions |
-| Extension Compatibility | 706–777 | Common combinations and troubleshooting conflicts |
-| Resources | 778–783 | Links to Sphinx, PyData theme, MyST, and nbsphinx docs |
+| Debugging and Quality | 667–703 | coverage extension and linkcheck builder |
+| Extension Compatibility | 704–774 | Common combinations and troubleshooting conflicts |
+| Resources | 775–780 | Links to Sphinx, PyData theme, MyST, and nbsphinx docs |
 
 ---
 
@@ -214,7 +214,7 @@ Display math:
 
 **In Docstrings**:
 ```python
-"""
+r"""
 The Gaussian function:
 
 .. math::
@@ -371,7 +371,7 @@ myst_enable_extensions = [
     "fieldlist",        # Field lists
     "html_admonition",  # HTML-style admonitions
     "html_image",       # HTML image syntax
-    "linkify",          # Auto-convert URLs to links
+    "linkify",          # Auto-convert URLs to links (needs linkify-it-py)
     "replacements",     # Text replacements
     "smartquotes",      # Smart quotes
     "strikethrough",    # ~~text~~
@@ -441,7 +441,7 @@ nbsphinx_prolog = """
 {% set docname = env.doc2path(env.docname, base=None) %}
 
 .. note::
-   This page was generated from `{{ docname }}`_
+   This page was generated from ``{{ docname }}``.
 """
 
 exclude_patterns = ["_build", "**.ipynb_checkpoints"]
@@ -457,7 +457,7 @@ exclude_patterns = ["_build", "**.ipynb_checkpoints"]
 
 **Tips**:
 - Use `nbsphinx-toctree` directive for dynamic notebook lists
-- Add `:nbsphinx-execute: never` to skip execution for specific notebooks
+- Set `"nbsphinx": {"execute": "never"}` in a notebook's metadata to skip executing it
 - Use raw cells for Sphinx directives within notebooks
 
 ### sphinx-gallery
@@ -548,7 +548,7 @@ html_theme_options = {
         },
     ],
     "analytics": {
-        "google_analytics_id": "UA-XXXXXXXXX-X",
+        "google_analytics_id": "G-XXXXXXXXXX",
     },
 }
 
@@ -683,14 +683,12 @@ coverage_show_missing_items = True
 sphinx-build -b coverage docs docs/_build/coverage
 ```
 
-### sphinx.ext.linkcheck
+### linkcheck builder
 
-**Purpose**: Check external links.
+**Purpose**: Check external links. `linkcheck` is a builder, not an extension: don't add it to `extensions`.
 
 **Configuration**:
 ```python
-extensions = ["sphinx.ext.linkcheck"]
-
 linkcheck_ignore = [
     r"http://localhost",
     r"https://doi.org/.*",  # DOIs often block bots
@@ -728,7 +726,6 @@ extensions = [
     "sphinx.ext.intersphinx",
 
     # Scientific
-    "sphinx.ext.napoleon",
     "sphinx.ext.mathjax",
     "numpydoc",
     "sphinx_autodoc_typehints",

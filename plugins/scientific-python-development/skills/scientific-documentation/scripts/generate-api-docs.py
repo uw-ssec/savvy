@@ -7,7 +7,7 @@ documentation using Sphinx's autosummary. It creates a structured
 API reference with one file per module.
 
 Usage:
-    python scripts/generate-api-docs.py
+    python scripts/generate-api-docs.py --package mypackage
     python scripts/generate-api-docs.py --package mypackage --output docs/reference
 """
 

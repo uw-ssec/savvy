@@ -155,6 +155,7 @@ First tagged release. Only `ai-research-workflows` ships in it and moves to this
 
 #### Added
 
+- [CONTRIBUTING.md](CONTRIBUTING.md) explains how to write a skill description an agent can route on: a trigger clause, what the skill does, and a neighboring case it doesn't own, checked with a three-way trigger test. `plugins-check` now fails on a skill description without a `Use when` or `Use this skill when` clause.
 - `CHANGELOG.md`, a [versioning policy](docs/versioning.md), and a [deprecation policy](docs/deprecation.md).
 - [docs/codespaces.md](docs/codespaces.md), with the Codespaces and LiteLLM gateway setup moved out of the README.
 - README badges for CI, the Zenodo DOI, the license, and pixi.

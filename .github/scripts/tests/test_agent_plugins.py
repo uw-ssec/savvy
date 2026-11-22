@@ -283,6 +283,8 @@ def test_other_plugin_licenses_are_not_rewritten(ap, repo):
     ("name: one\n", "description must be a string of 100-1024 characters"),
     (f"name: one\ndescription: {DESC[:-1]}\n", "description must be a string of 100-1024 characters"),
     (f"name: one\ndescription: {'x' * 1025}\n", "description must be a string of 100-1024 characters"),
+    (f"name: one\ndescription: {'x' * 100}\n", "description needs a trigger clause"),
+    (f"name: one\ndescription: {'Used whenever. ' + 'x' * 90}\n", "description needs a trigger clause"),
     ("name: one\ndescription: d\ncolor: red\n", "frontmatter field 'color'"),
     ("name: one\ndescription: [d]\n", "description must be a string"),
     ("name: one\ndescription: d\nlicense: [MIT]\n", "license must be a string"),
@@ -297,6 +299,13 @@ def test_other_plugin_licenses_are_not_rewritten(ap, repo):
 def test_skill_frontmatter(ap, repo, frontmatter, message):
     write(repo / "plugins/alpha/skills/one/SKILL.md", f"---\n{frontmatter}---\nbody\n")
     assert any(message in e for e in problems(ap, repo))
+
+
+@pytest.mark.parametrize("clause", ["Use when", "use when", "Use this skill when", "Use this  skill\n  when"])
+def test_skill_trigger_clause_accepted(ap, repo, clause):
+    write(repo / "plugins/alpha/skills/one/SKILL.md",
+          f"---\nname: one\ndescription: |\n  Builds things. {clause} building. {'x' * 80}\n---\nbody\n")
+    assert not any("trigger clause" in e for e in problems(ap, repo))
 
 
 @pytest.mark.parametrize("frontmatter", [

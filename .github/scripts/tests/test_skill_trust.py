@@ -612,6 +612,17 @@ def test_check_skill_clean(st, tmp_path):
     assert st.check_skill(make_skill(tmp_path, "a"), require_evals=False) == []
 
 
+def test_check_skill_accepts_crlf_line_endings(st, tmp_path):
+    # A Windows checkout (core.autocrlf) writes CRLF; the files are still valid.
+    d = make_skill(tmp_path, "a")
+    write_evals(d)
+    for name in ("SKILL.md", "skill-card.md", "evals/evals.json"):
+        path = d / name
+        path.write_bytes(path.read_bytes().replace(b"\n", b"\r\n"))
+    assert b"---\r\n" in (d / "SKILL.md").read_bytes()
+    assert st.check_skill(d) == []
+
+
 def write_evals(d, name=None, cases=None, raw=None):
     name = name or d.name
     if cases is None:

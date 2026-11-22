@@ -28,11 +28,11 @@ plan), never **zero skills** for a code change or a research investigation.
 Open your reply with the route: the mode and the skill, before any code (e.g.
 "Direct mode: scoped `researching` pass first"). When no skill applies, say so:
 "No workflow skill needed; answering from the code." Then do that step before
-any edit. If the routed skill isn't installed, do its step yourself. Even a scoped
-`researching` pass traces the code and its callers, then writes
-`docs/rse/specs/research-<slug>.md` (cause at `file:line`) before the edit;
-then a failing test or short plan. If you
-can't see the code, list what you'd trace and ask for it.
+any edit. If the routed skill isn't installed, do its step yourself. Before a
+code change, even a scoped `researching` pass traces the code and its callers,
+then writes `docs/rse/specs/research-<slug>.md` (cause at `file:line`) before
+the edit; then a failing test or short plan. If you can't see the code, list
+what you'd trace and ask for it. A literature-only survey needs no code.
 
 ## Instruction priority
 

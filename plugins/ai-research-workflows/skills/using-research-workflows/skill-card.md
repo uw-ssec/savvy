@@ -46,8 +46,8 @@ Mitigation: the nine sibling skills in this plugin each have their own capabilit
 
 ## Output
 
-**Output Type(s):** None directly (routing guidance in the agent's behavior).
-**Output Format:** not applicable. Other skills write the `research-`, `plan-`, `experiment-`, `implement-`, `validation-` and `handoff-` documents in `docs/rse/specs/`.
+**Output Type(s):** Routing guidance in the agent's behavior. When the routed skill isn't installed, the agent writes that step's document itself, such as `docs/rse/specs/research-<slug>.md` before a code change.
+**Output Format:** Markdown, for that fallback document only. Otherwise the other skills write the `research-`, `plan-`, `experiment-`, `implement-`, `validation-` and `handoff-` documents in `docs/rse/specs/`.
 **Other Properties:** none.
 
 ## Version

@@ -91,7 +91,7 @@ See `assets/pyproject-ruff-mypy.toml` and `assets/pre-commit-config.yaml` for co
 | `references/common-issues.md` | ruff vs black conflicts; mypy missing imports; pre-commit slow on large repos; too many legacy errors; CI failures |
 
 Non-obvious gotchas:
-- **Ruff rule `E501` (line too long)**: disable it — ruff format manages line length and they conflict if both are active.
+- **Ruff rule `E501` (line too long)**: usually ignored when you use `ruff format`. It is not one of the rules ruff lists as conflicting with the formatter, but the formatter only wraps lines on a best-effort basis (it leaves long strings and comments alone), so formatted code can still trigger E501. Keep it enabled only if you want a hard limit you fix by hand.
 - **`NPY002`**: flags `np.random.rand()` as legacy; the fix is `np.random.default_rng(seed=...).random()`. Worth enabling for reproducibility in scientific code.
 - **MyPy `ignore_missing_imports`**: set per-module in `[[tool.mypy.overrides]]`, not globally — global ignores hide real errors in your own code.
 - **Pre-commit mypy vs CI mypy**: mypy in pre-commit runs without your installed package, so imports of your own package fail. Either pass `--ignore-missing-imports` in pre-commit args or keep mypy in CI only.

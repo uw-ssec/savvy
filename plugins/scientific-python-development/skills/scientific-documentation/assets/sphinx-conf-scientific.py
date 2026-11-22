@@ -39,7 +39,6 @@ extensions = [
     "sphinx.ext.doctest",        # Test code examples
 
     # Scientific Python extensions
-    "sphinx.ext.napoleon",       # NumPy/Google docstrings support
     "sphinx.ext.mathjax",        # Math rendering
     "numpydoc",                  # NumPy documentation style
     "sphinx_autodoc_typehints",  # Type hint integration
@@ -91,6 +90,9 @@ myst_heading_anchors = 3
 # Automatically generate stub pages for autosummary
 autosummary_generate = True
 
+# Don't let numpydoc add a toctree of class members (avoids missing-stub warnings)
+numpydoc_class_members_toctree = False
+
 # Include both class docstring and __init__ docstring
 autoclass_content = "both"
 
@@ -103,24 +105,6 @@ autodoc_default_options = {
     "exclude-members": "__weakref__",
     "show-inheritance": True,
 }
-
-# -- Napoleon Configuration --------------------------------------------------
-
-# Configure support for NumPy-style docstrings
-napoleon_google_docstring = False
-napoleon_numpy_docstring = True
-napoleon_include_init_with_doc = True
-napoleon_include_private_with_doc = False
-napoleon_include_special_with_doc = True
-napoleon_use_admonition_for_examples = False
-napoleon_use_admonition_for_notes = False
-napoleon_use_admonition_for_references = False
-napoleon_use_ivar = False
-napoleon_use_param = True
-napoleon_use_rtype = True
-napoleon_use_keyword = True
-napoleon_type_aliases = None
-napoleon_attr_annotations = True
 
 # -- Intersphinx Configuration -----------------------------------------------
 
@@ -188,7 +172,7 @@ html_theme_options = {
     ],
 
     # Footer
-    "footer_items": ["copyright", "sphinx-version"],
+    "footer_start": ["copyright", "sphinx-version"],
 }
 
 # Context for template variables

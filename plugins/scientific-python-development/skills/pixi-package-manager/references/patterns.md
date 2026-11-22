@@ -6,10 +6,10 @@
 |---------|-------|-------------|
 | Pattern 1: Converting Existing Projects to Pixi | 16–48 | Migrating from requirements.txt or environment.yml to pixi |
 | Pattern 2: Multi-Environment Scientific Workflow | 49–58 | Organizing features and environments for scientific work |
-| Pattern 3: Scientific Library Development | 59–142 | Complete pixi setup for developing a scientific library |
-| Pattern 4: Conda + PyPI Dependency Strategy | 143–188 | Decision rules for conda-forge vs PyPI packages |
-| Pattern 5: Reproducible Research Environment | 189–260 | Pinning versions and creating reproducible pipelines |
-| Pattern 6: Task Dependencies and Workflows | 261–310 | Complex scientific workflows with task dependencies |
+| Pattern 3: Scientific Library Development | 59–150 | Complete pixi setup for developing a scientific library |
+| Pattern 4: Conda + PyPI Dependency Strategy | 151–194 | Decision rules for conda-forge vs PyPI packages |
+| Pattern 5: Reproducible Research Environment | 195–271 | Pinning versions and creating reproducible pipelines |
+| Pattern 6: Task Dependencies and Workflows | 272–321 | Complex scientific workflows with task dependencies |
 
 ---
 
@@ -74,6 +74,14 @@ dependencies = [
     "scipy>=1.11",
 ]
 
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64", "win-64"]
+
+# Install mylib itself in editable mode (no pip task needed)
+[tool.pixi.pypi-dependencies]
+mylib = { path = ".", editable = true }
+
 [project.optional-dependencies]
 viz = ["matplotlib>=3.7", "seaborn>=0.12"]
 
@@ -102,7 +110,7 @@ myst-parser = ">=2.0"
 
 # Build dependencies
 [tool.pixi.feature.build.dependencies]
-build = "*"
+python-build = "*"
 twine = "*"
 
 [tool.pixi.environments]
@@ -110,11 +118,11 @@ default = { features = [], solve-group = "default" }
 dev = { features = ["dev", "test", "docs"], solve-group = "default" }
 test = { features = ["test"], solve-group = "default" }
 docs = { features = ["docs"], solve-group = "default" }
+build = { features = ["build"], solve-group = "default" }
 
 # Tasks for development workflow
 [tool.pixi.tasks]
 # Development
-install-dev = "pip install -e ."
 format = "ruff format src/ tests/"
 lint = "ruff check src/ tests/"
 typecheck = "mypy src/"
@@ -145,25 +153,23 @@ pre-commit = { depends-on = ["format", "lint", "test-fast"] }
 **Strategy**:
 
 ```toml
-[project]
-dependencies = [
-    # Core scientific stack: prefer conda-forge (optimized builds)
-    "numpy>=1.24",           # MKL or OpenBLAS optimized
-    "scipy>=1.11",           # optimized BLAS/LAPACK
-    "pandas>=2.0",           # optimized pandas
-    "matplotlib>=3.7",       # compiled components
-    "scikit-learn>=1.3",     # optimized algorithms
+[tool.pixi.dependencies]
+# Core scientific stack: prefer conda-forge (optimized builds)
+numpy = ">=1.24"           # MKL or OpenBLAS optimized
+scipy = ">=1.11"           # optimized BLAS/LAPACK
+pandas = ">=2.0"           # optimized pandas
+matplotlib = ">=3.7"       # compiled components
+scikit-learn = ">=1.3"     # optimized algorithms
 
-    # Geospatial/climate: conda-forge essential (C/Fortran deps)
-    "xarray>=2023.1",
-    "netcdf4>=1.6",
-    "h5py>=3.9",
-    "rasterio>=1.3",         # GDAL dependency
+# Geospatial/climate: conda-forge essential (C/Fortran deps)
+xarray = ">=2023.1"
+netcdf4 = ">=1.6"
+h5py = ">=3.9"
+rasterio = ">=1.3"         # GDAL dependency
 
-    # Data processing: conda-forge preferred
-    "dask>=2023.1",
-    "numba>=0.57",           # LLVM dependency
-]
+# Data processing: conda-forge preferred
+dask = ">=2023.1"
+numba = ">=0.57"           # LLVM dependency
 
 [tool.pixi.pypi-dependencies]
 # Pure Python packages or PyPI-only packages
@@ -197,29 +203,30 @@ version = "1.0.0"
 description = "Analysis for Nature Paper 2024"
 requires-python = ">=3.11,<3.12"  # pin Python version range
 
-dependencies = [
-    "python=3.11.6",      # exact Python version
-    "numpy=1.26.2",       # exact versions for reproducibility
-    "pandas=2.1.4",
-    "scipy=1.11.4",
-    "matplotlib=3.8.2",
-    "scikit-learn=1.3.2",
-]
-
 [tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64"]
 requires-pixi = ">=0.72"  # pin minimum pixi version (pixi workspace requires-pixi set)
 
+[tool.pixi.dependencies]
+python = "==3.11.6"      # exact Python version
+numpy = "==1.26.2"       # exact versions for reproducibility
+pandas = "==2.1.4"
+scipy = "==1.11.4"
+matplotlib = "==3.8.2"
+scikit-learn = "==1.3.2"
+
 [tool.pixi.pypi-dependencies]
-# Pin with exact hashes for ultimate reproducibility
+# Exact pins; pixi.lock records each package's hash
 seaborn = "==0.13.0"
 
 # Analysis environments
 [tool.pixi.feature.analysis.dependencies]
-jupyter = "1.0.0"
-jupyterlab = "4.0.9"
+jupyter = "==1.0.0"
+jupyterlab = "==4.0.9"
 
 [tool.pixi.feature.analysis.pypi-dependencies]
-jupyterlab-vim = "0.16.0"
+jupyterlab-vim = "==0.16.0"
 
 # Environments
 [tool.pixi.environments]
@@ -259,7 +266,7 @@ pixi run full-pipeline
 
 # Archive for long-term preservation: export the exact locked environment
 pixi workspace export conda-environment environment-snapshot.yml  # portable environment.yaml
-pixi workspace export conda-explicit-spec ./locked-specs          # fully pinned URLs per platform
+pixi workspace export conda-explicit-spec --ignore-pypi-errors ./locked-specs  # fully pinned conda URLs per platform (PyPI packages are left out)
 ```
 
 ## Pattern 6: Task Dependencies and Workflows

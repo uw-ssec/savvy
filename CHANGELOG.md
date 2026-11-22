@@ -91,27 +91,39 @@ First tagged release. Only `ai-research-workflows` ships in it and moves to this
 - `python-packaging`: the `pyproject` templates and `references/metadata.md` require Python 3.13 or newer (the SPEC 0 floor) instead of end-of-life 3.9, and drop the `License ::` classifier that PEP 639 deprecates next to a `license` expression.
 - `python-packaging`: the TestPyPI install in `references/patterns.md` uses a placeholder that can't resolve on a registry, and `--no-deps`.
 - Fixed broken links in the `scientific-documentation` skill references, refs #249.
+- Fixed `scientific-documentation`: the conf.py asset, the minimal conf and the full-featured extension list no longer enable napoleon alongside numpydoc, which contradicted the skill's own gotcha. `linkcheck` is now described as a builder, not a `sphinx.ext.linkcheck` extension. The `:math:` advice now says a single backslash works in `.rst` files and raw docstrings, and doubling is only for non-raw docstrings. Also fixed the pydata `footer_items` option (now `footer_start`), the nbsphinx prolog and per-notebook execute syntax, the `suppress_warnings` key, the numpydoc `validate` CLI, the Read the Docs search ranking paths, and other examples that failed against Sphinx 9.2.
+- Fixed `code-quality-tools`: E501 is not one of the rules ruff lists as conflicting with the formatter; the skill now says the formatter only wraps lines on a best-effort basis. Fixed a ruff TOML example that failed to parse, removed the deleted ANN101/ANN102 rules, made two type-hint examples pass mypy, and bumped `pre-commit-hooks` to a release without deprecated stage names.
+- Fixed `pixi-package-manager`: the CPU/GPU example now uses `pytorch-cpu` next to `pytorch-gpu`, because an unconstrained `pytorch` can resolve to a CUDA build. It also replaces the deprecated `system-requirements` table with a CUDA named platform. Fixed manifests and assets that pixi 0.84 rejected or could not lock: missing workspace tables, `python` listed as a PyPI requirement, `[tool.pixi.platforms]`, `=` version pins, packages not on conda-forge, and an unused `dev` feature.
+- Fixed `python-packaging`: removed a `force-include` example in `references/patterns.md` that breaks the wheel build, showed the normalized sdist filename, corrected the claim that `uv` installs every dependency group by default (`uv sync` installs `dev`), dropped napoleon from the numpydoc-based Sphinx asset, and replaced the real `university.edu` domain in placeholder addresses with `example.edu`.
+- Fixed `python-testing`: corrected Hypothesis, approx, xfail, marker and mocking examples that failed when run, and replaced `np.random.seed` with `np.random.default_rng` in the references and assets to match the skill's own gotcha. The CI assets in `python-testing` and `pixi-package-manager` now pass the Codecov token, which Codecov requires by default for uploads outside fork pull requests.
+
+#### Security
+
+- `pixi-package-manager` no longer opens with an unpinned `curl | bash` / `irm | iex` installer. It lists Homebrew, winget and conda-forge first, then shows the official script downloaded from a release tag, read, and run with `PIXI_VERSION` pinned and the shell-profile PATH update turned off, after confirming with the user.
+- The GitHub Actions assets in `pixi-package-manager` and `python-testing` use `persist-credentials: false` on checkout and set read-only `contents` permissions, and the pixi workflow pins the pixi version instead of `latest`.
 
 ### supply-chain-security
 
 #### Added
 
 - Initial tagged release.
+- `supply-chain-ecosystem-quirks`: `scripts/quick-check.sh` runs the npm, PyPI, conda/pixi, cargo and Go checks and reports each finding with its `file:line`. Its `--pth-only` mode is the canonical Python `.pth`/`.start` startup-code check that other supply-chain skills point to: known-good files are INFO only when name and content match what their tool writes, and unknown code-executing files FAIL.
 
 #### Changed
 
 - `supply-chain-dependency-security`: the description lists triggers only and leaves reported compromises to `supply-chain-incident-response`. CI install commands now fail on a stale lockfile (`pixi install --locked`, `uv sync --locked`, and a `--check-input-hash` step for conda-lock), and Yarn disables install scripts explicitly. The 7-day cooldown gains a resolver setting per tool and a publish-time check for versions a lockfile diff adds. The skill now has When to Use, Quick Reference, rationalization, red-flag and Common Mistakes sections.
+- `supply-chain-ecosystem-quirks`: the description is trigger-only, and the quick-check battery moves from `SKILL.md` into the script.
 - `supply-chain-hardened-ci-cd`: the description lists only when to use the skill, and the body is restructured around a quick reference, rationalizations and red flags. Every example action is pinned to a commit SHA, including the PyPI publish action that was on `@release/v1`. The OIDC example, which wasn't valid YAML, is now a complete build/publish workflow in `references/hardening-patterns.md`, where the publish job runs no project code: PyPI builds with `PIP_ONLY_BINARY=:all:`, and npm packs the tarball in the build job and publishes it with `--ignore-scripts`.
 - `supply-chain-threat-awareness`: the description lists triggers only, and the audit commands moved to `references/audit-commands.md`. Each campaign now has the dates it was observed and primary sources; Shai-Hulud is described as a self-propagating worm with a second wave in November 2025, and TeamPCP as running from March to April 2026.
 
 #### Fixed
 
+- `supply-chain-ecosystem-quirks`: references corrected against current tools: npm 12's `allowScripts`, pnpm's `allowBuilds` and Yarn 4.14's `enableScripts` default; `uv sync --locked`, `pixi install --locked` and `poetry check --lock` in place of flags that skip the lockfile check or don't exist; Go's `-mod=readonly` is already the default, so `-mod=mod` is flagged instead; the removed `-insecure` flag; `Cargo.lock` guidance; and the PyTorch-nightly compromise no longer attributed to `setup.py`.
 - `supply-chain-threat-awareness` and `/supply-chain-audit`: the action-pinning scan flags every mutable `uses:` ref, including `.yaml` files, local composite actions anywhere in the repository, untracked files, flow-style and quoted-key YAML, `docker://` tags and SHA-prefixed branches.
 - `supply-chain-threat-awareness`: cooldown is measured as each version's age when the change adopting it was merged, locked installs require `--locked`, the lifecycle-script query lists all eight hooks npm runs for the project on install, and the LiteLLM check no longer runs `pip show` in the suspect environment.
-
-#### Fixed
-
 - Fixed broken links in the `supply-chain-ecosystem-quirks` skill references, refs #249.
+- `supply-chain-incident-response`: the description is now trigger-only, and commands that did nothing or reported a false PASS are replaced: the advisory lookup, lockfile grep and history, `gh cache` listing and deletion by id, `find -newermt`, the postinstall query and the tag-hijack audit loop. Recovery re-enables the disabled workflows and starts a fresh run from the fixed commit. The npm rotation creates a granular, package-scoped token with an expiry (npm 11.6.3 or later, or npmjs.com for older clients).
+- `/supply-chain-incident` is now user-invoked only (`disable-model-invocation: true`), so incident prompts load `supply-chain-incident-response` instead of the command, and its paths to the rotation guide and report template now go through the skill.
 
 ### uiux-design-team
 

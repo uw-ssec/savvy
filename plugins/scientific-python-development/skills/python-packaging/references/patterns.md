@@ -7,8 +7,8 @@
 | Pattern 1: Pure Python Scientific Package (Recommended) | 15–47 | Standard src layout for scientific Python packages |
 | Pattern 2: Scientific Package with Data Files | 48–92 | Including and accessing data files in packages |
 | Pattern 3: Versioning Strategies | 93–143 | Manual, dynamic, and git-based versioning approaches |
-| Pattern 4: Building and Publishing | 144–203 | Building distributions and publishing to PyPI |
-| Pattern 5: Testing Installation | 204–241 | Editable installs and isolated environment testing |
+| Pattern 4: Building and Publishing | 144–184 | Building distributions and publishing to PyPI |
+| Pattern 5: Testing Installation | 185–222 | Editable installs and isolated environment testing |
 
 ---
 
@@ -72,9 +72,9 @@ my-sci-package/
 [tool.hatch.build.targets.wheel]
 packages = ["src/my_sci_package"]
 
-# Only if you need to explicitly include data
-[tool.hatch.build.targets.wheel.force-include]
-"src/my_sci_package/data" = "my_sci_package/data"
+# Package data is included automatically unless git-ignored or excluded.
+# Don't force-include files already selected at the same wheel path: the
+# duplicate fails the build with "A second file is being added to the wheel archive".
 ```
 
 **Access data files in code:**
@@ -153,7 +153,7 @@ pip install build
 python -m build
 
 # Creates:
-# dist/my-sci-package-1.0.0.tar.gz (source distribution)
+# dist/my_sci_package-1.0.0.tar.gz (source distribution)
 # dist/my_sci_package-1.0.0-py3-none-any.whl (wheel)
 
 # Verify the distribution

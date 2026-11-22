@@ -17,9 +17,9 @@ Troubleshooting guide for common problems when building scientific Python docume
 | Performance Issues | 378–437 | Slow builds and large documentation optimization |
 | Version-Specific Issues | 438–461 | numpy.typing and Sphinx 7.x compatibility |
 | Debugging Tips | 462–498 | Verbose output, validation, and clean builds |
-| Quick Reference | 499–538 | Common commands and useful conf.py settings |
-| Getting Help | 539–549 | Documentation, forums, and community resources |
-| Resources | 550–554 | Links to Sphinx FAQ, RTD, and nbsphinx troubleshooting |
+| Quick Reference | 499–539 | Common commands and useful conf.py settings |
+| Getting Help | 540–550 | Documentation, forums, and community resources |
+| Resources | 551–555 | Links to Sphinx FAQ, RTD, and nbsphinx troubleshooting |
 
 ---
 
@@ -62,7 +62,7 @@ autodoc_mock_imports = ["expensive_dependency", "optional_package"]
 Or suppress warning:
 ```python
 # conf.py
-suppress_warnings = ["toc.not_readable"]
+suppress_warnings = ["toc.not_included"]
 ```
 
 ### Extension error: Could not import extension
@@ -102,14 +102,14 @@ python -c "import mypackage.module"
 
 **Check**:
 1. Docstrings exist in source code
-2. Napoleon extension enabled (for NumPy-style)
+2. numpydoc (or napoleon, not both) enabled for NumPy-style docstrings
 3. Correct autodoc directive syntax
 
 **Solution**:
 ```rst
 .. automodule:: mypackage
-   :members:          # Add this
-   :undoc-members:    # Show members without docstrings
+   :members:
+   :undoc-members:
 ```
 
 ### Type hints break documentation
@@ -160,11 +160,11 @@ Display:
 
 **Common fixes**:
 ```rst
-Use double backslash:
-:math:`\\alpha`  # Not \alpha
+In .rst files, use a single backslash:
+:math:`\alpha`
 
-Escape underscores:
-:math:`x\_i`  # Not x_i in text mode
+In a Python docstring, use a raw string (r"""...""") so the backslash reaches Sphinx;
+double it (:math:`\\alpha`) only in a non-raw docstring.
 ```
 
 ## Intersphinx Issues
@@ -218,7 +218,7 @@ pip install pydata-sphinx-theme
 Verify installation:
 ```python
 import pydata_sphinx_theme
-print(pydata_sphinx_theme.get_html_theme_path())
+print(pydata_sphinx_theme.__version__)
 ```
 
 ### Custom CSS not applied
@@ -346,7 +346,7 @@ build:
 [project.optional-dependencies]
 docs = [
     "sphinx>=7.0,<8.0",
-    "sphinx-theme>=0.15",
+    "pydata-sphinx-theme>=0.15",
 ]
 ```
 
@@ -401,8 +401,8 @@ autodoc_mock_imports = ["tensorflow", "torch", "expensive_lib"]
 **4. Reduce API docs scope**:
 ```rst
 .. automodule:: mypackage
-   :members: public_function  # Only specific members
-   :no-inherited-members:     # Skip inherited
+   :members: public_function
+   :no-inherited-members:
 ```
 
 **5. Use parallel builds**:
@@ -523,17 +523,18 @@ sphinx-autobuild docs docs/_build/html
 ### Useful conf.py settings
 
 ```python
-# Fail on any warning
+# Warn about every unresolved cross-reference
 nitpicky = True
 nitpick_ignore = [
     ("py:class", "optional"),  # Ignore specific warnings
 ]
 
-# Show full traceback on error
+# Append the warning type to each warning (for suppress_warnings)
 show_warning_types = True
 
-# Keep going on errors
-keep_going = True
+# Seeing every warning in one -W run is not a conf.py value either:
+# Sphinx 8.1+ does it by default; older versions need sphinx-build --keep-going
+# sphinx-build -W docs docs/_build/html
 ```
 
 ## Getting Help

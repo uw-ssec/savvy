@@ -146,5 +146,5 @@ pip install -e ".[dev]"  # if using extras
 - Formally standardized
 - More composable
 - Not available on PyPI (development-only)
-- Installed by default with `uv`
+- `uv sync` installs the `dev` group by default
 

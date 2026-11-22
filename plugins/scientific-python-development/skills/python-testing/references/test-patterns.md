@@ -9,10 +9,10 @@
 | Pattern 3: Approximate Comparisons | 95–152 | Floating-point comparisons with pytest.approx and numpy.testing |
 | Pattern 4: Using Fixtures | 153–239 | Reusable test setup with scopes and auto-use |
 | Pattern 5: Parametrized Tests | 240–311 | Testing with multiple inputs and custom IDs |
-| Pattern 6: Test Organization with Markers | 312–440 | Markers, skip/xfail, and directory-based test organization |
-| Pattern 7: Mocking and Monkeypatching | 441–514 | Mocking expensive operations and external dependencies |
-| Pattern 8: Testing Against Installed Version | 515–555 | Using src layout for proper installed package testing |
-| Pattern 8b: Import Best Practices in Tests | 556–620 | Proper import patterns for maintainable tests |
+| Pattern 6: Test Organization with Markers | 312–442 | Markers, skip/xfail, and directory-based test organization |
+| Pattern 7: Mocking and Monkeypatching | 443–516 | Mocking expensive operations and external dependencies |
+| Pattern 8: Testing Against Installed Version | 517–557 | Using src layout for proper installed package testing |
+| Pattern 8b: Import Best Practices in Tests | 558–622 | Proper import patterns for maintainable tests |
 
 ---
 
@@ -122,7 +122,7 @@ from pytest import approx
 def test_array_approximate():
     """Test NumPy arrays with approx."""
     result = np.array([0.1, 0.2, 0.3])
-    expected = np.array([0.10001, 0.20001, 0.30001])
+    expected = np.array([0.10000001, 0.20000001, 0.30000001])
     assert result == approx(expected)
 
 def test_array_with_nan():
@@ -233,7 +233,7 @@ def database_connection():
 ```python
 @pytest.fixture(autouse=True)
 def reset_random_seed():
-    """Reset random seed before each test for reproducibility."""
+    """Reset legacy global NumPy random state before each test (for code that still uses np.random.*)."""
     np.random.seed(42)
 ```
 
@@ -343,7 +343,7 @@ def test_full_pipeline():
 ```bash
 pytest -m slow              # Run only slow tests
 pytest -m "not slow"        # Skip slow tests
-pytest -m "slow or gpu"     # Run slow OR gpu tests
+pytest -m "slow or requires_gpu"  # Run slow OR GPU tests
 pytest -m "slow and integration"  # Run slow AND integration tests
 ```
 
@@ -355,15 +355,11 @@ def test_future_feature():
     result = future_function()
     assert result.success
 
-@pytest.mark.skipif(sys.version_info < (3, 10), reason="Requires Python 3.10+")
-def test_pattern_matching():
-    """Test using Python 3.10+ features."""
-    match value:
-        case 0:
-            result = "zero"
-        case _:
-            result = "other"
-    assert result == "zero"
+@pytest.mark.skipif(sys.version_info < (3, 11), reason="Requires Python 3.11+")
+def test_tomllib_parsing():
+    """Test using a Python 3.11+ standard-library module."""
+    import tomllib
+    assert tomllib.loads("x = 1") == {"x": 1}
 
 @pytest.mark.xfail(reason="Known bug in upstream library")
 def test_known_failure():
@@ -371,11 +367,10 @@ def test_known_failure():
     result = buggy_function()
     assert result == expected
 
-@pytest.mark.xfail(strict=True)
+@pytest.mark.xfail(raises=NotImplementedError, strict=True)
 def test_must_fail():
     """Test that MUST fail (test will fail if it passes)."""
-    with pytest.raises(NotImplementedError):
-        unimplemented_function()
+    unimplemented_function()
 ```
 
 ## Pattern 6b: Organizing Test Suites by Directory
@@ -411,13 +406,20 @@ pytest
 **Auto-mark all tests in a directory using conftest.py:**
 ```python
 # tests/unit/conftest.py
+from pathlib import Path
+
 import pytest
 
 def pytest_collection_modifyitems(session, config, items):
     """Automatically mark all tests in this directory as unit tests."""
+    # This hook receives every collected item, not just this directory's
+    here = Path(__file__).parent
     for item in items:
-        item.add_marker(pytest.mark.unit)
+        if item.path.is_relative_to(here):
+            item.add_marker(pytest.mark.unit)
 ```
+
+Register `unit` under `markers` too, or `--strict-markers` rejects it.
 
 **Benefits of organized test suites:**
 - Run fast tests first ("fail fast" principle)
@@ -478,7 +480,7 @@ def test_expensive_computation(mocker):
 
 def test_matplotlib_plotting(mocker):
     """Test plotting without creating actual plots."""
-    mock_plt = mocker.patch("matplotlib.pyplot")
+    mock_plt = mocker.patch("my_package.plotting.plt")  # patch where it is looked up
     
     create_plot(data)
     

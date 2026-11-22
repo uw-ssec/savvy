@@ -27,7 +27,8 @@ Let me know when manual testing is complete so I can proceed to Phase [N+1].
 
 ## Issue in Phase / Mismatch Report
 
-When what you find does not match the plan, stop and present this template:
+When you hit a mismatch (see "Drift or mismatch?" in `workflow.md`; incidental
+drift is recorded as a deviation instead), stop and present this template:
 
 ```
 ## Issue in Phase [N]:
@@ -72,11 +73,11 @@ All phases of the plan have been executed.
 
 ## Verification Status:
 ✅ Automated verification complete
-⏸️ Manual verification pending (see plan for steps)
+⏸️ Manual verification: [pending, see plan for steps | confirmed by the user]
 
 ## Next Steps:
 1. Complete manual verification as listed in the plan
 2. Run the validating-implementations skill for systematic validation
-3. Create commit
+3. Commit any changes the plan's commit steps didn't cover, if you want them
 4. Create pull request
 ```

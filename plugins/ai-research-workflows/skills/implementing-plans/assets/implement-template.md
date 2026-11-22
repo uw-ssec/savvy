@@ -183,7 +183,7 @@ confirmed it; until then it stays pending for the user.]
 
 **Recommended Actions:**
 - Perform systematic validation against the plan
-- Create git commit with your changes
+- Commit any changes the plan's commit steps didn't cover
 - Create pull request for review
 
 ## Lessons Learned

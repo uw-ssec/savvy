@@ -49,9 +49,10 @@ not, stop and resolve the concerns first.
 - Follow existing code patterns. Don't introduce inconsistencies.
 - Edit the plan file as you go: change a task's `- [ ]` to `- [x]` when it is
   done, so the user can follow progress in the plan.
-- Commit where the plan's tasks say to (for example a "Commit:" task), and only
-  on the feature branch. If the plan has no commit steps, don't commit; list
-  the uncommitted changes in the summary.
+- Commit where the plan's tasks say to (for example a "Commit:" task), on the
+  feature branch, or on `main`/`master` only if the user explicitly consented
+  to working there. If the plan has no commit steps, don't commit; list the
+  uncommitted changes in the summary.
 - When a phase produces a result, figure, metric or trained artifact, capture
   its provenance (environment, data version, seeds, exact commands) with
   `ai-research-workflows:ensuring-reproducibility` so it can be reproduced.
@@ -66,7 +67,8 @@ The codebase rarely matches a plan exactly. Decide which case you are in:
   same file. Make the change and record it under "Deviations from Plan" in the
   implementation summary.
 - **Mismatch** (stop and ask): a file, function, class or signature the plan
-  names is not where the plan says, or is different; a prerequisite (data,
+  says already exists is not where the plan says, or is different (files and
+  functions the plan tells you to create are not mismatches); a prerequisite (data,
   dependency, environment) is missing; the plan's step would fail or change
   behavior the plan didn't intend; or doing it would take you outside the
   plan's scope. Stop and present the "Issue in Phase" report from
@@ -84,6 +86,9 @@ Run every command in the plan's automated verification for this phase (the
 phase's own "Verification" list and the matching items under "Success
 Criteria → Automated Verification"). For each, record the command and its
 result:
+
+Also run the existing test suite: the phase must add the tests the plan calls
+for and introduce no regressions.
 
 - Passes: note the output.
 - Fails: investigate and fix before going on. Don't move to the next phase on a
@@ -140,7 +145,10 @@ Before declaring the implementation done, confirm it is:
 - [ ] No plan task was silently skipped; any skipped or changed task is listed
       as a deviation.
 - [ ] Tests the plan calls for are written and passing, with no regressions.
-- [ ] The changes are on a feature branch, not left on `main`/`master`.
+- [ ] The changes are on a feature branch, not left on `main`/`master`
+      (unless the user explicitly consented to working there).
+- [ ] Every phase task in your task list is done, and no open issue or
+      blocker remains unreported.
 - [ ] Manual verification items are listed for the user and left unticked
       unless the user confirmed them.
 

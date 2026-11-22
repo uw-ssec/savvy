@@ -3,9 +3,9 @@ name: implementing-plans
 description: >-
   Use when an approved implementation plan (a docs/rse/specs/plan-*.md file) is
   ready to build, or a partly built plan needs resuming. Triggers: implement the
-  plan, execute the plan, the plan is approved, go build it, start phase 1,
-  continue or resume implementation, pick up at phase N. Not for designing a
-  plan (planning-implementations), changing one (iterating-plans), or checking
+  plan, execute the plan, run the plan, start building, the plan is approved,
+  go build it, start phase 1, continue or resume implementation. Not for
+  designing a plan (planning-implementations), changing one (iterating-plans), or checking
   finished work against one (validating-implementations).
 metadata:
   capability-network: none
@@ -37,13 +37,13 @@ work → `ai-research-workflows:validating-implementations`.
    git branch --show-current   # main/master → git switch -c feature/<slug>
    ```
 
-3. **Stop on a mismatch.** If the plan can't be followed as written (a named
-   file, function or signature isn't there; a prerequisite is missing), present
+3. **Stop on a mismatch.** If the plan can't be followed as written (something
+   it says exists isn't there or differs; a prerequisite is missing), present
    the mismatch report (expected, found, why it matters, options) and ask "How
    should I proceed?" Never adapt first and record the deviation later.
 4. **Verify each phase** with the plan's automated checks; fix failures first.
-5. **Pause for manual verification** after each phase. Never tick a manual
-   item the user hasn't confirmed.
+5. **Pause for manual verification** after each phase and wait for the user.
+   Never tick a manual item the user hasn't confirmed.
 
 ## Workflow
 
@@ -52,8 +52,8 @@ work → `ai-research-workflows:validating-implementations`.
    `- [x]` when done; commit only at the plan's commit steps.
 3. **Verify** (gate 4), reporting each command's result; **pause** (gate 5).
 4. **Repeat** 2–3 per phase.
-5. **Finish:** re-run all checks, write `docs/rse/specs/implement-<slug>.md`,
-   route to `ai-research-workflows:validating-implementations`.
+5. **Finish:** run the finish checklist in `references/workflow.md`, write
+   `docs/rse/specs/implement-<slug>.md`, route to `ai-research-workflows:validating-implementations`.
 
 ## Quick reference
 
@@ -71,14 +71,14 @@ work → `ai-research-workflows:validating-implementations`.
 |---|---|
 | "You already approved the full plan, so I move straight into Phase 2" | Plan approval isn't phase sign-off. Pause. |
 | "The plan is stale, not wrong in intent; I'll apply its intent and record the deviation" | That's a mismatch. Report and wait. |
-| "I'll decide whether the deviation is small enough to proceed on my own" | It isn't yours to decide. |
+| "I'll decide whether the deviation is small enough to proceed on my own" | Only incidental drift is. |
 | "I'd commit before touching anything else" | Only at the plan's commit steps. |
-| "Manual checks get listed as not verified in the final report" | Pause for them, at the end at the latest. |
+| "Manual checks get listed as not verified in the final report" | Pause for them. |
 
 ## References
 
-- `references/workflow.md`: read when a rule above doesn't settle a step
-  (drift vs. mismatch, resuming, several phases, finish checklist).
+- `references/workflow.md`: step detail (drift vs. mismatch, resuming,
+  several phases, finish checklist).
 - `references/templates.md`: read before the phase-complete pause, a mismatch
   report, or the completion summary.
 - `assets/implement-template.md`: read when writing `implement-<slug>.md`.

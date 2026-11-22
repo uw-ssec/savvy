@@ -32,7 +32,7 @@ Capability declarations (`metadata` in `SKILL.md`) and what each implies:
 
 - `capability-network: none`. The skill does not direct any network access.
 - `capability-shell: none`. The skill does not direct the agent to run commands. It routes to other skills, which carry their own capabilities and cards.
-- `capability-file: write`. The skill describes where workflow documents are written (`docs/rse/specs/`) and tells the agent to search that location and the legacy `.agents/` location when reading. It does not itself produce a document.
+- `capability-file: write`. The skill describes where workflow documents are written (`docs/rse/specs/`) and tells the agent to search that location and the legacy `.agents/` location when reading. When the routed skill is not installed, it tells the agent to do that step itself and save a `docs/rse/specs/research-<slug>.md` document; otherwise the routed skill writes it.
 - `capability-environment: none`. No environment variables are read.
 - `capability-mcp: none`. No MCP tools are used.
 

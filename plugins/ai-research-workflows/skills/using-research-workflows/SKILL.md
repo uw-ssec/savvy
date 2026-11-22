@@ -24,15 +24,16 @@ Routes you to the right skill; the work happens there.
 
 If there is even a 1% chance a workflow skill applies, invoke it BEFORE acting:
 before editing, and before reading code to "just check" ahead of a change.
-Right-size: the minimal matching skill (a scoped `researching` pass, a short
+Right-size: the minimal matching skill (a scoped `researching` pass, short
 plan), never **zero skills** for a code change or a research investigation.
 
 Open your reply with the route: the mode and the skill, before any code (e.g.
 "Direct mode: scoped `researching` pass first"). When no skill applies, say so:
 "No workflow skill needed; answering from the code." Then do that step before
-proposing any edit: a scoped `researching` pass still traces the code and its
-callers, then a failing test or short plan. If you can't see the code, list
-what you'd trace and ask for it; don't guess the edit.
+any edit. If the routed skill isn't installed, do its step yourself. A scoped
+`researching` pass still traces the code and its callers and saves
+`docs/rse/specs/research-<slug>.md`; then a failing test or short plan. If you
+can't see the code, list what you'd trace and ask for it.
 
 ## Instruction priority
 
@@ -74,7 +75,7 @@ actions always need confirmation.
 
 ## References
 
-- `references/workflow-patterns.md` — read when choosing how much of the chain
-  to run, or when tempted to skip a skill (red flags, common mistakes).
-- `references/conventions.md` — read before writing or finding a workflow
-  document (`docs/rse/specs/`), or to defer environments, tests or packaging.
+- `references/workflow-patterns.md` — read to size the chain, or when tempted
+  to skip a skill (red flags, common mistakes).
+- `references/conventions.md` — read to name or find a workflow document, or
+  to defer environments, tests or packaging.

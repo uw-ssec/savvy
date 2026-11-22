@@ -252,9 +252,11 @@ src/routes/
 
 ```js
 // src/routes/users/[id]/+page.js
+import { error } from '@sveltejs/kit';
+
 export async function load({ params, fetch }) {
   const res = await fetch(`/api/users/${params.id}`);
-  if (!res.ok) throw error(404, 'User not found');
+  if (!res.ok) error(404, 'User not found'); // SvelteKit 2: error() throws itself
 
   return {
     user: await res.json(),
@@ -407,14 +409,14 @@ export function tooltip(node, text) {
 
 ## Built-in Accessibility Warnings
 
-Svelte's compiler includes accessibility checks that produce warnings at build time. These are not optional suggestions -- they catch real barriers.
+Svelte's compiler includes accessibility checks that produce warnings at build time. These are not optional suggestions -- they catch real barriers. The codes below use Svelte 4 spelling; Svelte 5 spells them with underscores (`a11y_missing_attribute`) and accepts either form in `svelte-ignore`.
 
 ### Warnings Svelte Catches
 
 | Warning | What It Catches | Fix |
 |---------|----------------|-----|
 | `a11y-missing-attribute` | `<img>` without `alt`, `<a>` without `href` | Add the missing attribute |
-| `a11y-missing-content` | `<a>` or `<button>` with no text content | Add text or `aria-label` |
+| `a11y-missing-content` | `<a>` or heading with no text content (Svelte 5 reports an empty `<a>` or `<button>` as `a11y_consider_explicit_label`) | Add text or `aria-label` |
 | `a11y-click-events-have-key-events` | `on:click` without `on:keydown` on non-interactive elements | Add keyboard handler or use a `<button>` |
 | `a11y-no-static-element-interactions` | Event handlers on `<div>`, `<span>` without a role | Add `role` or use a semantic element |
 | `a11y-label-has-associated-control` | `<label>` not associated with an input | Use `for` attribute or nest the input |

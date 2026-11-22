@@ -3,8 +3,7 @@ name: hardening-research-code
 description: >-
   Use when research or scientific code must be shown correct before its numbers
   are relied on, as in a paper. Triggers: harden this code, is this numerically
-  correct, which version is right after a refactor, NaN or drift in float32,
-  golden test, regression baseline, known analytic result, tolerance, float
+  correct, golden test, regression baseline, known analytic result, tolerance, float
   equality, numerical stability. Not for capturing provenance (use
   ensuring-reproducibility) or pytest setup (use python-testing).
 metadata:

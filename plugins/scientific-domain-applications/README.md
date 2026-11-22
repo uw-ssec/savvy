@@ -392,7 +392,8 @@ Process a telescope image from raw FITS to source catalog:
 ```python
 from astropy.io import fits
 from astropy.wcs import WCS
-from photutils import DAOStarFinder, CircularAperture, aperture_photometry
+from photutils.aperture import CircularAperture, aperture_photometry
+from photutils.detection import DAOStarFinder
 from astropy.stats import sigma_clipped_stats
 import astropy.units as u
 
@@ -411,12 +412,12 @@ daofind = DAOStarFinder(fwhm=4.0, threshold=5.0 * std)
 sources = daofind(image_subtracted)
 
 # Aperture photometry
-positions = [(s['xcentroid'], s['ycentroid']) for s in sources]
+positions = [(s['x_centroid'], s['y_centroid']) for s in sources]
 apertures = CircularAperture(positions, r=5.0)
 phot_table = aperture_photometry(image_subtracted, apertures)
 
 # Convert to sky coordinates
-sky_coords = wcs.pixel_to_world(phot_table['xcenter'], phot_table['ycenter'])
+sky_coords = wcs.pixel_to_world(phot_table['x_center'], phot_table['y_center'])
 ```
 
 (See astropy-fundamentals skill for complete pipeline)

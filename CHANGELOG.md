@@ -23,6 +23,10 @@ First tagged release. Only `ai-research-workflows` ships in it and moves to this
 - Initial tagged release.
 - Capability metadata, a skill card and a public eval task set on each skill, as part of the skill trust evidence pilot ([#293](https://github.com/uw-ssec/savvy/issues/293)).
 
+#### Changed
+
+- `validating-implementations`: slimmer `SKILL.md` (detail moved to `references/`) with explicit rules to investigate "flaky" failures, write the report file even for chat-only requests, choose one overall status and leave the code under review unchanged ([#163](https://github.com/uw-ssec/savvy/issues/163)).
+
 ### containerization
 
 #### Added

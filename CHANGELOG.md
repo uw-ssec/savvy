@@ -23,6 +23,10 @@ First tagged release. Only `ai-research-workflows` ships in it and moves to this
 - Initial tagged release.
 - Capability metadata, a skill card and a public eval task set on each skill, as part of the skill trust evidence pilot ([#293](https://github.com/uw-ssec/savvy/issues/293)).
 
+#### Changed
+
+- `implementing-plans`: SKILL.md is now a short entry point (hard gates, workflow, red flags) with the step detail in `references/workflow.md`; it now says when drift becomes a mismatch, that it may create a feature branch, and that it commits only at the plan's commit steps, and its summary template no longer shows unconfirmed manual checks as done ([#157](https://github.com/uw-ssec/savvy/issues/157)).
+
 ### containerization
 
 #### Added

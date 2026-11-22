@@ -1,5 +1,30 @@
 # Implementing Plans — Templates
 
+## Phase Complete / Ready for Manual Verification
+
+After a phase's automated checks pass, pause and present this, then wait for
+the user's confirmation before starting the next phase. When the user asked for
+several phases in one go, present it once, after the last of them, listing every
+phase's manual checks. Leave the manual items unticked (`- [ ]`) here and in
+the plan until the user confirms them.
+
+```
+## Phase [N] Complete - Ready for Manual Verification
+
+### Automated Verification Results:
+✅ `make test` — All 45 tests passing
+✅ `pytest tests/` — 12 new tests added, all passing
+✅ `mypy src/` — Type checking passed
+
+### Manual Verification Needed:
+
+Please perform these manual tests listed in the plan:
+- [ ] [Manual step 1]
+- [ ] [Manual step 2]
+
+Let me know when manual testing is complete so I can proceed to Phase [N+1].
+```
+
 ## Issue in Phase / Mismatch Report
 
 When what you find does not match the plan, stop and present this template:

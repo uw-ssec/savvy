@@ -33,7 +33,8 @@ Default: **Collaborative** (protocol: `ai-research-workflows:using-research-work
 A plan is design-shaped work, which the protocol gives to Collaborative, so a
 specific request to plan still gets the gates below. Use Direct only when the
 user says so ("just write the plan") or can't be consulted ("I'm offline");
-then decide the rest yourself and record it in the plan.
+then skip the gates in steps 2, 3 and 5, decide yourself and record each
+choice under Resolved Decisions.
 
 ## Process
 
@@ -61,7 +62,8 @@ then decide the rest yourself and record it in the plan.
 - **No open questions.** Resolve every uncertainty (read the code, or ask)
   before saving, even when the user asks to leave one open: explain that the
   implementer would have to guess, offer options with a recommendation, and
-  ask them to choose. No "Open Questions" section.
+  ask them to choose (in Direct mode, take the recommendation and record it).
+  No "Open Questions" section.
 - **No placeholders.** No "TBD", "add appropriate error handling", "write
   tests for the above" or "similar to Phase N". Show the test code and commands.
 - **Test-first tasks.** Each unit of work: failing test, watch it fail, minimal

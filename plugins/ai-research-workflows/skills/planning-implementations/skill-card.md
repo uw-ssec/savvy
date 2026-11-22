@@ -42,7 +42,7 @@ Risk: the plan contains commands and verification steps that a later agent run (
 Mitigation: the skill requires the exact command or code for each step rather than a paraphrase, and in Collaborative mode requires user sign-off on the approach and phasing. A person should read the plan before it is executed.
 
 Risk: a plan that sounds complete but rests on a wrong reading of the code.
-Mitigation: the skill requires every phase to carry `file:line` references from files the agent has read completely, forbids placeholders such as "TBD" or "add appropriate error handling", and forbids shipping unresolved questions, including when the user asks to leave a decision open: the agent offers options with a recommendation and asks the user to choose.
+Mitigation: the skill requires every phase to carry `file:line` references from files the agent has read completely (a file the phase creates is marked `(new)` instead), forbids placeholders such as "TBD" or "add appropriate error handling", and forbids shipping unresolved questions, including when the user asks to leave a decision open: the agent offers options with a recommendation and asks the user to choose.
 
 ## Output
 

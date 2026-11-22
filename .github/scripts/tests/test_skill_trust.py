@@ -258,6 +258,16 @@ def test_path_normalisation_ignores_prefix_collision(st, root):
     assert len(res.stale) == 1
 
 
+def test_path_normalisation_keeps_a_nested_copy_of_the_skill_path(st, root):
+    # A finding in <skill>/payload/<skill>/SKILL.md names the nested file, not
+    # the skill's own SKILL.md, so the acceptance for SKILL.md must not clear it.
+    nested = f"/abs/checkout/{SKILL}/payload/{SKILL}/SKILL.md"
+    res = st.gate(report(finding(path=nested)), SKILL, [accept(st)], root)
+    assert len(res.blocking) == 1
+    assert len(res.stale) == 1
+    assert not res.passed
+
+
 def test_cli_gate_incomplete_report_fails(st, tmp_path, capsys):
     write_report(tmp_path / "reports", SKILL, report(status="incomplete"))
     assert run_gate(st, tmp_path) == 1

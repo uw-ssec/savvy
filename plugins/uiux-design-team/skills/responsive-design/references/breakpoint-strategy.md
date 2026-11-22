@@ -12,12 +12,12 @@ The following breakpoints cover the spectrum of modern devices:
 
 | Name | Width | Typical Devices |
 |------|-------|----------------|
-| `xs` | 320px | Small phones (iPhone SE) |
+| `xs` | 320px | Small phones (iPhone SE 1st gen) |
 | `sm` | 640px | Large phones, small tablets |
 | `md` | 768px | Tablets (iPad portrait) |
 | `lg` | 1024px | Tablets (landscape), laptops |
 | `xl` | 1280px | Desktops, laptops |
-| `2xl` | 1440px | Large desktops |
+| `2xl` | 1536px | Large desktops |
 | `3xl` | 1920px | Full HD monitors |
 
 ### Choosing Your Breakpoints

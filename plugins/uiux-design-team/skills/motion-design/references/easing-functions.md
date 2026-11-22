@@ -89,7 +89,7 @@ Google's Material Design system defines motion curves based on emphasis and dire
 
 ### Apple HIG Curves
 
-Apple's design system uses curves tuned for the feel of iOS/macOS interactions.
+Apple does not publish cubic-bezier values (its system animations are spring-based); these are community approximations tuned to the feel of iOS/macOS interactions.
 
 ```css
 :root {
@@ -177,7 +177,7 @@ const springPresets = {
   bouncy: { stiffness: 200, damping: 10, mass: 1 },
 
   // Stiff, no overshoot (like a critically damped spring)
-  stiff: { stiffness: 400, damping: 35, mass: 1 },
+  stiff: { stiffness: 400, damping: 40, mass: 1 }, // damping = 2 * sqrt(stiffness * mass)
 
   // Slow, heavy, dramatic
   heavy: { stiffness: 100, damping: 20, mass: 2.5 },
@@ -195,10 +195,10 @@ const springPresets = {
 ```js
 /**
  * Simple spring physics simulation
- * Returns a function that produces values from 0 to 1 (with possible overshoot)
+ * Returns a function that animates an element's translateY from `from` to `to` (with possible overshoot)
  */
 function createSpring({ stiffness = 180, damping = 12, mass = 1 }) {
-  return function animate(element, property, from, to, onComplete) {
+  return function animate(element, from, to, onComplete) {
     let position = from;
     let velocity = 0;
     const target = to;
@@ -212,7 +212,7 @@ function createSpring({ stiffness = 180, damping = 12, mass = 1 }) {
       velocity += acceleration * (1 / 60);
       position += velocity * (1 / 60);
 
-      element.style[property] = `${position}px`;
+      element.style.transform = `translateY(${position}px)`;
 
       const isSettled =
         Math.abs(displacement) < 0.5 && Math.abs(velocity) < 0.5;
@@ -220,7 +220,7 @@ function createSpring({ stiffness = 180, damping = 12, mass = 1 }) {
       if (!isSettled) {
         requestAnimationFrame(step);
       } else {
-        element.style[property] = `${target}px`;
+        element.style.transform = `translateY(${target}px)`;
         onComplete?.();
       }
     }
@@ -231,7 +231,7 @@ function createSpring({ stiffness = 180, damping = 12, mass = 1 }) {
 
 // Usage
 const bounceIn = createSpring({ stiffness: 200, damping: 10, mass: 1 });
-bounceIn(myElement, 'top', -100, 0, () => console.log('settled'));
+bounceIn(myElement, -100, 0, () => console.log('settled'));
 ```
 
 ### CSS Spring Approximation
@@ -340,7 +340,7 @@ Always test easing curves in context, not in isolation:
 | Element exit | `cubic-bezier(0.55, 0, 1, 0.45)` | 150-250ms |
 | Modal open | `cubic-bezier(0.34, 1.56, 0.64, 1)` | 250-350ms |
 | Modal close | `cubic-bezier(0.55, 0, 1, 0.45)` | 200-300ms |
-| Reposition/reorder | `cubic-bezier(0.65, 0, 0.35, 1)` | 250-400ms |
+| Reposition/reorder | `cubic-bezier(0.65, 0, 0.35, 1)` | 250-350ms |
 | Page transition | `cubic-bezier(0.87, 0, 0.13, 1)` | 300-500ms |
 | Collapse/expand | `cubic-bezier(0.16, 1, 0.3, 1)` | 200-350ms |
 | Notification enter | `cubic-bezier(0.34, 1.56, 0.64, 1)` | 300-400ms |

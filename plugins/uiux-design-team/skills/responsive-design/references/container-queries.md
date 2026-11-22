@@ -452,7 +452,7 @@ This polyfill uses ResizeObserver and MutationObserver to simulate container que
 ### Limitations of Polyfills
 
 - Performance overhead on pages with many containers.
-- Container query units (`cqw`, `cqi`) are not polyfilled.
+- Only `<style>` and same-origin `<link>` stylesheets are polyfilled; inline `style` attributes and Shadow DOM are not.
 - Some edge cases around nesting may not match native behavior.
 - Only use if you must support browsers older than Chrome 105 / Safari 16.
 

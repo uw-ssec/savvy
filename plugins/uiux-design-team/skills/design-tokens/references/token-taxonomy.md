@@ -24,6 +24,8 @@ Component Tokens (Specific Bindings)
 
 Global tokens define the raw design values. They have no semantic meaning and are named by their visual characteristics.
 
+The examples on this page omit `type` for brevity. In real token files, give every token a `type`, as `SKILL.md` requires.
+
 ### Color Palette
 
 ```json
@@ -55,9 +57,9 @@ Global tokens define the raw design values. They have no semantic meaning and ar
       "900": { "value": "#111827" },
       "950": { "value": "#030712" }
     },
-    "red": { "500": { "value": "#ef4444" }, "600": { "value": "#dc2626" }, "700": { "value": "#b91c1c" } },
-    "green": { "500": { "value": "#22c55e" }, "600": { "value": "#16a34a" }, "700": { "value": "#15803d" } },
-    "yellow": { "500": { "value": "#eab308" }, "600": { "value": "#ca8a04" } },
+    "red": { "50": { "value": "#fef2f2" }, "500": { "value": "#ef4444" }, "600": { "value": "#dc2626" }, "700": { "value": "#b91c1c" } },
+    "green": { "50": { "value": "#f0fdf4" }, "500": { "value": "#22c55e" }, "600": { "value": "#16a34a" }, "700": { "value": "#15803d" } },
+    "yellow": { "50": { "value": "#fefce8" }, "500": { "value": "#eab308" }, "600": { "value": "#ca8a04" } },
     "white": { "value": "#ffffff" },
     "black": { "value": "#000000" }
   }
@@ -184,9 +186,9 @@ A consistent spacing scale ensures uniform rhythm across the entire UI.
   "spacing": {
     "0": { "value": "0px", "description": "No spacing" },
     "px": { "value": "1px", "description": "Hairline spacing" },
-    "0.5": { "value": "2px" },
+    "0-5": { "value": "2px", "description": "Half step; key 0-5, not 0.5, to pass the kebab-case name check" },
     "1": { "value": "4px", "description": "Tightest spacing" },
-    "1.5": { "value": "6px" },
+    "1-5": { "value": "6px" },
     "2": { "value": "8px", "description": "Compact internal spacing" },
     "3": { "value": "12px" },
     "4": { "value": "16px", "description": "Standard internal spacing" },
@@ -378,8 +380,8 @@ This creates visual consistency and makes alignment predictable.
   "motion": {
     "easing": {
       "default": { "value": "cubic-bezier(0.4, 0, 0.2, 1)", "description": "Standard ease in-out" },
-      "in": { "value": "cubic-bezier(0.4, 0, 1, 1)", "description": "Accelerating (entering)" },
-      "out": { "value": "cubic-bezier(0, 0, 0.2, 1)", "description": "Decelerating (exiting)" },
+      "in": { "value": "cubic-bezier(0.4, 0, 1, 1)", "description": "Accelerating (exiting)" },
+      "out": { "value": "cubic-bezier(0, 0, 0.2, 1)", "description": "Decelerating (entering)" },
       "linear": { "value": "linear", "description": "Constant speed" },
       "spring": { "value": "cubic-bezier(0.34, 1.56, 0.64, 1)", "description": "Bouncy, playful feel" }
     }

@@ -60,7 +60,7 @@ function applySquash(element, velocityY) {
 }
 
 .panel.is-opening {
-  animation: slideInWithAnticipation 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: slideInWithAnticipation 350ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 @keyframes slideInWithAnticipation {
@@ -105,7 +105,7 @@ function applySquash(element, velocityY) {
 .modal {
   transform: translateY(24px) scale(0.95);
   opacity: 0;
-  transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .modal.is-visible {
@@ -198,7 +198,7 @@ function springAnimation(element, target, stiffness = 180, damping = 12) {
 .card-list .card {
   opacity: 0;
   transform: translateY(24px);
-  animation: cardEnter 400ms ease-out forwards;
+  animation: cardEnter 300ms ease-out forwards; /* last card ends at 180 + 300 = 480ms */
 }
 
 .card-list .card:nth-child(1) { animation-delay: 0ms; }
@@ -213,18 +213,15 @@ function springAnimation(element, target, stiffness = 180, damping = 12) {
 /* Follow-through: shadow settles after card */
 .card.landed {
   transform: translateY(0);
-  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.card.landed::after {
-  /* Shadow follows slightly behind */
-  transition: box-shadow 450ms cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition:
+    transform 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 300ms cubic-bezier(0.16, 1, 0.3, 1) 50ms; /* Shadow follows slightly behind */
 }
 ```
 
 **Do:**
-- Stagger list item animations (40-80ms between items, cap at ~400ms total)
+- Stagger list item animations (40-80ms between items; keep the last delay plus one item's duration within ~500ms)
 - Let secondary properties (shadow, background) trail the primary motion
 - Use for entrance animations of groups
 
@@ -246,17 +243,17 @@ function springAnimation(element, target, stiffness = 180, damping = 12) {
 ```css
 /* Standard ease-out for elements entering the screen */
 .entering {
-  transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Ease-in for elements leaving the screen */
 .exiting {
-  transition: all 200ms cubic-bezier(0.55, 0, 1, 0.45);
+  transition: transform 200ms cubic-bezier(0.55, 0, 1, 0.45), opacity 200ms cubic-bezier(0.55, 0, 1, 0.45);
 }
 
 /* Ease-in-out for elements moving within the screen */
 .moving {
-  transition: all 250ms cubic-bezier(0.45, 0, 0.55, 1);
+  transition: transform 250ms cubic-bezier(0.45, 0, 0.55, 1);
 }
 ```
 
@@ -281,18 +278,19 @@ function springAnimation(element, target, stiffness = 180, damping = 12) {
 **Code Example:**
 
 ```css
-/* Curved path using separate X and Y transitions with different timing */
+/* Curved path: outer element moves on X, inner element on Y, each with a different curve */
 .flying-element {
-  transition:
-    transform 400ms cubic-bezier(0.16, 1, 0.3, 1),
-    left 400ms cubic-bezier(0.16, 1, 0.3, 1),
-    top 400ms cubic-bezier(0.5, 0, 0.1, 1); /* Different curve for vertical */
+  transition: transform 350ms cubic-bezier(0.16, 1, 0.3, 1); /* translateX */
+}
+
+.flying-element > .flying-element__inner {
+  transition: transform 350ms cubic-bezier(0.5, 0, 0.1, 1); /* Different curve for vertical (translateY) */
 }
 
 /* Using offset-path for true curved motion */
 .arc-motion {
   offset-path: path('M 0 0 Q 150 -80 300 0');
-  animation: followArc 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: followArc 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes followArc {
@@ -376,7 +374,7 @@ function springAnimation(element, target, stiffness = 180, damping = 12) {
 | Dropdown/popover open | 150-250ms | Revealing content |
 | Modal entrance | 250-350ms | Significant UI change |
 | Page transition | 300-500ms | Large-scale change |
-| Complex orchestrated | 400-800ms | Multiple staggered elements |
+| Complex orchestrated | 400-500ms total | Multiple staggered elements |
 
 **Code Example:**
 
@@ -449,7 +447,7 @@ function springAnimation(element, target, stiffness = 180, damping = 12) {
   border-radius: 12px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-primary);
-  transition: all 250ms ease-out;
+  transition: transform 250ms ease-out, box-shadow 250ms ease-out;
 }
 
 .card:hover {

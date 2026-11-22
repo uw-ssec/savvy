@@ -48,7 +48,14 @@ python .experiments/<slug>/bench.py
 pytest .experiments/<slug>/test_prototypes.py -v
 ```
 
-For any performance claim:
+For every approach, whatever the comparison is about:
+
+- Check that it gives the correct result: run tests, and compare its output
+  against a reference implementation, reporting the largest difference.
+- Run an integration check: call it the way the existing code would (same
+  inputs, types and entry point) and record whether it fits.
+
+For any performance claim, also:
 
 - Use the same input for every approach; generate it once from a fixed seed or
   load the same file.
@@ -58,11 +65,6 @@ For any performance claim:
 - Hold the environment constant: same machine, same interpreter, no other heavy
   jobs. Record Python and library versions and the hardware, per
   `ai-research-workflows:ensuring-reproducibility`.
-- Check that each approach gives the correct result, not only a fast one: run
-  tests, and compare its output against a reference implementation, reporting
-  the largest difference.
-- Run an integration check for each approach: call it the way the existing
-  code would (same inputs, types and entry point) and record whether it fits.
 
 ## Recording observations (step 5)
 

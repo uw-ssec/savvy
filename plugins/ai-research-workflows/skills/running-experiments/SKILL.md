@@ -55,7 +55,7 @@ the pattern.
 | 4. Measure | Real commands, same input. Run each benchmark **several times and report the spread**, fix seeds, hold environment constant, record Python and library versions per `ai-research-workflows:ensuring-reproducibility`. |
 | 5. Record | Successes and failures for every approach, with metrics and complexity. |
 | 6. Recommend | Comparison matrix; recommendation citing measurements; why not the others; conditions where an alternative wins. |
-| 7. Document | Copy `assets/experiment-template.md`, keep **every heading** (Hypothesis, Comparison Matrix, Recommendation, Conditions for Alternative Approaches...), fill each; save as `docs/rse/specs/experiment-<slug>.md`. |
+| 7. Document | Copy `assets/experiment-template.md`, keep **every section heading** (Hypothesis, Comparison Matrix, Recommendation, Conditions...), fill each; save as `docs/rse/specs/experiment-<slug>.md`. |
 | 8. Present | Brief summary; ask how to proceed. |
 
 ```bash

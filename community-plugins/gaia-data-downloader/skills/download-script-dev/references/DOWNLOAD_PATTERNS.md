@@ -88,8 +88,11 @@ def parse_rdb(text):
     frames = []
     for block in blocks:
         df = pd.read_csv(io.StringIO("\n".join(block)), sep="\t", dtype={"site_no": str})
-        # Drop the time-series ID prefix: 151445_00060 -> 00060, 151445_00060_cd -> 00060_cd
-        df.columns = [re.sub(r"^\d+_(\d{5})", r"\1", c) for c in df.columns]
+        # Drop the time-series ID prefix: 151445_00060 -> 00060, 151445_00060_cd -> 00060_cd,
+        # unless a site has two series for one parameter (then keep the IDs)
+        names = [re.sub(r"^\d+_(\d{5})", r"\1", c) for c in df.columns]
+        if len(set(names)) == len(names):
+            df.columns = names
         frames.append(df)
     return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 
@@ -223,8 +226,11 @@ def download_hrrr_range(date_range, model="hrrr", product="sfc", fxx=0, search_p
         try:
             H = Herbie(date, model=model, product=product, fxx=fxx)
             ds = H.xarray(search_pattern)
-            # Fields on different levels (2 m, 10 m) come back as a list of Datasets
-            return xr.merge(ds, compat="override") if isinstance(ds, list) else ds
+            # Fields on different levels (2 m, 10 m) come back as a list of Datasets;
+            # drop their conflicting scalar level coordinate before merging
+            if isinstance(ds, list):
+                ds = xr.merge([d.drop_vars("heightAboveGround", errors="ignore") for d in ds])
+            return ds
         except Exception as e:
             print(f"  Failed for {date}: {e}")
             return None
@@ -312,8 +318,11 @@ def main():
             fxx=CONFIG["forecast_hour"],
         )
         ds = H.xarray(search_pattern)
-        # Fields on different levels (2 m, 10 m) come back as a list of Datasets
-        return xr.merge(ds, compat="override") if isinstance(ds, list) else ds
+        # Fields on different levels (2 m, 10 m) come back as a list of Datasets;
+        # drop their conflicting scalar level coordinate before merging
+        if isinstance(ds, list):
+            ds = xr.merge([d.drop_vars("heightAboveGround", errors="ignore") for d in ds])
+        return ds
 
     with ThreadPoolExecutor(max_workers=CONFIG["max_workers"]) as executor:
         datasets = []
@@ -325,13 +334,15 @@ def main():
     ds = xr.concat(datasets, dim="time")
     print(f"Combined dataset: {dict(ds.sizes)}")
 
-    # cfgrib names the fields t2m/u10/v10; rename them to the CONFIG names
+    # cfgrib names these fields t2m/u10/v10; rename the ones present to the
+    # CONFIG names (other fields keep their cfgrib names)
     cfgrib_names = {"TMP:2 m": "t2m", "UGRD:10 m": "u10", "VGRD:10 m": "v10"}
-    ds = ds.rename({cfgrib_names[k]: v for k, v in CONFIG["parameters"].items()})
+    ds = ds.rename({cfgrib_names[k]: v for k, v in CONFIG["parameters"].items()
+                    if cfgrib_names.get(k) in ds})
 
     # Spatial subset: HRRR is curvilinear (2-D latitude/longitude, no x/y
     # coordinate values), so mask with regionmask instead of rio.clip
-    mask = regionmask.from_geopandas(aoi.to_crs("EPSG:4326")).mask(
+    mask = regionmask.from_geopandas(aoi.to_crs("EPSG:4326").dissolve()).mask(
         ds.longitude, ds.latitude, wrap_lon=180
     )
     ds_clipped = ds.where(mask.notnull(), drop=True)
@@ -419,8 +430,11 @@ def main():
 
     # Save
     print(f"Writing to {CONFIG['output_path']}...")
-    # Drop the source store's Zarr v2 codecs, which Zarr v3 cannot reuse
-    ds_clipped.drop_encoding().to_zarr(CONFIG["output_path"], mode="w")
+    # Drop the source store's Zarr v2 codecs, which Zarr v3 cannot reuse, then
+    # re-attach the CRS: the clipped variables no longer point at the "crs"
+    # grid mapping (reopen with decode_coords="all" to get it back)
+    out = ds_clipped.drop_encoding().rio.write_crs(ds.rio.crs, grid_mapping_name="crs")
+    out.to_zarr(CONFIG["output_path"], mode="w")
     print(f"Saved. Dataset size: {ds_clipped.nbytes / 1e6:.1f} MB")
 
 
@@ -488,8 +502,11 @@ def parse_rdb(text):
     frames = []
     for block in blocks:
         df = pd.read_csv(io.StringIO("\n".join(block)), sep="\t", dtype={"site_no": str})
-        # Drop the time-series ID prefix: 151445_00060 -> 00060, 151445_00060_cd -> 00060_cd
-        df.columns = [re.sub(r"^\d+_(\d{5})", r"\1", c) for c in df.columns]
+        # Drop the time-series ID prefix: 151445_00060 -> 00060, 151445_00060_cd -> 00060_cd,
+        # unless a site has two series for one parameter (then keep the IDs)
+        names = [re.sub(r"^\d+_(\d{5})", r"\1", c) for c in df.columns]
+        if len(set(names)) == len(names):
+            df.columns = names
         frames.append(df)
     return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 

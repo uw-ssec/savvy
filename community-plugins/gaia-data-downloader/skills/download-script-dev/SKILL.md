@@ -302,8 +302,11 @@ def parse_rdb(text):
     frames = []
     for block in blocks:
         df = pd.read_csv(io.StringIO("\n".join(block)), sep="\t", dtype={"site_no": str})
-        # Drop the time-series ID prefix: 151445_00060 -> 00060, 151445_00060_cd -> 00060_cd
-        df.columns = [re.sub(r"^\d+_(\d{5})", r"\1", c) for c in df.columns]
+        # Drop the time-series ID prefix: 151445_00060 -> 00060, 151445_00060_cd -> 00060_cd,
+        # unless a site has two series for one parameter (then keep the IDs)
+        names = [re.sub(r"^\d+_(\d{5})", r"\1", c) for c in df.columns]
+        if len(set(names)) == len(names):
+            df.columns = names
         frames.append(df)
     return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 

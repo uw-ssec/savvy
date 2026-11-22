@@ -4,9 +4,9 @@ description: >-
   Use when desk research must come before planning: documenting how existing
   code works, or tracing where a wrong result comes from, before a change or
   fix is planned; or checking whether a method or library exists.
-  Triggers: research how X works before changing it, trace the call path, has
-  this been done before, is there already a lib for X or do I write it
-  myself, prior art, literature review. Not for timing prototypes
+  Triggers: research how X works before changing it, trace the code, has this
+  been done before, what tools or libraries exist for X, prior art, survey
+  approaches, literature review. Not for timing prototypes
   (running-experiments) or writing the plan (planning-implementations).
 metadata:
   capability-network: read

@@ -6,11 +6,11 @@
 |---------|-------|-------------|
 | Issue: Package Not Found in Conda-forge | 17–33 | Handling packages missing from conda-forge channels |
 | Issue: Conflicting Dependencies | 34–55 | Resolving dependency solver conflicts |
-| Issue: Slow Environment Creation | 56–76 | Speeding up pixi install and environment creation |
-| Issue: Platform-Specific Failures | 77–98 | Handling cross-platform compatibility issues |
-| Issue: PyPI Package Installation Fails | 99–118 | Fixing build errors with PyPI packages |
-| Issue: Lockfile Merge Conflicts | 119–138 | Resolving git merge conflicts in pixi.lock |
-| Issue: Editable Install of Local Package | 139–159 | Developing local packages in pixi environments |
+| Issue: Slow Environment Creation | 56–77 | Speeding up pixi install and environment creation |
+| Issue: Platform-Specific Failures | 78–97 | Handling cross-platform compatibility issues |
+| Issue: PyPI Package Installation Fails | 98–117 | Fixing build errors with PyPI packages |
+| Issue: Lockfile Merge Conflicts | 118–137 | Resolving git merge conflicts in pixi.lock |
+| Issue: Editable Install of Local Package | 138–158 | Developing local packages in pixi environments |
 
 ---
 
@@ -84,17 +84,15 @@ pixi self-update
 # Use platform-specific dependencies
 [tool.pixi.target.osx-arm64.dependencies]
 # macOS ARM specific packages
-tensorflow-macos = "*"
+libblas = { version = "*", build = "*accelerate" }
 
 [tool.pixi.target.linux-64.dependencies]
 # Linux-specific
-tensorflow = "*"
+libblas = { version = "*", build = "*mkl" }
 
 # Exclude unsupported platforms
-[tool.pixi.platforms]
-linux-64 = true
-osx-arm64 = true
-# win-64 intentionally excluded if unsupported
+[tool.pixi.workspace]
+platforms = ["linux-64", "osx-arm64"]  # win-64 intentionally excluded if unsupported
 ```
 
 ## Issue: PyPI Package Installation Fails

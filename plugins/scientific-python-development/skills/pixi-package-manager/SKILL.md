@@ -2,8 +2,8 @@
 name: pixi-package-manager
 description: "Use when the user works with pixi (pixi.toml, pixi.lock, pixi add/run/task/global/exec) or wants a reproducible scientific Python environment that mixes conda-forge and PyPI packages: creating environments, adding dependencies, defining tasks, multi-platform lockfiles, or migrating from conda environment.yml / requirements.txt. Not for pure uv/pip projects or for building and publishing packages to PyPI (use python-packaging)."
 metadata:
-  pixi-version: "0.83.0"
-  last-verified: "2026-10-27"
+  pixi-version: "0.84.2"
+  last-verified: "2026-11-22"
   assets: assets/github-actions-pixi.yml assets/pyproject-multi-env.toml assets/pyproject-pixi-example.toml
   references: references/best-practices.md references/common-issues.md references/manifest-and-tooling.md references/patterns.md
 ---
@@ -19,11 +19,22 @@ metadata:
 
 ### Installation & Setup
 ```bash
-# Install pixi (macOS/Linux)
-curl -fsSL https://pixi.sh/install.sh | bash
+# Install pixi with a package manager (preferred)
+brew install pixi                          # macOS/Linux (Homebrew)
+winget install prefix-dev.pixi             # Windows
+conda install -c conda-forge pixi          # where conda/mamba is already set up
 
-# Install pixi (Windows)
-irm -useb https://pixi.sh/install.ps1 | iex
+# Or the official installer: confirm with the user, download the script from
+# a release tag, read it, then run it with the same version pinned. Skipping
+# the PATH update leaves shell profiles alone; add ~/.pixi/bin to PATH yourself.
+curl -fsSLo install-pixi.sh https://raw.githubusercontent.com/prefix-dev/pixi/v0.84.2/install/install.sh
+less install-pixi.sh
+PIXI_VERSION=v0.84.2 PIXI_NO_PATH_UPDATE=1 sh install-pixi.sh
+
+# Windows (PowerShell) equivalent
+Invoke-WebRequest https://raw.githubusercontent.com/prefix-dev/pixi/v0.84.2/install/install.ps1 -OutFile install-pixi.ps1
+notepad install-pixi.ps1
+powershell -ExecutionPolicy Bypass -File .\install-pixi.ps1 -PixiVersion v0.84.2 -NoPathUpdate
 
 # Initialize new project with pyproject.toml
 pixi init --format pyproject
@@ -126,18 +137,29 @@ Regenerate the lockfile without installing with `pixi lock`.
 Compose environments from features without duplicating dependencies:
 
 ```toml
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = [
+    "linux-64",
+    { name = "linux-64-cuda", platform = "linux-64", cuda = "12" },
+]
+
 [tool.pixi.feature.test.dependencies]
 pytest = ">=7.0"
 pytest-cov = ">=4.0"
 
-[tool.pixi.feature.gpu.system-requirements]
-cuda = "12"                 # lets the solver pick CUDA builds
+[tool.pixi.feature.cpu.dependencies]
+pytorch-cpu = "*"           # CPU-only build; bare `pytorch` can resolve to CUDA
+
+[tool.pixi.feature.gpu]
+platforms = ["linux-64-cuda"]  # lets the solver pick CUDA builds
 
 [tool.pixi.feature.gpu.dependencies]
 pytorch-gpu = "*"           # conda-forge CUDA build of pytorch
 
 [tool.pixi.environments]
 test = ["test"]
+cpu = ["cpu"]
 gpu = ["gpu"]
 gpu-test = ["gpu", "test"]  # combines features
 ```

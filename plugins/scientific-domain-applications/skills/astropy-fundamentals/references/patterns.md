@@ -711,7 +711,7 @@ result_tab = photometry(data)
 
 ```python
 from photutils.detection import DAOStarFinder
-from photutils.psf import IterativePSFPhotometry
+from photutils.psf import IterativePSFPhotometry, SourceGrouper
 
 # Find sources
 finder = DAOStarFinder(threshold=threshold, fwhm=3.0)
@@ -722,6 +722,7 @@ photometry = IterativePSFPhotometry(
     psf_model,
     fit_shape=(11, 11),
     finder=finder,
+    grouper=SourceGrouper(min_separation=10),
     fitter=fitter,
     aperture_radius=5.0
 )
@@ -788,7 +789,7 @@ template_spectrum = Spectrum.read('template_spec.fits')
 # template_correlate returns (correlation, lag); lag is a velocity in km/s
 corr, lag = template_correlate(observed_spectrum, template_spectrum)
 velocity = lag[np.argmax(corr)]
-redshift = (velocity / const.c).decompose().value  # low-z approximation
+redshift = (velocity / const.c).decompose().value  # lag is c*z (optical convention)
 
 print(f"Redshift: {redshift:.4f}")
 ```

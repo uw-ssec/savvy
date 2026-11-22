@@ -5,7 +5,8 @@ Detail for steps 7-8 of `running-experiments`.
 ## The experiment document (step 7)
 
 1. Derive a slug from the experiment question (lowercase, hyphenated).
-2. Read `assets/experiment-template.md` and fill every section: goal,
+2. Copy `assets/experiment-template.md` and keep its headings as they are
+   (readers and tools look for them by name). Fill every section: goal,
    hypothesis, approaches, setup (environment with versions, test data,
    constraints), each experiment's code with its file path, the commands run
    and their output, observations (positive and negative), the comparison

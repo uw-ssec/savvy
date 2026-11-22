@@ -17,7 +17,7 @@ metadata:
 
 # Running Experiments
 
-An OPTIONAL step for genuinely uncertain decisions: build 2-3 distinct
+An optional step for genuinely uncertain decisions: build 2-3 distinct
 approaches as real code, measure them under the same conditions, and recommend
 one from the evidence.
 
@@ -32,7 +32,7 @@ the real comparison.
 
 | Thought | Reality |
 |---|---|
-| "We both know X is slower" / "I'll estimate it" | Then it costs little to confirm. Build and measure it. |
+| "We both know X is slower" / "I'll estimate it" | Then confirming is cheap. Build and measure it. |
 | "I measured A; B is an assumption, still an experiment" | Half-measured is not an experiment. Measure B or retitle it. |
 | "One run is enough" | One run is noise. Repeat and report the spread. |
 | "B failed, leave it out" | Failures are data. Record what failed and why. |
@@ -41,8 +41,9 @@ Default mode: Collaborative (protocol: `ai-research-workflows:using-research-wor
 
 ## When NOT to experiment
 
-Skip it when the codebase already has a pattern (it uses JWT everywhere: follow
-it, no experiment needed), the decision is low-risk, or being wrong is cheap.
+When the codebase already has a pattern (JWT everywhere), the decision is
+low-risk, or being wrong is cheap, say **no experiment is needed** and follow
+the pattern.
 
 ## Process
 
@@ -51,19 +52,19 @@ it, no experiment needed), the decision is low-risk, or being wrong is cheap.
 | 1. Context | No question given? Ask what to compare and why. Read related `docs/rse/specs/{research,plan}-*.md` (legacy `.agents/`) **completely**, or say they were not found. State the measurable question. |
 | 2. Hypothesis | 2-3 **architecturally distinct** approaches ("JWT HS256 vs RS256" is a configuration difference, not an experiment), with success criteria for each. |
 | 3. Isolate | Prototypes go in `.experiments/<slug>/` (or an `experiment-<slug>` branch on a clean tree), never in `src/`. |
-| 4. Measure | Real commands, same input. Run each benchmark **several times and report the spread**, fix seeds, hold environment constant, record versions per `ai-research-workflows:ensuring-reproducibility`. |
+| 4. Measure | Real commands, same input. Run each benchmark **several times and report the spread**, fix seeds, hold environment constant, record Python and library versions per `ai-research-workflows:ensuring-reproducibility`. |
 | 5. Record | Successes and failures for every approach, with metrics and complexity. |
 | 6. Recommend | Comparison matrix; recommendation citing measurements; why not the others; conditions where an alternative wins. |
-| 7. Document | Fill `assets/experiment-template.md`, save as `docs/rse/specs/experiment-<slug>.md`. |
-| 8. Present | Short summary, then ask whether to proceed. |
+| 7. Document | Copy `assets/experiment-template.md`, keep **every heading** (Hypothesis, Comparison Matrix, Recommendation, Conditions for Alternative Approaches...), fill each; save as `docs/rse/specs/experiment-<slug>.md`. |
+| 8. Present | Brief summary; ask how to proceed. |
 
 ```bash
 mkdir -p .experiments/<slug> && python .experiments/<slug>/bench.py
 ```
 
-Read `references/running-the-comparison.md` before step 1: context to extract,
-what to record, benchmark technique, matrix dimensions, prototype cleanup. Read
-`references/reporting.md` at step 7: filling the template, the chat summary.
+Read `references/running-the-comparison.md` before step 1 (context,
+benchmarking, recording, cleanup) and `references/reporting.md` at step 7
+(template, chat summary).
 
 ## Before you finish
 

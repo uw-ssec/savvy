@@ -913,6 +913,16 @@ def test_benchmark_env_pins_same_skillevaluator_as_ci():
     assert (bench["git"], bench["rev"]) == (ci["git"], ci["rev"])
 
 
+def test_security_scan_requires_semgrep():
+    # Without SKILLEVALUATOR_REQUIRE_SEMGREP the pinned SkillEvaluator treats a
+    # missing Semgrep as "skipped" inside a passing Code Risk Analysis result,
+    # with no incomplete_scans entry, so the gate could not see it.
+    import tomllib
+
+    tasks = tomllib.loads((SCRIPTS.parents[1] / "pixi.toml").read_text(encoding="utf-8"))["feature"]["ci"]["tasks"]
+    assert tasks["skill-security-scan"]["env"]["SKILLEVALUATOR_REQUIRE_SEMGREP"] == "1"
+
+
 def test_benchmark_task_selects_tier_1_with_tier_3():
     # The pinned SkillEvaluator refuses `--tiers 3` alone ("Tier 1 always runs
     # and gates the exit code; include it"), which would fail every benchmark.

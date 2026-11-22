@@ -100,8 +100,9 @@ trust-check = { cmd = "python .github/scripts/skill_trust.py check", description
 check-all = { depends-on = ["plugins-check", "catalog-check", "trust-check", "test-scripts"], description = "Run the offline CI gates: plugins-check, catalog-check, trust-check and test-scripts" }
 skill-quality-check = { cmd = "skillevaluator quality-check --min-score 70", description = "Run SkillEvaluator's quality-check on a skill, e.g. `pixi run -e ci skill-quality-check plugins/<plugin>/skills/<skill>`" }
 # The scanner paths below assume POSIX (Linux and macOS; CI is ubuntu) and
-# will not resolve on Windows.
-skill-security-scan = { cmd = "skillevaluator validate --tiers 1 --policy .github/skillevaluator-policy.yml -r cli,json", depends-on = [{ task = "install-gitleaks", environment = "scanners" }], env = { SKILLEVALUATOR_SEMGREP_PATH = "$PIXI_PROJECT_ROOT/.pixi/envs/scanners/bin/semgrep", SKILLEVALUATOR_SKILLSPECTOR_PATH = "$PIXI_PROJECT_ROOT/.pixi/envs/scanners/bin/skillspector", PATH = "$PIXI_PROJECT_ROOT/.pixi/envs/scanners/libexec/gitleaks:$PATH" }, description = "Run SkillEvaluator's Tier 1 security validation on a skill, e.g. `pixi run -e ci skill-security-scan plugins/<plugin>/skills/<skill> -o <out-dir>`" }
+# will not resolve on Windows. SKILLEVALUATOR_REQUIRE_SEMGREP makes a missing
+# Semgrep an incomplete scan (which fails the gate) instead of a silent skip.
+skill-security-scan = { cmd = "skillevaluator validate --tiers 1 --policy .github/skillevaluator-policy.yml -r cli,json", depends-on = [{ task = "install-gitleaks", environment = "scanners" }], env = { SKILLEVALUATOR_REQUIRE_SEMGREP = "1", SKILLEVALUATOR_SEMGREP_PATH = "$PIXI_PROJECT_ROOT/.pixi/envs/scanners/bin/semgrep", SKILLEVALUATOR_SKILLSPECTOR_PATH = "$PIXI_PROJECT_ROOT/.pixi/envs/scanners/bin/skillspector", PATH = "$PIXI_PROJECT_ROOT/.pixi/envs/scanners/libexec/gitleaks:$PATH" }, description = "Run SkillEvaluator's Tier 1 security validation on a skill, e.g. `pixi run -e ci skill-security-scan plugins/<plugin>/skills/<skill> -o <out-dir>`" }
 
 # OKF agent memory: provides the `okf` CLI that reads and writes the knowledge/
 # bundle (see the okf-memory skill in .agents/skills/).

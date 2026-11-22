@@ -56,7 +56,7 @@ Five rules that govern every word in the interface:
 | Are you sure you want to delete? | Delete "Project Alpha"? This cannot be undone. | Names the object, states the consequence |
 | Invalid input | Enter a valid email address (e.g., name@example.com) | Names the field, shows a format example |
 | Operation failed | Payment declined. Try a different card or contact your bank. | Explains the problem, offers two clear next steps |
-| Success! | Invoice sent to alex@company.com | Confirms the specific action and recipient |
+| Success! | Invoice sent to alex@example.com | Confirms the specific action and recipient |
 
 ## Error Message Framework
 

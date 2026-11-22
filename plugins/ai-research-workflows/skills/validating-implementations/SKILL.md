@@ -37,7 +37,6 @@ Default mode: Direct (`ai-research-workflows:using-research-workflows`).
 | Situation | Do |
 |---|---|
 | No plan path | Search `docs/rse/specs/{plan,implement}-*.md`, then legacy `.agents/`; ask if several match; stop if none. |
-| Same session as the implementation | Still re-run everything. |
 | Fresh session | Reconstruct from git and the specs; record deviations as observed facts. |
 
 ## Process
@@ -80,6 +79,8 @@ record. The report:
   (`git rev-parse --short HEAD`) and date;
 - gives exactly one **Overall Status**: Ready, Issues Found or Incomplete.
   Ready only if every check passed and every criterion is met;
+- has `##` sections Implementation Status, Automated Verification Results,
+  Code Review Findings, Manual Testing Required and Recommendations;
 - ends with a `## References` section linking the plan and
   `implement-<slug>.md`.
 
@@ -92,4 +93,3 @@ Read `references/report-templates.md` when writing it.
 | "They said all tests pass" | Unverified claim. Re-run it. |
 | "Every box is `[x]`" | Read the actual code anyway. |
 | "Those failures are flaky" | Re-run and find the root cause first. |
-| "The numbers look reasonable" | Re-run them within tolerance. |

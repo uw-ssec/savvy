@@ -36,7 +36,7 @@ Default mode: Direct (protocol: `ai-research-workflows:using-research-workflows`
 
 | Situation | Do |
 |---|---|
-| No plan path | Search `docs/rse/specs/{plan,implement}-*.md`; ask if several match; stop if none. |
+| No plan path | Search `docs/rse/specs/{plan,implement}-*.md`, then legacy `.agents/`; ask if several match; stop if none. |
 | Same session as the implementation | Still re-run everything. |
 | Fresh session | Reconstruct from git and the specs; record deviations as observed facts. |
 
@@ -50,8 +50,8 @@ Default mode: Direct (protocol: `ai-research-workflows:using-research-workflows`
    means "claimed complete", nothing more.
 4. **Investigate every failure.** Re-run it, read the error, and name the root
    cause (implementation bug, test bug, plan mismatch, environment) with a
-   narrow `file:line`. "Flaky" is a claim too: the status stays **Issues
-   Found** until you show it is unrelated. For example:
+   narrow `file:line`. "Flaky" is a claim too. While any check fails, the
+   status is **Issues Found**. For example:
 
    ```markdown
    - ❌ `pixi run pytest` — 2 failed (teammate reported all green). Root cause:
@@ -71,9 +71,10 @@ triage.
 ## The report
 
 Write it to `docs/rse/specs/validation-<slug>.md` (slug from
-`plan-<slug>.md`) **and** present it inline. A chat-only request still gets
-the file: the file, with its provenance and References, is the verdict's
-record. The report:
+`plan-<slug>.md`) **and** present it inline. "Chat only" still gets the
+file, with its provenance and References: it is the verdict's record. If the
+user forbids writing files, don't, and say the verdict has no record. The
+report:
 
 - opens with provenance: plan, implementation summary, commit
   (`git rev-parse --short HEAD`) and date;
@@ -91,5 +92,4 @@ Read `references/report-templates.md` when writing it.
 | "They said all tests pass" | Unverified claim. Re-run it. |
 | "Every box is `[x]`" | Read the actual code anyway. |
 | "Those failures are flaky" | Re-run and find the root cause first. |
-| "Just paste it in chat" | Write the file too; it's the record. |
 | "The numbers look reasonable" | Re-run them within tolerance. |

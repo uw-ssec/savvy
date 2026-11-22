@@ -64,6 +64,8 @@ and wait for all of them before writing the verdict.
 - **Automated verification.** Run each command from the phase's Automated
   Verification section verbatim, with the plan's arguments. Don't substitute
   reading code for running a check.
+- **Documentation.** Check that the README, API docs and docstrings the
+  change affects were updated; report omissions without editing them.
 - **Test coverage.** Find the tests added for the feature and confirm they
   cover the scenarios the Testing Strategy lists.
 - **Reproducibility and correctness (research code).** If the work produces
@@ -94,8 +96,10 @@ One line per command, with what you observed and what the plan expected:
    recommendation with its priority (Critical / Important / Nice to Have).
 
 A user or teammate calling a failure "flaky" doesn't change this. Re-run it
-several times and check whether it touches the changed code. Until you have
-shown it is unrelated, the overall status is Issues Found.
+several times and check whether it touches the changed code. While any check
+fails, the overall status is Issues Found. A failure you show to be
+pre-existing or unrelated is still listed; say so in its root cause and
+recommend a follow-up.
 
 Keep going after a failure: run the remaining checks so the report shows the
 full picture.
@@ -133,7 +137,7 @@ phases are unfinished, to `ai-research-workflows:implementing-plans`.
 - [ ] Ran every automated verification command myself and recorded its output
 - [ ] Investigated each failure to a root cause with a `file:line`
 - [ ] Read the code for every phase, including phases marked complete
-- [ ] Listed every deviation from the plan
+- [ ] Listed every deviation from the plan, including missing documentation
 - [ ] For research results: confirmed reproducibility capture and re-ran the
       reported numbers within tolerance
 - [ ] Listed manual tests with steps and expected outcomes

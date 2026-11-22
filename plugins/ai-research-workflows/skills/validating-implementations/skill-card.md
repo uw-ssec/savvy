@@ -32,7 +32,7 @@ Capability declarations (`metadata` in `SKILL.md`) and what each implies:
 
 - `capability-network: none`. The skill does not direct any network access. Verification commands taken from a plan may still use the network.
 - `capability-shell: runs-commands`. The skill directs the agent to run `git log`, `git diff --stat`, `git rev-parse --short HEAD`, and every command in the plan's "Automated Verification" section verbatim (for example `pixi run pytest`). It runs whatever the plan lists, with the user's permissions. It also runs a baseline test command that the plan or the project documents, re-runs failing checks to find their root cause, and for research code re-runs result-producing code to confirm that reported numbers reproduce.
-- `capability-file: write`. The skill directs the agent to write `docs/rse/specs/validation-<slug>.md`, overwriting a previous validation of the same plan, and to read the plan and the code. It writes this file even when the user asks for a chat-only summary, because the file is the verdict's record. It tells the agent not to edit the code, tests or data under review.
+- `capability-file: write`. The skill directs the agent to write `docs/rse/specs/validation-<slug>.md`, overwriting a previous validation of the same plan, and to read the plan and the code. It writes this file even when the user asks for a chat-only summary, because the file is the verdict's record; if the user forbids writing files, it writes none and says the verdict has no record. It tells the agent not to edit the code, tests, data or documentation under review.
 - `capability-environment: none`. No environment variables are read.
 - `capability-mcp: none`. No MCP tools are used.
 

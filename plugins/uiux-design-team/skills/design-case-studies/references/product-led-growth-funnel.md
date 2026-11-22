@@ -223,7 +223,7 @@ Paywalls, tutorials, and forced flows are usually presented when users are more 
 
 | Principle | Application |
 |---|---|
-| **Peak-end rule (Kahneman)** | Users judge the whole experience by its peak moment; placing asks at peaks associates the ask with positive emotion |
+| **Peak-end rule (Kahneman)** | Users judge the whole experience by its peak moment and its ending; placing asks at peaks associates the ask with positive emotion |
 | **Reciprocity (Cialdini)** | After the app delivers a win, users feel subconsciously obligated to reciprocate -- the ask gives them a way to do so |
 | **Emotional contagion** | Amplified celebrations transfer positive emotion from the achievement to whatever comes next (the ask) |
 | **Commitment and consistency** | Users who have just experienced a win are more likely to act consistently with being a "satisfied user" |

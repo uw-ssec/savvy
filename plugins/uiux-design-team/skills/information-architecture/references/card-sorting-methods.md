@@ -366,7 +366,7 @@ Participants are given a text-only version of the proposed navigation hierarchy 
 Open Card Sort -> Proposed Structure -> Tree Test -> Refine -> Re-test
 ```
 
-Repeat until tree test success rates exceed 80% for all critical tasks.
+Repeat until every critical task reaches at least 70% direct success (found without backtracking), the pass bar in SKILL.md.
 
 ## Card sort analysis template
 

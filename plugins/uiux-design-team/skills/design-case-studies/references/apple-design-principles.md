@@ -116,7 +116,7 @@ The difference is nearly invisible in a screenshot. But across an entire interfa
 |-----------|---------------------|
 | Norman: Visceral | Mathematical precision creates immediate sensory impressions of quality. Squircles, consistent spacing, and proportional relationships feel "right" before conscious analysis. |
 | Norman: Behavioral | Audio and haptic feedback close the action-response loop. Every tap, click, and gesture produces sensory confirmation that the action registered. |
-| Aesthetic-usability effect (Nielsen) | Mathematically harmonious interfaces are perceived as more usable, more trustworthy, and more valuable -- even when functionality is identical. |
+| Aesthetic-usability effect (Kurosu & Kashimura) | Mathematically harmonious interfaces are perceived as more usable, more trustworthy, and more valuable -- even when functionality is identical. |
 | Multi-sensory design | Apple treats visual, audio, and haptic channels as equally important. A button is not just visual -- it looks right, sounds right, and feels right simultaneously. |
 | Golden ratio and proportional systems | Consistent mathematical relationships in spacing, sizing, and proportion create harmony that the subconscious detects even when the conscious mind cannot articulate it. |
 

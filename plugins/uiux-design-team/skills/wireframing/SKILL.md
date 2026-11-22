@@ -12,9 +12,9 @@ metadata:
 Given a user request for a wireframe:
 
 1. **Identify page type** — landing, dashboard, list/detail, settings, form, search results.
-2. **List content blocks in priority order** — number each block 1..N (1 = highest).
+2. **List content blocks in priority order** — most important first; the ranking decides placement and visual weight.
 3. **Pick a layout pattern** from the catalog below that matches the page type.
-4. **Produce annotated ASCII wireframe** at desktop (1280px) — label every block, attach numbered notes for interaction/conditional/responsive behavior.
+4. **Produce annotated ASCII wireframe** at desktop (1280px) — label every block, number blocks in reading order (top to bottom) and attach numbered notes for interaction/conditional/responsive behavior.
 5. **Add responsive notes** — describe mobile (375px) and tablet (768px) reflow rules.
 
 Output format: ASCII block + numbered notes table + responsive notes section.
@@ -97,7 +97,7 @@ Output format: ASCII block + numbered notes table + responsive notes section.
 ```
 +----------------+-------------------------------------------+
 | [Search]       |  Subject: Re: Q3 budget review            |
-| [Filter ▾]     |  From: alex@acme.co · 2h ago              |
+| [Filter ▾]     |  From: alex@example.com · 2h ago          |
 |----------------|-------------------------------------------|
 | ● Item 1   2h  |                                           |
 |   Preview…     |  Body of the selected item renders here. |

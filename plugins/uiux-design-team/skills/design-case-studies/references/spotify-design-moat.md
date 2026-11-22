@@ -2,7 +2,7 @@
 
 > Back to [Design Case Studies](../SKILL.md)
 
-There is a reason Spotify built a $2 billion empire while behemoth competitors still cannot keep up. It was not better music catalogs or smarter algorithms. Apple Music could match Spotify on content and even exceed them on technical specs. But they could not replicate the seamless, habit-forming user experience that Spotify's design consistency delivered. Spotify won by weaponizing three design principles that hack human psychology: the Trojan Horse (wrapping complex tech in familiar interfaces), the Vanity Mirror (turning user data into shareable identity moments), and the Comfort Trap (making design consistency a competitive moat that money cannot buy). This analysis breaks down exactly how they did it and how to apply the same principles to your own product.
+There is a reason Spotify built an empire (€4.2 billion in revenue in Q4 2024 alone) while behemoth competitors still cannot keep up. It was not better music catalogs or smarter algorithms. Apple Music could match Spotify on content and even exceed them on technical specs. But they could not replicate the seamless, habit-forming user experience that Spotify's design consistency delivered. Spotify won by weaponizing three design principles that hack human psychology: the Trojan Horse (wrapping complex tech in familiar interfaces), the Vanity Mirror (turning user data into shareable identity moments), and the Comfort Trap (making design consistency a competitive moat that money cannot buy). This analysis breaks down exactly how they did it and how to apply the same principles to your own product.
 
 ## Table of Contents
 

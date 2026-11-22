@@ -7,7 +7,7 @@ How Netflix built a $400 billion empire not through content budgets but by weapo
 | Section | Lines | Description |
 |---|---|---|
 | [The Behavioral Design Thesis](#the-behavioral-design-thesis) | 25-67 | Why Netflix's real innovation was solving a human psychology problem, not a technology problem |
-| [The Microfriction Eraser](#the-microfriction-eraser-skip-intro-and-the-power-of-invisible-fixes) | 69-156 | How one button generating 136 million daily presses saved 195 years of user time and extended binge sessions |
+| [The Microfriction Eraser](#the-microfriction-eraser-skip-intro-and-the-power-of-invisible-fixes) | 69-156 | How one button generating 136 million daily presses saved 195 years of user time a day and extended binge sessions |
 | [Algorithmic Intimacy](#algorithmic-intimacy-making-230-million-users-feel-understood) | 158-248 | How 1,300+ micro-genres and emotional personalization drive 80% of all viewing decisions |
 | [Viral UX](#viral-ux-designing-features-that-become-culture) | 250-340 | How percentage match scores, human-sounding categories, and meme-worthy moments create free marketing money cannot buy |
 | [Cross-Principle Analysis](#cross-principle-analysis) | 342-404 | How the three weapons reinforce each other in a compounding behavioral loop |
@@ -60,7 +60,7 @@ The numbers are staggering for a single button:
 | Metric | Value |
 |---|---|
 | Daily button presses | 136 million |
-| Annual time saved for users | 195 years |
+| Time saved for users, per day | 195 years |
 | Effect on binge duration | Measurably longer sessions |
 | Content changes required | Zero |
 

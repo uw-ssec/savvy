@@ -75,7 +75,7 @@ A hidden navigation accessed via a three-line icon, typically in the top-left or
 - When the primary task does not require frequent navigation
 
 **Controversy and research findings:**
-- Reduces discoverability by 21% compared to visible navigation (Nielsen Norman Group)
+- Cuts content discoverability by more than 20% and raises perceived task difficulty by 21% compared to visible navigation (Nielsen Norman Group, 2016)
 - Users under 35 recognize the icon readily; older demographics may struggle
 - Works best when combined with a visible label ("Menu")
 - Consider using it for secondary items while keeping primary items visible
@@ -410,9 +410,9 @@ All navigation must be fully operable with a keyboard.
 - All interactive elements reachable via Tab key
 - Logical tab order matching visual order
 - Enter or Space activates links and buttons
-- Arrow keys navigate within menus and tab bars
+- Arrow keys navigate within ARIA menus and tab lists; for disclosure-style site navigation they are optional (WAI-ARIA APG)
 - Escape closes dropdown menus and overlays
-- Visible focus indicator on all focusable elements (minimum 2px outline, 3:1 contrast ratio per WCAG 2.2)
+- Visible focus indicator on all focusable elements (WCAG 2.4.7, AA); for AAA, 2.4.13 Focus Appearance asks for an indicator at least as large as a 2 CSS px perimeter with 3:1 contrast between focused and unfocused states
 
 ### Focus Management for Dynamic Navigation
 

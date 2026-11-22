@@ -20,7 +20,7 @@ Keep new secret values out of shell history and agent transcripts. Run `gh secre
 
 1. Generate replacement: `https://pypi.org/manage/account/token/` → scope to single project where possible.
 2. Update consumer: `gh secret set PYPI_API_TOKEN`, then paste the token at the prompt.
-3. Verify the consumer has it: `gh secret list` shows `PYPI_API_TOKEN` with a new updated time. A TestPyPI upload doesn't test this token, because TestPyPI is a separate service with its own accounts and tokens, and any upload is a real publish. The new token is proven by the next release that uses it.
+3. Check the secret was replaced: `gh secret list` shows `PYPI_API_TOKEN` with a new updated time. That shows the secret changed, not that the value is right or that the publish job reads it. Don't test it with a TestPyPI upload: TestPyPI is a separate service with its own accounts and tokens, so it can't check a pypi.org token. The next release that uses the new token proves it.
 4. Revoke the old token from the same management page once a release has succeeded with the new one, or at once if the attacker is using it (see Safe Rotation Order).
 5. **Durable fix:** migrate to OIDC trusted publishing — see `supply-chain-hardened-ci-cd`. Eliminates the long-lived token entirely.
 

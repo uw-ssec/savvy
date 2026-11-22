@@ -1,17 +1,27 @@
 # cargo / Go Supply Chain Quirks
 
+## Contents
+
+- [Threat Relevance](#threat-relevance)
+- [Cargo build.rs Arbitrary Execution](#cargo-buildrs-arbitrary-execution)
+- [.cargo/config.toml Registries](#cargoconfigtoml-registries)
+- [Cargo.lock Discipline](#cargolock-discipline)
+- [Go //go:generate Directives](#go-gogenerate-directives)
+- [GOPROXY and GOSUMDB Discipline](#goproxy-and-gosumdb-discipline)
+- [References](#references)
+
 ## Threat Relevance
 
 Rust and Go are often perceived as safer-by-default ecosystems, but both have install-time or build-time execution surfaces that the general "pin and scan" advice from `supply-chain-dependency-security` does not address. Cargo runs `build.rs` for every crate that has one on every build, with no global disable. Go's `go generate` and module-proxy/checksum-database settings (`GOPROXY`, `GOSUMDB`) decide whether the supply-chain integrity guarantees actually hold. Misconfigure either, and the lockfile/`go.sum` is decorative.
 
 ## Cargo build.rs Arbitrary Execution
 
-Every `cargo build` of a crate that ships a `build.rs` file executes that script at build time with the project's privileges. There is no global "disable build scripts" flag — `build.rs` is a first-class Cargo feature used for legitimate native-library linking and codegen. That makes auditing the contents of `build.rs` the only mitigation.
+Every `cargo build` of a crate that ships a `build.rs` file executes that script at build time with the project's privileges. There is no global "disable build scripts" flag: `build.rs` is a first-class Cargo feature used for legitimate native-library linking and codegen. That makes auditing the contents of `build.rs` the only mitigation.
 
 Find every `build.rs` pulled into the build (project plus cached crate source):
 
 ```bash
-find . -name build.rs -not -path './target/*' | head -20
+find . -name build.rs -not -path '*/target/*' | head -20
 find ~/.cargo/registry/src -name build.rs 2>/dev/null | head -20
 ```
 
@@ -21,7 +31,7 @@ For a specific suspicious crate:
 find ~/.cargo/registry/src -path "*<crate-name>*/build.rs"
 ```
 
-Cargo provides no built-in attestation that a `build.rs` is the same one published to crates.io. Tools like `cargo-vet` and `cargo-crev` provide human-audited trust databases — recommend `cargo vet` for any project where the dependency graph contains unfamiliar crates.
+Cargo provides no built-in attestation that a `build.rs` is the same one published to crates.io. Tools like `cargo-vet` and `cargo-crev` provide human-audited trust databases. Recommend `cargo vet` for any project where the dependency graph contains unfamiliar crates.
 
 ## .cargo/config.toml Registries
 
@@ -34,19 +44,19 @@ grep -A 2 '\[registries\.' .cargo/config.toml ~/.cargo/config.toml 2>/dev/null
 grep -A 2 '\[source\.' .cargo/config.toml ~/.cargo/config.toml 2>/dev/null
 ```
 
-`[source]` blocks can redirect crates.io to a mirror — a legitimate use is an air-gapped corporate proxy, an illegitimate use is dependency-confusion via a typo-mirror. Verify the URL and document the choice.
+`[source]` blocks can redirect crates.io to a mirror. A legitimate use is an air-gapped corporate proxy; an illegitimate use is dependency confusion via a typo-mirror. Verify the URL and document the choice.
 
 ## Cargo.lock Discipline
 
-For binary crates, `Cargo.lock` is committed and `cargo build --locked` refuses to update it. For library crates the convention has been "do not commit," but for security-sensitive libraries commit anyway — the lock applies when downstream consumers run `cargo build --locked` against your repo (e.g., when building from a Git dependency).
+Commit `Cargo.lock`. Since 2023 Cargo recommends it for libraries too, and `cargo new` no longer ignores it. It pins only builds where your package is the root (your CI, your release builds). It does not affect crates that depend on yours; their `Cargo.toml` resolution decides.
 
-Verify CI respects the lock:
+`cargo build --locked` errors instead of updating `Cargo.lock`. `--frozen` is `--locked` plus `--offline`. Verify CI uses one of them:
 
 ```bash
-grep -rE 'cargo (build|test|run)' .github/workflows/ | grep -v -- '--locked'
+grep -rnE 'cargo (\+[^ ]+ )?(build|test|run)' .github/workflows/ | grep -vE -- '--locked|--frozen'
 ```
 
-Any `cargo build` without `--locked` in CI is a finding — it permits silent dep upgrades.
+Any `cargo build`, `test` or `run` without `--locked` or `--frozen` in CI is a finding: it permits silent dependency upgrades. `scripts/quick-check.sh` reports these as FAIL, including for a `Cargo.toml` in a subdirectory. It judges each command of a chain on its own, so `cargo build && cargo test --locked` FAILs; the line-based grep above misses that.
 
 ## Go //go:generate Directives
 
@@ -70,35 +80,38 @@ Flag any directive that fetches from the network or writes outside the module di
 
 Go's module integrity rests on two settings:
 
-- `GOPROXY=https://proxy.golang.org,direct` — module proxy with fallback to direct VCS. The proxy provides immutability (a published version cannot be silently replaced).
-- `GOSUMDB=sum.golang.org` — checksum database. Every module fetched is verified against a globally-consistent transparency log.
+- `GOPROXY=https://proxy.golang.org,direct`: module proxy with fallback to direct VCS. The proxy provides immutability (a published version cannot be silently replaced).
+- `GOSUMDB=sum.golang.org`: checksum database. Every module fetched is verified against a globally-consistent transparency log.
 
 Disabling either weakens the chain. Check:
 
 ```bash
-go env GOPROXY GOSUMDB GOFLAGS
+go env GOPROXY GOSUMDB GOFLAGS GONOSUMDB GOPRIVATE
 ```
 
-If `GOSUMDB=off` or `GOFLAGS` contains `-insecure`, flag and investigate why. If `GOPROXY=direct` (or `off`), the proxy's immutability is bypassed and `go.sum` is the only check — sufficient for trusted deps but loses the transparency-log audit trail.
+Flag and investigate:
 
-The corresponding controls in CI:
+- `GOSUMDB=off`: the checksum database is not consulted for any module.
+- `GONOSUMDB` or `GOPRIVATE` patterns that cover public module paths. Modules they match skip the checksum database.
+- `GOPROXY=direct` (or `off`): the proxy's immutability is bypassed and `go.sum` is the only check. That is sufficient for trusted deps but loses the transparency-log audit trail.
+
+Go no longer has an `-insecure` flag. `go get -insecure` fails with "use GOINSECURE instead", and `GOINSECURE` does not disable checksum validation.
+
+Build commands already refuse to change `go.mod` and `go.sum`. Since Go 1.16 they act as if `-mod=readonly` were set, or `-mod=vendor` when a `vendor/` directory exists and `go.mod` says `go 1.14` or later. Don't ask for `-mod=readonly` in CI. Flag `-mod=mod` instead, in a command or in `GOFLAGS`, because it lets `go build` and `go test` rewrite `go.mod` and `go.sum`:
 
 ```bash
-# Block silent go.sum changes
-go build -mod=readonly ./...        # refuses to add new entries
-go mod verify                        # checks downloaded modules match go.sum
+grep -rnE -- '-mod[= ]mod' .github/workflows/
+go mod verify   # module cache unchanged since download
 ```
 
-Audit:
-
-```bash
-grep -rE 'go (build|test|run)' .github/workflows/ | grep -v 'mod=readonly\|mod=vendor'
-```
+`go mod verify` hashes the downloaded modules in the module cache and compares them with the hashes recorded at download time. It does not check `go.sum` against the checksum database.
 
 ## References
 
 - Cargo build scripts: <https://doc.rust-lang.org/cargo/reference/build-scripts.html>
+- Cargo.lock guidance: <https://blog.rust-lang.org/2023/08/29/committing-lockfiles/>
 - cargo-vet: <https://mozilla.github.io/cargo-vet/>
 - Go module proxy protocol: <https://go.dev/ref/mod#module-proxy>
+- Go `-mod` flag and build commands: <https://go.dev/ref/mod#build-commands>
 - Go checksum database: <https://sum.golang.org/>
 - `go generate`: <https://go.dev/blog/generate>

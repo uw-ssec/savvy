@@ -1,13 +1,13 @@
 ---
 name: researching
 description: >-
-  Use when a task needs desk research before planning or building: documenting
-  how existing code works before changing it, or finding out whether a method
-  or library already exists. Triggers: research how X works before changing
-  it, trace the call path, has this been done before, is there already a lib
-  for X or do I write it myself, prior art, survey approaches, literature
-  review. Not for timing prototypes against each other (running-experiments)
-  or writing the plan (planning-implementations).
+  Use when desk research must come before planning: documenting how existing
+  code works, or tracing where a wrong result comes from, before a change or
+  fix is planned; or checking whether a method or library exists.
+  Triggers: research how X works before changing it, trace the call path, has
+  this been done before, is there already a lib for X or do I write it
+  myself, prior art, literature review. Not for timing prototypes
+  (running-experiments) or writing the plan (planning-implementations).
 metadata:
   capability-network: read
   capability-shell: runs-commands
@@ -24,7 +24,7 @@ prior art (papers, tools), or both, in one research document.
 ## When to use
 
 - Before a change: how the code works and what depends on it.
-- Whether a method or library exists, and how options compare on published evidence.
+- Whether a method or library exists; how options compare on published evidence.
 - **Not** for a quick "how does X work?" with no change planned: answer directly.
 - **Not** for building and timing prototypes (`ai-research-workflows:running-experiments`) or writing the plan (`ai-research-workflows:planning-implementations`).
 

@@ -23,6 +23,10 @@ First tagged release. Only `ai-research-workflows` ships in it and moves to this
 - Initial tagged release.
 - Capability metadata, a skill card and a public eval task set on each skill, as part of the skill trust evidence pilot ([#293](https://github.com/uw-ssec/savvy/issues/293)).
 
+#### Changed
+
+- `researching`: the description lists triggers only and names `running-experiments` and `planning-implementations` as the neighbors it doesn't cover. `SKILL.md` is cut to a quick reference, the interaction-mode rule and the hard rules; the presenting, writing, self-review and user-review detail moves to `references/writing-and-review.md`, and the research template gains a **Codebase state** field for the commit SHA. The false claim that `using-research-workflows` surveys this skill automatically is gone ([#160](https://github.com/uw-ssec/savvy/issues/160)).
+
 ### containerization
 
 #### Added

@@ -70,8 +70,9 @@ The payload may have written files that survive a `node_modules` or virtualenv r
 # Entries in node_modules/.bin changed since the window opened. No -type f: the
 # shims are symlinks, and -type f (or -L, which checks the target) skips them.
 find node_modules/.bin -mindepth 1 -newermt "<YYYY-MM-DD HH:MM> UTC" -exec ls -l {} +
-# Unexpected .npmrc entries (e.g., custom registry, prepublish hooks)
-cat .npmrc ~/.npmrc 2>/dev/null
+# Unexpected .npmrc entries (e.g., custom registry, prepublish hooks). Prints
+# auth values and URL credentials as <redacted>, so tokens stay out of the log.
+sed -E "s/(_authToken|_auth|_password)([\"']?[[:space:]]*=).*/\1\2<redacted>/; s|://[^/?#[:space:]]*@|://<redacted>@|g" .npmrc ~/.npmrc 2>/dev/null
 # Every installed package with an install-time script, scoped packages included
 npm query ':attr(scripts, [preinstall]), :attr(scripts, [install]), :attr(scripts, [postinstall])' \
   | jq -r '.[] | "\(.location): \(.scripts | tojson)"'

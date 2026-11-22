@@ -91,6 +91,7 @@ First tagged release. Only `ai-research-workflows` ships in it and moves to this
 
 - `supply-chain-dependency-security`: the description lists triggers only and leaves reported compromises to `supply-chain-incident-response`. CI install commands now fail on a stale lockfile (`pixi install --locked`, `uv sync --locked`, and a `--check-input-hash` step for conda-lock), and Yarn disables install scripts explicitly. The 7-day cooldown gains a resolver setting per tool and a publish-time check for versions a lockfile diff adds. The skill now has When to Use, Quick Reference, rationalization, red-flag and Common Mistakes sections.
 - `supply-chain-ecosystem-quirks`: the description is trigger-only, and the quick-check battery moves from `SKILL.md` into the script.
+- `supply-chain-ecosystem-quirks`: `scripts/quick-check.sh` builds `file:line` with parameter expansion instead of a nested `printf` and `cut`, which SkillSpector's shell parser could not resolve. Its output is unchanged.
 - `supply-chain-hardened-ci-cd`: the description lists only when to use the skill, and the body is restructured around a quick reference, rationalizations and red flags. Every example action is pinned to a commit SHA, including the PyPI publish action that was on `@release/v1`. The OIDC example, which wasn't valid YAML, is now a complete build/publish workflow in `references/hardening-patterns.md`, where the publish job runs no project code: PyPI builds with `PIP_ONLY_BINARY=:all:`, and npm packs the tarball in the build job and publishes it with `--ignore-scripts`.
 - `supply-chain-threat-awareness`: the description lists triggers only, and the audit commands moved to `references/audit-commands.md`. Each campaign now has the dates it was observed and primary sources; Shai-Hulud is described as a self-propagating worm with a second wave in November 2025, and TeamPCP as running from March to April 2026.
 
@@ -102,6 +103,11 @@ First tagged release. Only `ai-research-workflows` ships in it and moves to this
 - Fixed broken links in the `supply-chain-ecosystem-quirks` skill references, refs #249.
 - `supply-chain-incident-response`: the description is now trigger-only, and commands that did nothing or reported a false PASS are replaced: the advisory lookup, lockfile grep and history, `gh cache` listing and deletion by id, `find -newermt`, the postinstall query and the tag-hijack audit loop. Recovery re-enables the disabled workflows and starts a fresh run from the fixed commit. The npm rotation creates a granular, package-scoped token with an expiry (npm 11.6.3 or later, or npmjs.com for older clients).
 - `/supply-chain-incident` is now user-invoked only (`disable-model-invocation: true`), so incident prompts load `supply-chain-incident-response` instead of the command, and its paths to the rotation guide and report template now go through the skill.
+
+#### Security
+
+- `supply-chain-incident-response`: the persistence hunt read `.npmrc` with `cat`, which printed auth tokens into the terminal and the agent transcript. It now replaces `_auth`, `_authToken` and `_password` values (quoted keys included) and `user:password@` in URLs with `<redacted>`. The rotation runbook sets GitHub secrets at `gh secret set`'s prompt instead of with `--body`, which put the value in shell history. It warns that `gh` given no input sets an empty secret. New AWS and Azure keys go to a new owner-only file (`umask 077`) instead of the terminal. The Azure reset uses `--append`, so the old secret stays valid until it is deleted, as the rotation order requires. `npm token create` prints the new token, so the runbook says to run it outside an agent.
+- `supply-chain-ecosystem-quirks`: the conda channel, cargo registry and `go env` checks redact `user:password@` in URLs, conda `/t/<token>/` paths and cargo registry `token` values. `conda config --show channels` and `go env` otherwise print URL credentials verbatim.
 
 ### uiux-design-team
 

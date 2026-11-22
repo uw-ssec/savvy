@@ -11,9 +11,13 @@ The conda ecosystem covers compiled scientific software (CUDA, GDAL, BLAS, etc.)
 Channels are a YAML list in `.condarc` and `environment.yml`, but a TOML array in `pixi.toml` (or `[tool.pixi.workspace]` in `pyproject.toml`), so one `grep -A 5 '^channels:'` cannot cover both. `scripts/quick-check.sh` reads both formats and WARNs on `defaults` or a `repo.anaconda.com/pkgs` URL. By hand:
 
 ```bash
-conda config --show channels                               # effective conda channels
-grep -nE 'defaults|repo\.anaconda\.com' environment.yml .condarc 2>/dev/null
-grep -nE -A 5 '^\s*channels\s*=' pixi.toml pyproject.toml 2>/dev/null
+# Each sed hides user:password@ and /t/<token>/ in channel URLs
+conda config --show channels \
+  | sed -E 's|://[^/?#[:space:]]*@|://<redacted>@|g; s|/t/[^/[:space:]]+/|/t/<redacted>/|g'   # effective conda channels
+grep -nE 'defaults|repo\.anaconda\.com' environment.yml .condarc 2>/dev/null \
+  | sed -E 's|://[^/?#[:space:]]*@|://<redacted>@|g; s|/t/[^/[:space:]]+/|/t/<redacted>/|g'
+grep -nE -A 5 '^\s*channels\s*=' pixi.toml pyproject.toml 2>/dev/null \
+  | sed -E 's|://[^/?#[:space:]]*@|://<redacted>@|g; s|/t/[^/[:space:]]+/|/t/<redacted>/|g'
 pixi workspace channel list                                # effective pixi channels
 ```
 

@@ -14,10 +14,12 @@
 
 For every credential type below: **issue the new credential first, deploy it to all consumers, verify, then revoke the old one.** Never revoke first unless you have a confirmed list of consumers — surprise revocations break production and provide cover for further attacker action. The only exception: if you have direct evidence the old credential is actively in use by the attacker (e.g., outbound traffic from your CI to an unknown host), revoke immediately and accept the downtime.
 
+Keep new secret values out of shell history and agent transcripts. Run `gh secret set <NAME>` without `--body` in your own terminal and paste the value at the prompt, or redirect it from a file (`gh secret set <NAME> < <file>`). Without a terminal, gh reads standard input and accepts it empty, so an agent that runs it without input sets an empty secret. The AWS and Azure commands below redirect the new secret to a file (GCP writes one already). `umask 077` makes it owner-only only if the file doesn't exist yet, so use a new name, and delete the file once the secret is deployed.
+
 ## PyPI Tokens
 
 1. Generate replacement: `https://pypi.org/manage/account/token/` → scope to single project where possible.
-2. Update consumer: `gh secret set PYPI_API_TOKEN --body "<new>"`.
+2. Update consumer: `gh secret set PYPI_API_TOKEN`, then paste the token at the prompt.
 3. Verify with a no-op release dry-run (`twine upload --repository testpypi dist/*`).
 4. Revoke old token from the same management page.
 5. **Durable fix:** migrate to OIDC trusted publishing — see `supply-chain-hardened-ci-cd`. Eliminates the long-lived token entirely.
@@ -29,11 +31,12 @@ The granular `npm token create` flags below need npm 11.6.3 or later (`npm --ver
 ```bash
 # List all tokens for the account
 npm token list
-# Create a replacement granular token, limited to the package, with an expiry
+# Create a replacement granular token, limited to the package, with an expiry.
+# It prints the new token: run it in your own terminal, not through an agent.
 npm token create --name <ci-publish-YYYYMMDD> --packages <pkg> \
   --packages-and-scopes-permission read-write --expires <days> --bypass-2fa
-# Update CI
-gh secret set NPM_TOKEN --body "<new>"
+# Update CI (prompts for the value)
+gh secret set NPM_TOKEN
 # Verify a publish dry-run
 npm publish --dry-run
 # Revoke the old token by ID
@@ -50,9 +53,10 @@ gh secret list
 gh secret list --env <env-name>
 gh secret list --org <org>
 
-# For each compromised secret: regenerate at the source-of-truth provider, then:
-gh secret set <NAME> --body "<new-value>"
-gh secret set <NAME> --env <env> --body "<new-value>"
+# For each compromised secret: regenerate at the source-of-truth provider, then
+# paste the new value at the prompt:
+gh secret set <NAME>
+gh secret set <NAME> --env <env>
 
 # Old values still cached in any in-progress run — cancel them
 gh run list --status in_progress --limit 1000 --json databaseId --jq '.[].databaseId' \
@@ -73,7 +77,7 @@ cosign tree <artifact>
 cosign generate-key-pair
 # Update CI
 gh secret set COSIGN_PRIVATE_KEY < cosign.key
-gh secret set COSIGN_PASSWORD --body "<new>"
+gh secret set COSIGN_PASSWORD        # prompts for the value
 ```
 
 **GPG:**
@@ -91,7 +95,7 @@ gpg --full-generate-key
 **AWS:**
 ```bash
 aws iam list-access-keys --user-name <user>
-aws iam create-access-key --user-name <user>     # deploy this to CI
+(umask 077; aws iam create-access-key --user-name <user> > new-key.json)  # deploy this to CI
 aws iam update-access-key --access-key-id <old> --status Inactive --user-name <user>
 aws iam delete-access-key --access-key-id <old> --user-name <user>
 ```
@@ -106,7 +110,7 @@ gcloud iam service-accounts keys delete <old-key-id> --iam-account=<sa>@<proj>.i
 **Azure:**
 ```bash
 az ad sp credential list --id <sp-app-id>
-az ad sp credential reset --id <sp-app-id>       # issues a new secret
+(umask 077; az ad sp credential reset --id <sp-app-id> --append > new-sp.json)  # --append keeps the old secret until you delete it
 az ad sp credential delete --id <sp-app-id> --key-id <old-key-id>
 ```
 

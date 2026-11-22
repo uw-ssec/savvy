@@ -40,8 +40,11 @@ Cargo provides no built-in attestation that a `build.rs` is the same one publish
 Audit:
 
 ```bash
-grep -A 2 '\[registries\.' .cargo/config.toml ~/.cargo/config.toml 2>/dev/null
-grep -A 2 '\[source\.' .cargo/config.toml ~/.cargo/config.toml 2>/dev/null
+# Each sed hides user:password@ in URLs and registry token values
+grep -A 2 '\[registries\.' .cargo/config.toml ~/.cargo/config.toml 2>/dev/null \
+  | sed -E "s|://[^/?#[:space:]]*@|://<redacted>@|g; s/((^|[-:])[[:space:]]*[\"']?token[\"']?[[:space:]]*=).*/\1 <redacted>/"
+grep -A 2 '\[source\.' .cargo/config.toml ~/.cargo/config.toml 2>/dev/null \
+  | sed -E "s|://[^/?#[:space:]]*@|://<redacted>@|g; s/((^|[-:])[[:space:]]*[\"']?token[\"']?[[:space:]]*=).*/\1 <redacted>/"
 ```
 
 `[source]` blocks can redirect crates.io to a mirror. A legitimate use is an air-gapped corporate proxy; an illegitimate use is dependency confusion via a typo-mirror. Verify the URL and document the choice.
@@ -86,7 +89,8 @@ Go's module integrity rests on two settings:
 Disabling either weakens the chain. Check:
 
 ```bash
-go env GOPROXY GOSUMDB GOFLAGS GONOSUMDB GOPRIVATE
+# The sed hides user:password@ in proxy URLs
+go env GOPROXY GOSUMDB GOFLAGS GONOSUMDB GOPRIVATE | sed -E 's|://[^/?#[:space:]]*@|://<redacted>@|g'
 ```
 
 Flag and investigate:

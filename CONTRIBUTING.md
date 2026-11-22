@@ -284,7 +284,7 @@ Run a skill's fixture before opening a pull request that adds the skill or chang
 pixi run -e ci python evals/catalog-triggers/trigger_test.py --fixtures <plugin>/<skill>
 ```
 
-Each prompt runs three times. A run passes when the skill loads on a must-load prompt, or doesn't load on a must-not-load prompt. A prompt passes when at least two of its three runs pass, and the skill passes when every prompt does. Paste the summary into your pull request. A failing prompt is information, not a merge blocker: model activation varies by model and between runs, so fix the `description` when a must-load prompt fails on every run, or when a neighbor prompt loads the skill.
+Each prompt runs three times. A run passes when the skill loads on a must-load prompt, or doesn't load on a must-not-load prompt. A prompt passes when at least two of its three runs pass, and the skill passes when every prompt does. Paste the summary into your pull request. CI doesn't run fixtures on pull requests, because activation varies by model and between runs; the reviewer applies the three-way test from your summary. Fix the `description` when a must-load prompt fails on every run, or when a neighbor prompt loads the skill.
 
 The **Skill trigger tests** workflow runs every fixture weekly and on demand (**Actions → Skill trigger tests → Run workflow**), through the LiteLLM gateway, and reports per-skill results in the run summary. It never runs on pull requests. Recorded results for each model are in `evals/catalog-triggers/results/`.
 

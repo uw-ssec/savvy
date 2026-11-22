@@ -49,13 +49,17 @@ def test_fixture_is_well_formed(skill):
                 # A command that uses the target skill can't own a request the skill must not take.
                 plugin, command = c["owner"].split(":")
                 body = next(ROOT.glob(f"*plugins/{plugin}/commands/{command}.md")).read_text(encoding="utf-8")
-                assert f"`{name}`" not in body, f"{c['id']}: {c['owner']} uses `{name}` itself"
+                target_plugin = skill.split("/")[0]
+                assert not re.search(rf"`(?:{re.escape(target_plugin)}:)?{re.escape(name)}`", body), \
+                    f"{c['id']}: {c['owner']} uses `{name}` itself"
         elif c["kind"] == "negative":
             assert c.get("owner") is None, c["id"]
         else:
             assert "owner" not in c, c["id"]
+    prompts = [" ".join(c["prompt"].lower().split()) for c in cases]
+    assert len(prompts) == len(set(prompts)), "duplicate prompt"
     kinds = [c["kind"] for c in cases]
-    assert kinds.count("obvious") + kinds.count("tired") >= 3 and "tired" in kinds
+    assert kinds.count("obvious") + kinds.count("tired") >= 3 and "tired" in kinds and "obvious" in kinds
     assert kinds.count("neighbor") + kinds.count("negative") >= 2 and "neighbor" in kinds
 
 
@@ -79,3 +83,24 @@ def test_aggregate_applies_threshold_per_case_and_all_cases_per_skill():
     skills = tt.aggregate(results, Fraction(2, 3))
     assert skills["p/a"]["pass"] and skills["p/a"]["cases"]["c1"]["passes"] == 2
     assert not skills["p/b"]["pass"] and skills["p/b"]["cases"]["c1"]["invoked"] == ["p:b", None, "p:x"]
+
+
+def test_aggregate_leaves_failed_runs_out_and_never_passes_a_case_without_valid_runs():
+    from fractions import Fraction
+    tt = trigger_test()
+    base = {"plugin": "p", "kind": "obvious", "expect": "fire", "invoked": None}
+    results = [{**base, "skill": "a", "case": "c1", "pass": True, "error": None},
+               {**base, "skill": "a", "case": "c1", "pass": None, "error": "no result event"},
+               {**base, "skill": "b", "case": "c1", "pass": None, "error": "API Error: 401"}]
+    skills = tt.aggregate(results, Fraction(2, 3))
+    assert skills["p/a"]["pass"] and skills["p/a"]["cases"]["c1"]["runs"] == 1
+    assert skills["p/a"]["cases"]["c1"]["errors"] == 1
+    assert not skills["p/b"]["pass"] and skills["p/b"]["cases"]["c1"]["runs"] == 0
+
+
+def test_runner_rejects_empty_or_unknown_selections(capsys):
+    tt = trigger_test()
+    for argv in (["--fixtures", "--repeats", "0"], ["--fixtures", "nope/nothing"]):
+        with pytest.raises(SystemExit) as e:
+            tt.main(argv)
+        assert e.value.code == 2

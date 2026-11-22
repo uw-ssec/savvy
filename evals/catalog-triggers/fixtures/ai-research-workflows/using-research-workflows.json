@@ -23,15 +23,15 @@
       "id": "neighbor-01",
       "kind": "neighbor",
       "expect": "no-fire",
-      "owner": "ai-research-workflows/creating-handoffs",
-      "prompt": "I'm done for today. Write a handoff document capturing the branch, uncommitted changes, failing tests and next steps so tomorrow's session can resume."
+      "owner": "uiux-design-team/ux-writing",
+      "prompt": "Rewrite the error messages and button labels on our conference registration form so they're shorter, plainer and friendlier."
     },
     {
       "id": "neighbor-02",
       "kind": "neighbor",
       "expect": "no-fire",
-      "owner": "ai-research-workflows/validating-implementations",
-      "prompt": "Validate the finished implementation of our resampling plan against its success criteria before I open the PR."
+      "owner": "uiux-design-team/color-systems",
+      "prompt": "Build an accessible color palette for our bakery's website from the brand teal #0F766E: a 50-950 scale plus neutrals, with every text pairing checked for WCAG AA."
     }
   ]
 }

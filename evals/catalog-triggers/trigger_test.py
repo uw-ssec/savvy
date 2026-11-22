@@ -134,6 +134,8 @@ def run(job: dict, plugin_args: list[str], max_turns: int, model: str | None) ->
                             log.debug("%s tool_use: %s %r", prefix, block["name"], block.get("input"))
                             if block["name"] == "Skill":
                                 invoked.append(block["input"].get("skill") or block["input"].get("command") or "")
+                                if invoked[-1] not in ROUTERS:
+                                    break  # later calls in the same message don't count
                     if invoked and invoked[-1] not in ROUTERS:
                         break
                 if etype == "result":
@@ -153,9 +155,21 @@ def run(job: dict, plugin_args: list[str], max_turns: int, model: str | None) ->
     # The skill that took the request: the first one invoked that isn't a router,
     # or the router itself if it handed off to nothing.
     first = next((i for i in invoked if i not in ROUTERS), invoked[0] if invoked else None)
+    # A run that never reached a skill and has no clean result (an API or CLI
+    # failure) is not evidence either way: record it as an error, not a pass or
+    # fail. Running out of turns without loading a skill is a real outcome.
+    error = None
+    if first is None or first in ROUTERS:
+        if result_event is None:
+            error = "no result event" + (f"; stderr: {_truncate(stderr_output)}" if stderr_output.strip() else "")
+        elif ((result_event.get("is_error") and result_event.get("subtype") != "error_max_turns")
+              or str(result_event.get("result") or "").startswith("API Error")):
+            error = f"{result_event.get('subtype')}: {_truncate(str(result_event.get('result')))}"
     fired = any(i in (f"{plugin}:{skill}", skill) or DELEGATES.get(i) == skill for i in invoked)
-    passed = fired if job.get("expect", "fire") == "fire" else not fired
-    if first is None and job.get("expect", "fire") == "fire":
+    passed = None if error else (fired if job.get("expect", "fire") == "fire" else not fired)
+    if error:
+        log.error("%s run failed: %s", prefix, error)
+    elif first is None and job.get("expect", "fire") == "fire":
         log.warning(
             "%s no skill invoked (tools called: %s)%s%s", prefix,
             ", ".join(tools) or "none",
@@ -164,7 +178,7 @@ def run(job: dict, plugin_args: list[str], max_turns: int, model: str | None) ->
         )
     extra = {k: job[k] for k in ("case", "kind", "expect", "owner", "repeat") if k in job}
     return {"plugin": plugin, "skill": skill, "prompt": prompt, **extra, "invoked": first, "pass": passed,
-            "skills": invoked, "tools": tools}
+            "error": error, "skills": invoked, "tools": tools}
 
 
 def main(argv=None) -> int:
@@ -194,6 +208,12 @@ def main(argv=None) -> int:
 
     plugin_args = [a for d in sorted([*ROOT.glob("plugins/*"), *ROOT.glob("community-plugins/*")])
                    for a in ("--plugin-dir", str(d))]
+    if args.repeats < 1 or not 0 < args.threshold <= 1:
+        ap.error("--repeats must be at least 1 and --threshold in (0, 1]")
+    known = {f"{p.parts[-4]}/{p.parts[-2]}" for p in
+             [*ROOT.glob("plugins/*/skills/*/SKILL.md"), *ROOT.glob("community-plugins/*/skills/*/SKILL.md")]}
+    if unknown := sorted(set(args.only) - known):
+        ap.error(f"unknown plugin/skill: {', '.join(unknown)}")
     if args.fixtures:
         jobs = fixture_jobs(args.only, args.repeats)
     else:
@@ -202,13 +222,15 @@ def main(argv=None) -> int:
                 for p, pm in meta["plugins"].items() for s, m in (pm.get("skills") or {}).items()
                 if not args.only or f"{p}/{s}" in args.only]
 
+    if not jobs:
+        ap.error("nothing to run")
     args.out.parent.mkdir(parents=True, exist_ok=True)
     results = []
     with cf.ThreadPoolExecutor(args.jobs) as ex, args.out.open("w", encoding="utf-8") as out:
         for r in ex.map(lambda j: run(j, plugin_args, args.max_turns, args.model), jobs):
             out.write(json.dumps(r) + "\n")
             results.append(r)
-            status = "PASS" if r["pass"] else "FAIL"
+            status = "ERROR" if r["error"] else "PASS" if r["pass"] else "FAIL"
             case = f" {r['case']}#{r['repeat']} ({r['expect']})" if "case" in r else ""
             print(f"{status} {r['plugin']}/{r['skill']}{case} -> {r['invoked'] or 'no skill'}", flush=True)
     if not args.fixtures:
@@ -218,12 +240,16 @@ def main(argv=None) -> int:
 
     skills = aggregate(results, args.threshold)
     passed = sum(s["pass"] for s in skills.values())
+    errors = sum(bool(r["error"]) for r in results)
     print(f"\n{passed}/{len(skills)} skills passed their trigger fixtures "
           f"(a case passes at >= {args.threshold} of {args.repeats} runs). Results: {args.out}")
     if args.summary:
         args.summary.parent.mkdir(parents=True, exist_ok=True)
         args.summary.write_text(report(skills, args, results), encoding="utf-8")
         print(f"Summary: {args.summary}")
+    if errors:
+        print(f"{errors} runs failed (API or CLI errors) and were left out of the scores; rerun them.")
+        return 2
     return 0 if passed == len(skills) else 1
 
 
@@ -248,19 +274,24 @@ def aggregate(results: list[dict], threshold: Fraction) -> dict[str, dict]:
         s = skills.setdefault(f"{r['plugin']}/{r['skill']}", {"cases": {}})
         c = s["cases"].setdefault(r["case"], {"kind": r["kind"], "expect": r["expect"], "runs": 0, "passes": 0,
                                                "invoked": []})
+        if r.get("error"):
+            c["errors"] = c.get("errors", 0) + 1
+            continue
         c["runs"] += 1
         c["passes"] += r["pass"]
         c["invoked"].append(r["invoked"])
     for s in skills.values():
         for c in s["cases"].values():
-            c["pass"] = Fraction(c["passes"], c["runs"]) >= threshold
+            # A case with no valid run can't pass: rerun it.
+            c["pass"] = bool(c["runs"]) and Fraction(c["passes"], c["runs"]) >= threshold
         s["pass"] = all(c["pass"] for c in s["cases"].values())
     return dict(sorted(skills.items()))
 
 
 def report(skills: dict[str, dict], args: argparse.Namespace, results: list[dict]) -> str:
-    fire = [r for r in results if r["expect"] == "fire"]
-    nofire = [r for r in results if r["expect"] == "no-fire"]
+    valid = [r for r in results if not r.get("error")]
+    fire = [r for r in valid if r["expect"] == "fire"]
+    nofire = [r for r in valid if r["expect"] == "no-fire"]
     lines = [
         "# Trigger fixture results",
         "",
@@ -268,7 +299,8 @@ def report(skills: dict[str, dict], args: argparse.Namespace, results: list[dict
         f"- Repeats per case: {args.repeats}; a case passes at >= {args.threshold} of its runs",
         f"- Skills passing every case: **{sum(s['pass'] for s in skills.values())}/{len(skills)}**",
         f"- Activation rate on `fire` runs: {sum(r['pass'] for r in fire)}/{len(fire)}",
-        f"- False-trigger rate on `no-fire` runs: {sum(not r['pass'] for r in nofire)}/{len(nofire)}",
+        f"- `no-fire` runs that loaded the target skill: {sum(not r['pass'] for r in nofire)}/{len(nofire)}",
+        f"- Runs that failed (API or CLI errors, left out of the scores): {len(results) - len(valid)}",
         "",
         "| Skill | Result | Failing cases (passes/runs, what was invoked) |",
         "| --- | --- | --- |",

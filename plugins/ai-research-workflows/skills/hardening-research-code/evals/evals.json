@@ -3,7 +3,10 @@
   "evals": [
     {
       "id": "hardening-research-code-001",
-      "prompt": "Can you harden my `spectral_power.py` module? It computes the power spectrum of a time series with an FFT and I need to know it's actually correct before I put it in the paper. I'd like tests that check it against something real, not just whatever it outputs today.",
+      "prompt": "Can you harden my `spectral_power.py` module? It computes the power spectrum of a time series with an FFT (pure Python; numpy isn't installed) and I need to know it's actually correct before I put it in the paper. I'd like tests that check it against something real, not just whatever it outputs today. The repo is at input/spectral/.",
+      "files": [
+        "files/spectral"
+      ],
       "expected_output": "A test suite for the spectral power module that checks outputs against independent references (e.g., a pure sine wave producing a single nonzero spectral bin at the expected frequency, Parseval's theorem energy conservation, and/or comparison with numpy/scipy), using explicit float tolerances, with the chosen correctness criterion stated for each test. Tests were run and results reported.",
       "assertions": [
         "The agent wrote tests that compare the module's output to an independent reference (analytic sine-wave result, Parseval invariant, or a reference library) rather than only to its own current output",
@@ -18,7 +21,10 @@
     },
     {
       "id": "hardening-research-code-002",
-      "prompt": "I have a simulation script that integrates an undamped pendulum with a hand-written RK4 stepper. It seems to run fine but I don't trust it over long runs. Is this numerically correct? Can you add regression tests so I don't break it when I refactor?",
+      "prompt": "My simulation script pendulum.py integrates an undamped pendulum with a hand-written RK4 stepper. It seems to run fine but I don't trust it over long runs. Is this numerically correct? Can you add regression tests so I don't break it when I refactor? The repo is at input/pendulum/.",
+      "files": [
+        "files/pendulum"
+      ],
       "expected_output": "An assessment of the pendulum RK4 integrator's numerical correctness backed by tests that use independent criteria (e.g., energy conservation drift bounds, small-angle analytic solution, convergence order check with step-size halving), plus regression tests whose baseline values are either verified against those references or explicitly labeled UNVERIFIED. Tolerances are justified from numerics.",
       "assertions": [
         "The agent identified at least one independent correctness criterion for the integrator (energy conservation, small-angle analytic solution, or RK4 convergence order) and tested against it",
@@ -32,7 +38,10 @@
     },
     {
       "id": "hardening-research-code-003",
-      "prompt": "I'm submitting a paper next week. My lab's `fit_model.py` does a nonlinear least-squares fit and spits out parameters like 2.3817, 0.0442, etc. Nobody remembers how the original numbers were validated, and there's no closed form for the full model. Just pin the current outputs as the golden baseline in a test file so CI stops breaking, ok?",
+      "prompt": "I'm submitting a paper next week. My lab's `fit_model.py` does a nonlinear least-squares fit and spits out parameters like 2.4070, 0.0458, 0.3127. Nobody remembers how the original numbers were validated, and there's no closed form for the full model. Just pin the current outputs as the golden baseline in a test file so CI stops breaking, ok? The repo is at input/fit-model/.",
+      "files": [
+        "files/fit-model"
+      ],
       "expected_output": "The agent first looks for independent checks (e.g., recovering known parameters from synthetic data generated with known ground-truth parameters, comparing against scipy.optimize on a simplified case, or a limiting case). A synthetic-recovery or limiting-case test is reported as a check of the fitting method, not as verification of the specific pinned values. Unless those specific values were compared with an independent reference, the agent writes a regression test file for fit_model.py that pins the current outputs labeled UNVERIFIED (not 'golden' or 'verified'), and tells the user that the pinned values prove only that behavior hasn't changed, not that it is correct.",
       "assertions": [
         "The agent investigated or attempted an independent check (such as a synthetic data recovery test, simplified-case analytic limit, or reference-implementation comparison) before settling for pinning",
@@ -46,7 +55,10 @@
     },
     {
       "id": "hardening-research-code-004",
-      "prompt": "Our mass-balance code sums about a million float32 values and I've seen the total change in the last digits when I shuffle the input. Is it numerically stable, and can you add checks so it stays that way?",
+      "prompt": "Our mass-balance code (mass_balance.py) sums about a million float32 values and I've seen the total change in the last digits when I shuffle the input. Is it numerically stable, and can you add checks so it stays that way? The repo is at input/mass-balance/.",
+      "files": [
+        "files/mass-balance"
+      ],
       "expected_output": "A stability assessment with checks against a higher-precision or otherwise independent reference, tolerance comparisons with a stated justification, and a report of what the checks showed.",
       "assertions": [
         "The agent probed stability concretely (for example shuffled input order, a higher-precision reference, or input scaling) rather than only reading the code",
@@ -60,7 +72,10 @@
     },
     {
       "id": "hardening-research-code-005",
-      "prompt": "The normalize_weights(x) step in src/weights.py of our inference pipeline should return non-negative weights summing to 1, and our paper's results depend on it. Harden it: add tests that make sure it stays correct for any reasonable input.",
+      "prompt": "The normalize_weights(x) step in src/weights.py of our inference pipeline should return non-negative weights summing to 1, and our paper's results depend on it. Harden it: add tests that make sure it stays correct for any reasonable input. The repo is at input/weights/.",
+      "files": [
+        "files/weights"
+      ],
       "expected_output": "Property or invariant tests asserting structural properties such as non-negativity, sum to one within tolerance and permutation behaviour, run and reported, with at least one test shown to fail when its criterion is violated and then restored.",
       "assertions": [
         "The agent wrote property or invariant checks (for example weights are non-negative, they sum to 1 within a tolerance, reordering the input reorders the output)",
@@ -75,6 +90,7 @@
     {
       "id": "hardening-research-code-neg-001",
       "prompt": "I need this result to be reproducible. Capture the seed, the environment and the data version for the run I just did, and record the exact commands.",
+      "files": [],
       "expected_output": "A provenance record (environment, seed, data version, commands) and a clean-environment rerun. This belongs to ensuring-reproducibility, not to numerical testing.",
       "assertions": [
         "The agent treated the request as capturing provenance (it began recording the seed, environment, data version and exact commands, or asked which run to record)",
@@ -86,7 +102,10 @@
     },
     {
       "id": "hardening-research-code-neg-002",
-      "prompt": "Check that the solver I just implemented matches docs/rse/specs/plan-solver.md before I open the PR.",
+      "prompt": "Check that the solver I just implemented matches docs/rse/specs/plan-solver.md before I open the PR. The repo is at input/solver/.",
+      "files": [
+        "files/solver"
+      ],
       "expected_output": "The agent treats this as validating finished work against the plan (reads the plan, inspects the code and runs the checks), not as hardening numerical code with new correctness tests.",
       "assertions": [
         "The agent did not write new numerical regression tests or discuss choosing floating-point tolerances as the main task",

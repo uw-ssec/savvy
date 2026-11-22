@@ -13,6 +13,12 @@ on:
       - '.github/workflows/generate-testcases.yml'
       - '.github/workflows/skill-quality-check.yml'
       - '.github/workflows/validate-plugins.yml'
+      # test_trigger_fixtures.py: every skill needs a valid fixture.
+      - 'evals/catalog-triggers/**'
+      - 'plugins/*/skills/**'
+      - 'community-plugins/*/skills/**'
+      - 'plugins/*/commands/**'
+      - 'community-plugins/*/commands/**'
   push:
     branches: [main]
     paths:
@@ -25,6 +31,12 @@ on:
       - '.github/workflows/generate-testcases.yml'
       - '.github/workflows/skill-quality-check.yml'
       - '.github/workflows/validate-plugins.yml'
+      # test_trigger_fixtures.py: every skill needs a valid fixture.
+      - 'evals/catalog-triggers/**'
+      - 'plugins/*/skills/**'
+      - 'community-plugins/*/skills/**'
+      - 'plugins/*/commands/**'
+      - 'community-plugins/*/commands/**'
 
 permissions: {}
 

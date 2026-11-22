@@ -1,0 +1,83 @@
+name: Skill trigger tests
+
+# Runs every skill's trigger fixture (evals/catalog-triggers/fixtures/) in
+# headless Claude Code with only this repository's plugins loaded. Model
+# activation is probabilistic and each run costs model calls, so this runs
+# weekly and on demand, never on pull requests, and it reports rather than
+# gates: the job fails only if the runner itself breaks. See CONTRIBUTING.md,
+# "Trigger fixtures", for the pass threshold.
+
+on:
+  schedule:
+    - cron: "0 9 * * 1" # Mondays 09:00 UTC
+  workflow_dispatch:
+    inputs:
+      model:
+        description: "LiteLLM gateway model alias"
+        required: false
+        default: "ssec-claude-sonnet-5-5"
+      skills:
+        description: "Space-separated plugin/skill pairs (empty: every skill)"
+        required: false
+        default: ""
+      repeats:
+        description: "Runs per fixture case"
+        required: false
+        default: "3"
+
+permissions: {}
+
+concurrency:
+  group: skill-trigger-tests
+  cancel-in-progress: false
+
+jobs:
+  triggers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: prefix-dev/setup-pixi@ad1da6449d9e506fd127fd67ab2d054a769f6a94 # v0.11.2
+        with:
+          environments: ci
+
+      - name: Install Claude Code
+        # From the committed lockfile: the version the recorded results were produced with.
+        # Its postinstall only copies the locked platform binary into place.
+        run: |
+          npm ci --prefix evals/catalog-triggers
+          echo "$GITHUB_WORKSPACE/evals/catalog-triggers/node_modules/.bin" >> "$GITHUB_PATH"
+
+      - name: Run trigger fixtures
+        env:
+          ANTHROPIC_BASE_URL: ${{ secrets.LITELLM_PROXY_URL }}
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.LITELLM_API_KEY }}
+          MODEL: ${{ inputs.model || 'ssec-claude-sonnet-5-5' }}
+          SKILLS: ${{ inputs.skills }}
+          REPEATS: ${{ inputs.repeats || '3' }}
+        run: |
+          # Word splitting of SKILLS is intended: one argument per plugin/skill pair.
+          # shellcheck disable=SC2086
+          # Exit 1 means some skills missed their fixtures: reported, not a failure.
+          # Exit 2 means runs failed on API or CLI errors, or bad input: fail the job.
+          status=0
+          pixi run -e ci python evals/catalog-triggers/trigger_test.py --fixtures \
+            --model "$MODEL" --repeats "$REPEATS" --jobs 6 \
+            --out out/results.jsonl --summary out/summary.md $SKILLS || status=$?
+          if [ -s out/summary.md ]; then cat out/summary.md >> "$GITHUB_STEP_SUMMARY"; fi
+          if [ "$status" -gt 1 ]; then
+            echo "::error::trigger_test.py exited $status (failed runs or bad input)"
+            exit "$status"
+          fi
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: skill-trigger-results
+          path: out/
+          if-no-files-found: warn

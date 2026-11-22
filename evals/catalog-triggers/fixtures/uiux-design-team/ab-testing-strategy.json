@@ -1,0 +1,11 @@
+{
+  "skill": "uiux-design-team/ab-testing-strategy",
+  "cases": [
+    {"id": "obvious-01", "kind": "obvious", "expect": "fire", "prompt": "We're about to test a shorter checkout form against our current one. Baseline checkout conversion is about 3.2% and we get roughly 4,000 checkout sessions a day. How many sessions per variant do we need to detect a lift to 3.6%, and how many days should we plan to run it?"},
+    {"id": "obvious-02", "kind": "obvious", "expect": "fire", "prompt": "Our pricing page test just ended. Control: 18,240 visitors, 912 sign-ups. New layout: 18,105 visitors, 1,001 sign-ups. Average order value dipped slightly in the variant. Is this a real win, and would you ship it?"},
+    {"id": "tired-01", "kind": "tired", "expect": "fire", "prompt": "pm checks the experiment dashboard every morning and wants to call it on day 3 bc p=0.04. thats fine right?"},
+    {"id": "tired-02", "kind": "tired", "expect": "fire", "prompt": "new onboarding variant 'won' on signups but week-1 retention dropped?? not sure what to do with this result"},
+    {"id": "neighbor-01", "kind": "neighbor", "expect": "no-fire", "owner": "uiux-design-team/user-research", "prompt": "Our redesigned pricing page converts better than the old one, but nobody on the team can explain why customers prefer it. Plan six short interviews with recent sign-ups to find out what actually changed their minds: who to recruit and what to ask."},
+    {"id": "negative-01", "kind": "negative", "expect": "no-fire", "owner": null, "prompt": "Roll out our new payments service gradually behind a LaunchDarkly flag: 5% of traffic, then 25%, then 100%, with automatic rollback if the error rate goes above 1%. Show me the flag config and rollout plan."}
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "skill": "uiux-design-team/user-research",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "I'm planning 8 interviews with freelance bookkeepers about how they chase late client payments. Help me write a discussion guide that avoids leading questions, plus a screener so we don't end up talking to people who rarely invoice."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "We have 14 interview transcripts and about 200 sticky notes from a discovery sprint on a meal-kit app. How do we turn this pile into insight statements and How Might We questions the team can actually ideate from?"
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "why do ppl cancel after the free trial? want to actually talk to some of them, what do i even ask"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "uiux-design-team/ab-testing-strategy",
+      "prompt": "We want to know which of two onboarding emails gets more new users to activate. Current activation is 12%. How many recipients does each email need to detect a 2-point improvement, and how do we tell if the difference is significant?"
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "uiux-design-team/usability-evaluation",
+      "prompt": "Score the booking flow of our dog-walking app against Nielsen's ten heuristics and give every issue a severity rating from 0 to 4."
+    }
+  ]
+}

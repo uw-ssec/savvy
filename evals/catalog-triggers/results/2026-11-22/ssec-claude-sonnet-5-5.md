@@ -1,0 +1,87 @@
+# Trigger fixture results
+
+- Model: `ssec-claude-sonnet-5-5`
+- Repeats per case: 3; a case passes at >= 2/3 of its runs
+- Skills passing every case: **2/76**
+- Activation rate on `fire` runs: 145/729
+- `no-fire` runs that loaded the target skill: 0/486
+- Runs that failed (API or CLI errors, left out of the scores): 0
+
+| Skill | Result | Failing cases (passes/runs, what was invoked) |
+| --- | --- | --- |
+| ai-research-workflows/creating-handoffs | FAIL | `obvious-02` obvious 0/3 (none); `tired-01` tired 1/3 (ai-research-workflows:handoff, none) |
+| ai-research-workflows/ensuring-reproducibility | FAIL | `tired-01` tired 0/3 (none) |
+| ai-research-workflows/hardening-research-code | FAIL | `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| ai-research-workflows/implementing-plans | FAIL | `tired-01` tired 0/3 (none) |
+| ai-research-workflows/iterating-plans | FAIL | `obvious-01` obvious 0/3 (none) |
+| ai-research-workflows/planning-implementations | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| ai-research-workflows/researching | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| ai-research-workflows/running-experiments | FAIL | `tired-01` tired 0/3 (none) |
+| ai-research-workflows/using-research-workflows | FAIL | `obvious-02` obvious 1/3 (ai-research-workflows:using-research-workflows, none) |
+| ai-research-workflows/validating-implementations | PASS |  |
+| containerization/compose-orchestration | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none); `tired-02` tired 0/3 (none) |
+| containerization/container-registries | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 1/3 (containerization:container-registries, none); `tired-01` tired 0/3 (none) |
+| containerization/container-security | FAIL | `tired-01` tired 0/3 (none) |
+| containerization/devcontainers | FAIL | `obvious-01` obvious 1/3 (containerization:devcontainers, none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| containerization/dockerfile-patterns | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| containerization/gpu-containers | FAIL | `obvious-01` obvious 0/3 (none); `tired-01` tired 0/3 (none); `tired-02` tired 0/3 (none) |
+| containerization/podman | FAIL | `obvious-01` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| containerization/singularity-apptainer | FAIL | `obvious-01` obvious 1/3 (containerization:singularity-apptainer, none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| gaia-data-downloader/download-script-dev | FAIL | `obvious-02` obvious 1/3 (gaia-data-downloader:download-script-dev, none) |
+| holoviz-visualization/advanced-rendering | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 1/3 (holoviz-visualization:advanced-rendering, none) |
+| holoviz-visualization/colormaps-styling | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| holoviz-visualization/data-visualization | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (dataviz, none) |
+| holoviz-visualization/geospatial-visualization | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| holoviz-visualization/lumen-ai | FAIL | `obvious-02` obvious 0/3 (none) |
+| holoviz-visualization/lumen-dashboards | FAIL | `tired-01` tired 1/3 (holoviz-visualization:lumen-dashboards, none) |
+| holoviz-visualization/panel-dashboards | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| holoviz-visualization/parameterization | FAIL | `obvious-01` obvious 1/3 (holoviz-visualization:parameterization, none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| holoviz-visualization/plotting-fundamentals | FAIL | `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| project-management/community-health-files | FAIL | `obvious-01` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| project-management/documentation-validation | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| research-software-design/user-persona-discovery | FAIL | `obvious-01` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| scientific-domain-applications/astropy-fundamentals | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none); `tired-02` tired 0/3 (none) |
+| scientific-domain-applications/xarray-for-multidimensional-data | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| scientific-python-development/code-quality-tools | FAIL | `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| scientific-python-development/pixi-package-manager | FAIL | `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| scientific-python-development/python-packaging | FAIL | `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none); `tired-02` tired 0/3 (none) |
+| scientific-python-development/python-testing | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| scientific-python-development/scientific-documentation | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none); `tired-02` tired 0/3 (none) |
+| supply-chain-security/supply-chain-dependency-security | FAIL | `obvious-01` obvious 1/3 (none, supply-chain-security:supply-chain-dependency-security); `tired-02` tired 0/3 (none) |
+| supply-chain-security/supply-chain-ecosystem-quirks | FAIL | `obvious-01` obvious 1/3 (none, supply-chain-security:supply-chain-ecosystem-quirks); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none); `tired-02` tired 0/3 (none) |
+| supply-chain-security/supply-chain-hardened-ci-cd | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none); `tired-02` tired 0/3 (none) |
+| supply-chain-security/supply-chain-incident-response | PASS |  |
+| supply-chain-security/supply-chain-sbom-provenance | FAIL | `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| supply-chain-security/supply-chain-threat-awareness | FAIL | `obvious-01` obvious 0/3 (supply-chain-security:supply-chain-incident-response); `obvious-02` obvious 0/3 (supply-chain-security:supply-chain-audit); `tired-01` tired 0/3 (none) |
+| uiux-design-team/ab-testing-strategy | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none); `tired-02` tired 0/3 (none) |
+| uiux-design-team/accessibility-audit | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none); `tired-02` tired 0/3 (none) |
+| uiux-design-team/color-systems | FAIL | `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none); `tired-02` tired 0/3 (none) |
+| uiux-design-team/component-library | FAIL | `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| uiux-design-team/css-architecture | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| uiux-design-team/design-case-studies | FAIL | `obvious-01` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| uiux-design-team/design-handoff | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| uiux-design-team/design-philosophies | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| uiux-design-team/design-system-creation | FAIL | `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| uiux-design-team/design-tokens | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| uiux-design-team/frontend-components | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| uiux-design-team/grid-layout-systems | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| uiux-design-team/information-architecture | FAIL | `obvious-02` obvious 0/3 (none) |
+| uiux-design-team/motion-design | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| uiux-design-team/responsive-design | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| uiux-design-team/typography-systems | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none); `tired-02` tired 0/3 (none) |
+| uiux-design-team/usability-evaluation | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| uiux-design-team/user-journey-mapping | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (uiux-design-team:map-journey) |
+| uiux-design-team/user-research | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| uiux-design-team/ux-writing | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none); `tired-02` tired 0/3 (none) |
+| uiux-design-team/visual-design | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| uiux-design-team/wireframing | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| zarr-chunk-optimization/access-pattern-analysis | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none); `tired-02` tired 1/3 (none, zarr-chunk-optimization:access-pattern-analysis) |
+| zarr-chunk-optimization/chunking-strategy | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| zarr-chunk-optimization/performance-reporting | FAIL | `obvious-01` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| zarr-chunk-optimization/rechunking | FAIL | `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| zarr-chunk-optimization/synthetic-data | FAIL | `obvious-02` obvious 0/3 (none) |
+| zarr-data-format/cloud-storage-backends | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| zarr-data-format/compression-codecs | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| zarr-data-format/data-migration | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| zarr-data-format/zarr-fundamentals | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |
+| zarr-data-format/zarr-xarray-integration | FAIL | `obvious-01` obvious 0/3 (none); `obvious-02` obvious 0/3 (none); `tired-01` tired 0/3 (none) |

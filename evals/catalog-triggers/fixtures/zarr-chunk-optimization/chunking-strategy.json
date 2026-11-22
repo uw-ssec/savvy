@@ -1,0 +1,37 @@
+{
+  "skill": "zarr-chunk-optimization/chunking-strategy",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Our 0.25-degree global temperature Zarr store on S3 is chunked (1, 721, 1440). Maps load instantly, but pulling a 40-year time series at one grid point takes minutes. Which candidate chunk shapes should I compare, and how do I benchmark them for wall time and peak memory?"
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "For a new Zarr store of radio telescope visibilities with dims (time, frequency, baseline) on GCS, help me pick 3 to 5 candidate chunk shapes for spectrum reads and time-series reads, keep each read under a 4 GB memory budget, and compare them by performance bias."
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "zarr time series reads take forever but maps are fast. what chunks should i even use"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "zarr-chunk-optimization/rechunking",
+      "prompt": "We've settled on (365, 64, 64) chunks after benchmarking. Write the job that converts our existing 2 TB Zarr store on S3 from (1, 721, 1440) to that layout without running out of memory, and check that the values match the original."
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "zarr-data-format/compression-codecs",
+      "prompt": "For float32 sea surface temperature in Zarr v3, should I use Blosc zstd with shuffle or the default Zstd codec, and is a BitRound filter worth the precision loss?"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "skill": "zarr-data-format/zarr-xarray-integration",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Each night a job appends yesterday's hourly forecast fields to an existing Zarr store with xarray. The first write used 'days since' time units, and now the appended hours land on the wrong dates. How should I set the time encoding and append safely?"
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "I want 50 Dask workers to each fill one month of a pre-allocated Zarr store using xarray region writes. How do I create the template and make sure the regions line up with the Zarr chunks so no writes get lost?"
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "to_zarr says 'must be an int or a tuple of ints' about my chunks?? just trying to save a dataset"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "scientific-domain-applications/xarray-for-multidimensional-data",
+      "prompt": "Compute a monthly climatology and anomalies with groupby on an xarray Dataset of daily sea level read from NetCDF, and plot the trend at one tide gauge."
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "zarr-data-format/zarr-fundamentals",
+      "prompt": "In plain zarr-python, without xarray, how do I read every other row and a chosen set of columns from a 2D array with oindex, and what does z.blocks return on a sharded array?"
+    }
+  ]
+}

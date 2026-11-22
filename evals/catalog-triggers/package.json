@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "description": "Pins the Claude Code CLI that skill-trigger-tests.yml runs the trigger fixtures with.",
+  "dependencies": {
+    "@anthropic-ai/claude-code": "2.1.330"
+  }
+}

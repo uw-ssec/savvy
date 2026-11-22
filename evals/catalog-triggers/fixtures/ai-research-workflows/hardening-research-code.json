@@ -1,0 +1,37 @@
+{
+  "skill": "ai-research-workflows/hardening-research-code",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Our heat diffusion solver started as a notebook and is now used in a paper. Make it trustworthy: decide what 'correct' means, test it against the analytic Gaussian solution with derived tolerances, and add regression tests so future refactors can't silently change results."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Is our Lomb-Scargle periodogram implementation numerically correct? It occasionally returns NaN for long baselines in float32. Check it against astropy's reference implementation and make it stable."
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "my monte carlo code gives slightly diff answers after a refactor, how do i tell which version is actually right"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "scientific-python-development/python-testing",
+      "prompt": "Set up pytest for my new package: a conftest.py with shared fixtures, coverage settings in pyproject.toml, and tests parametrized over float32 and float64."
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "ai-research-workflows/ensuring-reproducibility",
+      "prompt": "A reviewer wants the exact environment, data versions and seeds behind Table 2 so they can rerun it themselves. Capture all of that for them."
+    }
+  ]
+}

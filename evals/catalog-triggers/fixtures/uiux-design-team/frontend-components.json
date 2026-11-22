@@ -1,0 +1,37 @@
+{
+  "skill": "uiux-design-team/frontend-components",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Build a reusable Vue 3 component for our sample-tracking app: a searchable multiselect for specimen IDs with v-model support, full keyboard navigation, and a slot for custom option rendering. Composition API and TypeScript, please."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "We have a React file-upload dropzone in one lab tool and now need the same thing as a Lit web component so it can be dropped into a JupyterLab extension and a plain Django template. Port it with shadow-DOM-encapsulated styles and proper custom events."
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "need a svelte 5 table w sortable columns, using runes. how do i handle the state"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "uiux-design-team/component-library",
+      "prompt": "Our shared component kit has 40 components in Storybook. Wire up Playwright screenshot tests against every story so visual diffs block the CI merge, and add axe checks through the Storybook test runner."
+    },
+    {
+      "id": "negative-01",
+      "kind": "negative",
+      "expect": "no-fire",
+      "owner": null,
+      "prompt": "My Node build fails with ERR_REQUIRE_ESM after upgrading a dependency. What does that error mean and how do I fix it?"
+    }
+  ]
+}

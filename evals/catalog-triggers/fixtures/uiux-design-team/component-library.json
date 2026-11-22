@@ -1,0 +1,37 @@
+{
+  "skill": "uiux-design-team/component-library",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "We maintain a shared React + Tailwind component package that four of our lab's internal tools install from npm. Add a new Tabs component to it with CVA variants for size and style, Storybook stories covering every state, a Playwright visual regression test against the stories, and an axe check in the Storybook test runner."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Review the Button, TextInput and Modal in our team's shared UI kit (Storybook 8, CVA, Tailwind). Which states (loading, error, disabled, empty) are missing stories, which components lack keyboard or focus-trap coverage, and what order should we fix them in before the next release?"
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "our storybook screenshots keep drifting and nobody notices until it ships. want visual diffs to fail ci"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "uiux-design-team/frontend-components",
+      "prompt": "I wrote a one-off date-range picker in Vue 3 for our sample-tracking app and now need the same widget in a Svelte 5 app. Port it using runes for the state and keep the controlled value/onChange behaviour."
+    },
+    {
+      "id": "negative-01",
+      "kind": "negative",
+      "expect": "no-fire",
+      "owner": null,
+      "prompt": "How do I publish a TypeScript package to npm so it ships both ESM and CommonJS builds with correct type declarations?"
+    }
+  ]
+}

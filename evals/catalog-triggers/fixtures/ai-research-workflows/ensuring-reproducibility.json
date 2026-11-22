@@ -1,0 +1,37 @@
+{
+  "skill": "ai-research-workflows/ensuring-reproducibility",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Figure 3 in our paper came from a training run last spring, and nobody can get the same AUC now. Capture what's needed for others to reproduce it (environment lockfile, code commit, data hashes, seeds, exact commands) and verify it in a clean environment."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Before we submit, make our climate attribution analysis reproducible for a reviewer: record the provenance of every input dataset and the software environment, and do a minimal rerun to prove the record works."
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "cant reproduce my own results from 2 months ago, numbers are diff every run now. help"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "scientific-python-development/pixi-package-manager",
+      "prompt": "Replace our environment.yml with a pixi.toml that locks conda-forge and PyPI dependencies for both macOS and Linux."
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "ai-research-workflows/hardening-research-code",
+      "prompt": "Our finite-volume solver gives plausible numbers but we've never verified them. Add golden tests against an analytic solution, with tolerances justified from the numerics."
+    }
+  ]
+}

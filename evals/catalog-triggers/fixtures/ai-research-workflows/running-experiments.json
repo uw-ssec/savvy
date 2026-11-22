@@ -1,0 +1,37 @@
+{
+  "skill": "ai-research-workflows/running-experiments",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "I genuinely don't know whether to parallelize our Monte Carlo photon transport code with multiprocessing, Dask or Numba prange. Prototype all three on the same problem, run each several times with fixed seeds, and recommend one from the measurements."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Should our genome alignment post-processing keep intermediate results in SQLite or in Parquet files? Build both quickly and compare speed, complexity and fit with the pipeline before we commit to a design."
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "polars or pandas for our 40gb csv pipeline? try both and tell me which is actually faster"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "ai-research-workflows/researching",
+      "prompt": "What libraries and published methods already exist for detecting change points in long environmental sensor records? Survey them with citations; I don't want to build anything yet."
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "zarr-chunk-optimization/chunking-strategy",
+      "prompt": "Benchmark three candidate chunk shapes for our ERA5-style Zarr temperature store on S3, measuring map and point time-series read times and peak memory."
+    }
+  ]
+}

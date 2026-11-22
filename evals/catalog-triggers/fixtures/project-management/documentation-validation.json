@@ -1,0 +1,11 @@
+{
+  "skill": "project-management/documentation-validation",
+  "cases": [
+    {"id": "obvious-01", "kind": "obvious", "expect": "fire", "prompt": "Set up Vale with a scientific vocabulary so it stops flagging terms like NetCDF and reanalysis, and run it on our docs in GitHub Actions."},
+    {"id": "obvious-02", "kind": "obvious", "expect": "fire", "prompt": "Make the >>> examples in our Markdown tutorials and the Jupyter notebooks in our docs run as tests in CI, so we find out when they break."},
+    {"id": "tired-01", "kind": "tired", "expect": "fire", "prompt": "pretty sure half the links in our docs are dead. how do i check them all without making CI flaky"},
+    {"id": "neighbor-01", "kind": "neighbor", "expect": "no-fire", "owner": "scientific-python-development/scientific-documentation", "prompt": "Set up Sphinx with autodoc and the pydata theme for our Python package and publish it on Read the Docs."},
+    {"id": "neighbor-02", "kind": "neighbor", "expect": "no-fire", "owner": "project-management/community-health-files", "prompt": "Draft a CONTRIBUTING.md and a pull request template for our climate downscaling toolkit."},
+    {"id": "negative-01", "kind": "negative", "expect": "no-fire", "owner": null, "prompt": "Proofread this paragraph from my postdoc cover letter and tighten the wording: I am excited to apply because my work aligns with your lab."}
+  ]
+}

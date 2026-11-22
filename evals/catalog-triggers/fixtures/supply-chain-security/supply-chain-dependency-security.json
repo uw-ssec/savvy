@@ -1,0 +1,43 @@
+{
+  "skill": "supply-chain-security/supply-chain-dependency-security",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Dependabot opened a PR bumping 14 packages in our docs site's package-lock.json, including a plotting library version published yesterday. What should I check before merging, beyond the green CVE scan?"
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "A student wants to add a small PyPI package for reading NetCDF metadata to our pyproject.toml. It has one maintainer and its latest release is three days old. How do I vet it and the uv.lock change?"
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "renovate pr bumps like 30 things in uv.lock, safe to merge?"
+    },
+    {
+      "id": "tired-02",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "ci breaks with --ignore-scripts on npm ci, ok to just drop the flag?"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "supply-chain-security/supply-chain-hardened-ci-cd",
+      "prompt": "Review our release workflow: it triggers on pull_request_target, checks out the PR head, and has write-all permissions. Fix it so forks can't get at our secrets."
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "supply-chain-security/supply-chain-incident-response",
+      "prompt": "A GHSA advisory says the version of a JSON parsing package we had in package-lock.json last week was malicious, and our CI installed it. What do we do now?"
+    }
+  ]
+}

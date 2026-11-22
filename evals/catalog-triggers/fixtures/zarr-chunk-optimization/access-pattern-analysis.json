@@ -1,0 +1,43 @@
+{
+  "skill": "zarr-chunk-optimization/access-pattern-analysis",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Three groups share our 40-year hourly precipitation Zarr store (time, lat, lon): the forecast team renders daily maps, hydrologists pull time series at about 300 gauge locations, and a climate group computes basin averages over decades. Before we benchmark any chunk shapes, help me turn this into weighted read patterns, with the evidence behind each weight."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "I'm choosing chunks for a hyperspectral imaging cube stored as Zarr with dims (time, x, wavelength), and nobody has ever written down how it gets read. What should I ask the instrument scientists, and how do I map their answers to the reads we should benchmark?"
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "ppl here just say 'i look at spectra' or 'i make maps' lol. how do i turn that into something i can actually test zarr chunks against"
+    },
+    {
+      "id": "tired-02",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "our zarr reads r slow and i think the chunks dont match how ppl use the data but honestly idk what they all do with it"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "zarr-chunk-optimization/chunking-strategy",
+      "prompt": "The workload is agreed: 70% single-timestep maps and 30% point time series on a (14600, 721, 1440) float32 Zarr store on S3. Benchmark three candidate chunk shapes against it and measure wall time and peak memory for each."
+    },
+    {
+      "id": "negative-01",
+      "kind": "negative",
+      "expect": "no-fire",
+      "owner": null,
+      "prompt": "Analyze our website's access logs to find which pages get the most traffic at night and from which countries."
+    }
+  ]
+}

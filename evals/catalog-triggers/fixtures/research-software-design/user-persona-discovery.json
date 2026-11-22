@@ -1,0 +1,10 @@
+{
+  "skill": "research-software-design/user-persona-discovery",
+  "cases": [
+    {"id": "obvious-01", "kind": "obvious", "expect": "fire", "prompt": "We're designing a web portal for ocean glider data. From 12 interviews with oceanographers and data managers, help me cluster what we observed into persona hypotheses with design implications."},
+    {"id": "obvious-02", "kind": "obvious", "expect": "fire", "prompt": "Plan a cultural probe study to learn how field ecologists actually record observations before we design a mobile data-entry tool."},
+    {"id": "tired-01", "kind": "tired", "expect": "fire", "prompt": "who even are the users of our hpc job dashboard? have some support tickets + interview notes, need personas"},
+    {"id": "neighbor-01", "kind": "neighbor", "expect": "no-fire", "owner": "research-software-design:research-design", "prompt": "Survey the literature on streaming architectures for real-time seismic sensor data and propose candidate pipeline designs with their trade-offs."},
+    {"id": "neighbor-02", "kind": "neighbor", "expect": "no-fire", "owner": "uiux-design-team/user-journey-mapping", "prompt": "Map the end-to-end journey of a grad student submitting their first job to the campus cluster, with touchpoints, emotions and pain points at each stage."}
+  ]
+}

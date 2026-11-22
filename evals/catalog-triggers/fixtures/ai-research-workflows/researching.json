@@ -1,0 +1,37 @@
+{
+  "skill": "ai-research-workflows/researching",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Before I change anything in our lab's ocean model package, I need to understand how the timestep loop calls the advection and diffusion modules and which config values reach them. Trace the call path and write it up with file and line references so we can plan the change."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Has anyone already published a method for gap-filling cloud-masked satellite chlorophyll data? Survey the approaches and existing Python libraries, with citations, before we decide whether to build our own."
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "is there already a lib for dynamic time warping on huge sensor time series or do i have to write it myself"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "ai-research-workflows/planning-implementations",
+      "prompt": "We've finished investigating our particle tracking code and know where the integrator lives. Now write a phased implementation plan for replacing the Euler step with RK4, with test-first tasks and success criteria."
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "ai-research-workflows/running-experiments",
+      "prompt": "I can't decide between storing our simulation snapshots in HDF5 or Parquet. Prototype both, measure write and read times over several runs, and recommend one."
+    }
+  ]
+}

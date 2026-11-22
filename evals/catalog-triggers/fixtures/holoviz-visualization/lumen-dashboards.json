@@ -1,0 +1,37 @@
+{
+  "skill": "holoviz-visualization/lumen-dashboards",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Without writing Python, define a dashboard in YAML that reads our Postgres table of streamflow observations, lets users filter by site and date range, shows a line chart of discharge plus an indicator for the latest value, and runs with lumen serve."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "I have two CSVs (station metadata and daily readings) and a REST API with sensor status. Set up a Lumen spec with all three as sources, a pipeline that aggregates monthly means per station, and cross-filtering between a bar chart and a scatter."
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "lumen yaml won't load, says table not found but the csv path is right. how do i debug the spec"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "holoviz-visualization/lumen-ai",
+      "prompt": "Instead of fixed charts, I want users to type free-form questions about our sales table and have an LLM write the SQL and pick the chart for them."
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "holoviz-visualization/panel-dashboards",
+      "prompt": "I need a Python web app with a custom multi-step workflow: users upload a sequencing QC summary, the app runs my own scoring function with a progress bar, then shows live-updating plots and lets them download a report."
+    }
+  ]
+}

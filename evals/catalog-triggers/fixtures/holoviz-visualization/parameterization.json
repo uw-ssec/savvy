@@ -1,0 +1,37 @@
+{
+  "skill": "holoviz-visualization/parameterization",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Refactor my ocean model's config into param.Parameterized classes: timestep must be a positive float, solver one of 'rk4' or 'euler', and grid settings nested in their own sub-object. Invalid values should raise immediately when assigned."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "In my Param class I want a derived resolution value that recomputes whenever grid_spacing or domain_size changes, and a side effect that clears a cache and logs whenever input_path changes. When should I use @param.depends versus param.watch here?"
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "my @param.depends method never reruns when i change the value, what am i missing"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "holoviz-visualization/panel-dashboards",
+      "prompt": "Build a full web dashboard for my experiment logs with a template, sidebar navigation across three pages, file upload, and a live-updating plot area."
+    },
+    {
+      "id": "negative-01",
+      "kind": "negative",
+      "expect": "no-fire",
+      "owner": null,
+      "prompt": "How do I add subcommands with their own flags to a Python CLI using argparse?"
+    }
+  ]
+}

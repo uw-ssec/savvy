@@ -1,0 +1,43 @@
+{
+  "skill": "gaia-data-downloader/download-script-dev",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Write a download script for hourly CONUS404 2-m temperature and precipitation for water year 2022, clipped to the Snohomish River basin polygon and saved as Zarr. Dates, variables and paths should be easy to change at the top."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "My HRRR download script using Herbie fails with 'wgrib2 not found', and when I loop over several forecast hours it times out partway through and leaves a partial dataset. Help me fix it so it retries and fails loudly on missing hours."
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "getting 403 trying to read the WRF CMIP6 files off s3, isn't that bucket public??"
+    },
+    {
+      "id": "tired-02",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "need prism daily precip 2015-2020 for our watershed, just want a script i can rerun"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "zarr-data-format/cloud-storage-backends",
+      "prompt": "Our group writes Zarr arrays to a private MinIO bucket. Set up an FsspecStore or obstore with credentials from environment variables, and help me figure out why opening the store takes 20 seconds."
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "scientific-domain-applications/xarray-for-multidimensional-data",
+      "prompt": "I already have a NetCDF of daily temperature on a lat/lon grid on disk. Compute the monthly climatology and anomalies with xarray, then resample to seasonal means."
+    }
+  ]
+}

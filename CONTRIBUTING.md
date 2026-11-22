@@ -245,7 +245,7 @@ Don't accept a new or rewritten description until it passes all three:
 2. **The same request phrased the way a tired person would type it** — short, informal, no keywords from the description. The skill must still load.
 3. **A neighboring request that belongs to a different skill or command.** The skill must **not** load.
 
-Most rewrites pass the first two and fail the third. A description that fires on everything is as broken as one that fires on nothing, and much harder to notice. Request 1 is the skill's `example` in [`docs/catalog.yml`](docs/catalog.yml), which `evals/catalog-triggers/trigger_test.py` runs (see [Skill Catalog](#-skill-catalog)); try requests 2 and 3 the same way, in Claude Code with only this repository's plugins loaded, and note the results in your pull request.
+Most rewrites pass the first two and fail the third. A description that fires on everything is as broken as one that fires on nothing, and much harder to notice. Write all three into the skill's [trigger fixture](#trigger-fixtures) and run it; `evals/catalog-triggers/trigger_test.py` runs the prompts in headless Claude Code with only this repository's plugins loaded.
 
 ## 📚 Skill Catalog
 
@@ -266,12 +266,27 @@ To add a skill:
    ```
 
    This runs the prompt in headless Claude Code with only this repository's plugins loaded, and costs one model call per skill. Results vary between runs, so rerun a failure before acting on it. If the skill still doesn't load, fix its `description` rather than tuning the prompt; set `activates: false` only as a stopgap.
-3. Regenerate and check:
+3. Add a trigger fixture (see [Trigger fixtures](#trigger-fixtures) below).
+4. Regenerate and check:
 
    ```bash
    pixi run catalog-sync
    pixi run catalog-check
    ```
+
+### Trigger fixtures
+
+Every skill has a trigger fixture at `evals/catalog-triggers/fixtures/<plugin>/<skill>.json`: the [three-way trigger test](#the-three-way-trigger-test) written down as prompts. It holds at least three prompts that must load the skill (`obvious` ones and at least one `tired` one) and at least two that must not (at least one `neighbor` that belongs to a named sibling skill or command, plus optional `negative` ones that no skill should take). The [fixture README](evals/catalog-triggers/fixtures/README.md) has the format, and `pixi run test-scripts` fails if a skill has no fixture or a fixture breaks the rules. Write prompts the way users type them, keep them self-contained, and don't name the skill.
+
+Run a skill's fixture before opening a pull request that adds the skill or changes its `description`:
+
+```bash
+pixi run -e ci python evals/catalog-triggers/trigger_test.py --fixtures <plugin>/<skill>
+```
+
+Each prompt runs three times. A run passes when the skill loads on a must-load prompt, or doesn't load on a must-not-load prompt. A prompt passes when at least two of its three runs pass, and the skill passes when every prompt does. Paste the summary into your pull request. CI doesn't run fixtures on pull requests, because activation varies by model and between runs; the reviewer applies the three-way test from your summary. Fix the `description` when a must-load prompt fails on every run, or when a neighbor prompt loads the skill.
+
+The **Skill trigger tests** workflow runs every fixture weekly and on demand (**Actions → Skill trigger tests → Run workflow**), through the LiteLLM gateway, and reports per-skill results in the run summary. It never runs on pull requests. Recorded results for each model are in `evals/catalog-triggers/results/`.
 
 ## 🏷️ Versioning and Deprecation
 

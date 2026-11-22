@@ -1,0 +1,43 @@
+{
+  "skill": "supply-chain-security/supply-chain-hardened-ci-cd",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Write a GitHub Actions release workflow for our astronomy Python package that publishes to PyPI on tag: build in one job, publish in another with trusted publishing, actions pinned to SHAs, and minimal permissions."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "zizmor flagged our CI with excessive-permissions, unpinned-uses, and template injection in a step that echoes the PR title. Fix the workflow."
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "our publish job uses an NPM_TOKEN secret and permissions: write-all. how bad is that, how do i fix"
+    },
+    {
+      "id": "tired-02",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "pr from forks need secrets for the tests, can i just switch to pull_request_target"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "containerization/container-registries",
+      "prompt": "Set up a workflow that builds our Docker image for amd64 and arm64 and pushes it to GHCR with semver and SHA tags on each release."
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "containerization/container-security",
+      "prompt": "Add a Trivy scan of our built container image to CI that fails on CRITICAL vulnerabilities, with a suppression file for the ones we've accepted."
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "skill": "project-management/community-health-files",
+  "cases": [
+    {"id": "obvious-01", "kind": "obvious", "expect": "fire", "prompt": "Add a CITATION.cff with author ORCIDs and our Zenodo DOI to our lab's sea-ice model repository, and make sure it validates."},
+    {"id": "obvious-02", "kind": "obvious", "expect": "fire", "prompt": "Our open-source genomics pipeline needs a code of conduct, a security policy, and GitHub issue forms for bug reports and feature requests."},
+    {"id": "tired-01", "kind": "tired", "expect": "fire", "prompt": "which license do i put on my research code? lab wants people to use it commercially but still cite us"},
+    {"id": "neighbor-01", "kind": "neighbor", "expect": "no-fire", "owner": "project-management:project-handoff", "prompt": "We hand our flood-model repo to a new team next month. Assess whether it's ready and give me a pass/warn/fail report across docs, tests, CI and community files."},
+    {"id": "neighbor-02", "kind": "neighbor", "expect": "no-fire", "owner": "project-management/documentation-validation", "prompt": "Check whether the installation steps in our README actually work in a clean environment, and flag any broken links in the docs."}
+  ]
+}

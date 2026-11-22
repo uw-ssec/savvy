@@ -1,0 +1,37 @@
+{
+  "skill": "zarr-chunk-optimization/rechunking",
+  "cases": [
+    {
+      "id": "obvious-01",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "Our Zarr v3 store of daily soil moisture, shape (10950, 720, 1440) on S3, is chunked (1, 720, 1440). Benchmarking says (365, 60, 60) is better. Rewrite it into that layout safely: try it on a sample first, write to a new path, and prove the values match before we switch readers over."
+    },
+    {
+      "id": "obvious-02",
+      "kind": "obvious",
+      "expect": "fire",
+      "prompt": "rechunker won't install alongside zarr-python 3, and dask rechunk to time-contiguous chunks blows past 64 GB of RAM. What's the right way to turn (1, Y, X) chunks into (T, 32, 32) for a 3 TB Zarr array?"
+    },
+    {
+      "id": "tired-01",
+      "kind": "tired",
+      "expect": "fire",
+      "prompt": "need to change the chunks on an existing .zarr, its huge, dont want to wreck the original"
+    },
+    {
+      "id": "neighbor-01",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "zarr-chunk-optimization/chunking-strategy",
+      "prompt": "Before I rewrite anything, which chunk shape should our sea-ice concentration Zarr store use? Users mostly pull 30-year series at points but sometimes render daily maps, and I want to compare candidates."
+    },
+    {
+      "id": "neighbor-02",
+      "kind": "neighbor",
+      "expect": "no-fire",
+      "owner": "zarr-data-format/data-migration",
+      "prompt": "Convert our 2,000 monthly NetCDF files of ocean model output into a single Zarr v3 store, keeping scale_factor, _FillValue and the time units intact."
+    }
+  ]
+}

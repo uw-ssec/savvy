@@ -56,7 +56,8 @@ tolerance, truncation error of the method, stochastic variance). Use `rtol` for
 values spanning orders of magnitude and `atol` for values near zero.
 
 Document the justification next to the test: what physical or numerical argument
-gives this bound? If the tolerance is tightened or loosened later, update the
+gives this bound? This applies to every bound, including `atol` values and
+thresholds such as "the other bins are near zero", not only the main `rtol`. If the tolerance is tightened or loosened later, update the
 justification.
 
 **Never tune the tolerance to make a failing test pass.** A bound chosen to fit
@@ -101,13 +102,18 @@ values: symmetry, monotonicity, conservation, idempotence or range bounds (for
 example, probabilities are non-negative and sum to 1 within tolerance; a rotation
 matrix has determinant 1; total energy is conserved). Check them over many
 inputs, with a sweep or property-based testing, and add edge cases explicitly
-(a single element, all-equal values, zeros, very large values). These catch
-whole classes of bugs that value-comparison tests miss.
+(a single element, all-equal values, zeros, very large values). Cover the input
+variations that commonly break numerical code: even and odd lengths, a nonzero
+mean or offset, non-unit spacing or scale, and each dtype the code accepts
+(float32 as well as float64). These catch whole classes of bugs that
+value-comparison tests miss.
 
 ## When a correctness test fails on the current code
 
 This is what hardening is for. Do not loosen the tolerance or re-pin to make it
-pass. Report which criterion failed, with the expected and actual values. Fix
+pass. Report which criterion failed, with the expected and actual values, and record
+it in the test's docstring (what the test caught, and whether the code was fixed
+or is still failing) so the next reader knows the test guards a real defect. Fix
 the code when the cause is clear and inside the code you were asked to harden,
 and show the same test going from red to green. Otherwise leave the test failing
 (or mark it as an expected failure with the reason) and ask the user how to

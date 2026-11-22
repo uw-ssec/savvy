@@ -3,7 +3,10 @@
   "evals": [
     {
       "id": "researching-001",
-      "prompt": "Figure out how authentication middleware is wired up in this repo. I need to know where requests get their user context attached and which modules depend on it before I change the session handling.",
+      "prompt": "Figure out how authentication middleware is wired up in this repo. I need to know where requests get their user context attached and which modules depend on it before I change the session handling. The repo is at input/auth-middleware/.",
+      "files": [
+        "files/auth-middleware"
+      ],
       "expected_output": "A scope statement and research plan awaiting a quick OK: the agent states that this is an internal (codebase) question, proposes the codebase sub-questions it will trace (where user context is attached to requests, which modules depend on the middleware), and asks the user to confirm before investigating. No research document is written and no session handling code is changed in this turn.",
       "assertions": [
         "The agent stated the scope it established, as an internal codebase question with no external prior-art search, or asked one focused question to establish it",
@@ -18,6 +21,7 @@
     {
       "id": "researching-002",
       "prompt": "Has this been done before? We want to add incremental, resumable checkpointing to our long-running data ingestion pipeline. What approaches and libraries already exist for this, and how do they compare?",
+      "files": [],
       "expected_output": "A scope statement and research plan awaiting a quick OK: the agent states that this is an external prior-art question, proposes the sources it will search and the dimensions along which it will compare approaches and libraries for incremental, resumable checkpointing, and asks the user to confirm before investigating. No research document is written and no checkpointing is implemented in this turn.",
       "assertions": [
         "The agent stated the scope it established, as an external prior-art question about resumable checkpointing approaches and libraries",
@@ -31,7 +35,10 @@
     },
     {
       "id": "researching-003",
-      "prompt": "I just inherited this service and I'm supposed to swap out our homegrown retry logic for something standard next sprint. Before I sit down to plan that, can you dig into where retries are currently implemented in our code and also see what established libraries people use for this in the ecosystem? I want one write-up I can hand to planning.",
+      "prompt": "I just inherited this service and I'm supposed to swap out our homegrown retry logic for something standard next sprint. Before I sit down to plan that, can you dig into where retries are currently implemented in our code and also see what established libraries people use for this in the ecosystem? I want one write-up I can hand to planning. The repo is at input/retry-service/.",
+      "files": [
+        "files/retry-service"
+      ],
       "expected_output": "A scope statement and research plan awaiting a quick OK: the agent states that both dimensions are in scope, proposes the codebase sub-questions (where retries are implemented, what calls them) and the prior-art sources and comparison dimensions for retry libraries, says it will combine both into a single write-up for planning, and asks the user to confirm before investigating. The existing retry code is not modified and no document is written in this turn.",
       "assertions": [
         "The agent stated that both the internal codebase and the external prior art are in scope, or asked one focused question to establish the scope",
@@ -47,6 +54,7 @@
     {
       "id": "researching-004",
       "prompt": "Survey the literature on conformal prediction for regression. Which methods exist, which open-source tools implement them, and how do they compare? Write it up, I'm not writing any code yet.",
+      "files": [],
       "expected_output": "A scope statement and research plan awaiting a quick OK: the agent states that this is an external prior-art question, proposes the sources to search (papers, open-source tool repositories and documentation) and the comparison dimensions, and asks the user to confirm before investigating. No document is written and no implementation code is produced in this turn.",
       "assertions": [
         "The agent stated the scope it established, as an external literature and tooling survey, or asked one focused question to establish it",
@@ -60,7 +68,10 @@
     },
     {
       "id": "researching-005",
-      "prompt": "Where does our pipeline compute the weekly aggregate, and what calls it? I want a write-up I can review before we plan changes.",
+      "prompt": "Where does our pipeline compute the weekly aggregate, and what calls it? I want a write-up I can review before we plan changes. The repo is at input/weekly-aggregate/.",
+      "files": [
+        "files/weekly-aggregate"
+      ],
       "expected_output": "The agent follows the Collaborative flow: it proposes the sub-questions it will trace (where the weekly aggregate is computed, what calls it) or presents findings, and asks the user to confirm before anything is written out. No research-*.md document exists before the user confirms, and the agent does not start planning or implementing.",
       "assertions": [
         "The agent proposed the sub-questions it would trace for where the weekly aggregate is computed and what calls it, or presented findings and asked the user to confirm them",
@@ -75,6 +86,7 @@
     {
       "id": "researching-neg-001",
       "prompt": "Design the implementation plan for adding CSV export to the reports module. I already know the code well, so skip the investigation and give me a phased plan with success criteria.",
+      "files": [],
       "expected_output": "The agent treats this as a planning request (it asks about scope or approach, or proposes a phased breakdown for approval), not as a research request. No research document is written.",
       "assertions": [
         "The agent did not write a research-*.md document or run a survey of external prior work",
@@ -87,6 +99,7 @@
     {
       "id": "researching-neg-002",
       "prompt": "Should we use msgpack or protobuf for our event stream? Benchmark both on our payloads.",
+      "files": [],
       "expected_output": "The agent treats this as an experiment (a measured comparison of two approaches on the user's payloads), not as a literature survey: it states the measurable question and criteria, or builds and runs small prototypes of both, and does not produce a research document.",
       "assertions": [
         "The agent did not write a research-*.md document or produce a literature or prior-art survey with citations",

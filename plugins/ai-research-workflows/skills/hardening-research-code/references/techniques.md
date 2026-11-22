@@ -17,16 +17,21 @@ implementation or a published dataset) and assert that the code under test
 matches them within tolerance. Store expected values and any input data in a
 versioned file alongside the tests. Examples:
 
-- A real sine wave whose frequency falls exactly on a DFT bin has one nonzero
-  bin in a one-sided spectrum (two conjugate bins in the full DFT); every other
-  bin is zero to within round-off. An off-bin frequency leaks into neighboring
-  bins, so pick an on-bin test frequency.
+- A real sine wave of nonzero amplitude whose frequency falls exactly on DFT
+  bin `k`, with integer `0 < k < N/2`, has one nonzero bin in a one-sided
+  spectrum (two conjugate bins in the full DFT); every other bin is zero to
+  within round-off. Avoid `k = 0` and, for even `N`, `k = N/2`: a sine there is
+  zero at every sample. An off-bin frequency leaks into neighboring bins, so
+  pick an on-bin test frequency.
 - A fit recovers known parameters from synthetic data generated with them. This
   checks the fitting method; it does not verify the values the fit gives on the
   real data.
 - An ODE integrator's error at a fixed end time, against an exact solution of
   the same equations (or a much finer-step run), shrinks at the method's order
-  when the step is halved: about 16x per halving for RK4. A nonlinear pendulum
+  when the step is halved: about 16x per halving for RK4. That holds only while
+  truncation error dominates and the reference is accurate enough; at small
+  steps round-off flattens or reverses it (sooner in float32), so run a
+  step-size sweep to find that regime before asserting the ratio. A nonlinear pendulum
   compared with the small-angle (linear) solution keeps a linearization error
   that does not shrink with the step, so bound that error for the amplitude and
   time span used, or test the linear equations directly.
@@ -38,7 +43,7 @@ to the domain:
 
 ```
 # strategy-level pseudocode; defer mechanics to the python-testing skill
-assert |result - expected| < atol + rtol * |expected|
+assert |result - expected| <= atol + rtol * |expected|
 ```
 
 Choosing the bound: start from the round-off the computation can accumulate,

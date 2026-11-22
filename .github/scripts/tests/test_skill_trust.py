@@ -855,6 +855,16 @@ def test_benchmark_env_pins_same_skillevaluator_as_ci():
     assert (bench["git"], bench["rev"]) == (ci["git"], ci["rev"])
 
 
+def test_benchmark_task_selects_tier_1_with_tier_3():
+    # The pinned SkillEvaluator refuses `--tiers 3` alone ("Tier 1 always runs
+    # and gates the exit code; include it"), which would fail every benchmark.
+    import tomllib
+
+    tasks = tomllib.loads((SCRIPTS.parents[1] / "pixi.toml").read_text(encoding="utf-8"))["feature"]["benchmark"]["tasks"]
+    cmd = tasks["skill-benchmark"]["cmd"].split()
+    assert cmd[cmd.index("--tiers") + 1] == "1,3"
+
+
 def test_scanners_env_installs_semgrep_from_a_linux_wheel():
     # Semgrep publishes only manylinux_2_34 wheels. If the scanners env's
     # declared glibc is older, the lock falls back to the sdist, and CI's

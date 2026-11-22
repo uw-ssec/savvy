@@ -121,11 +121,13 @@ python = "3.12.*"
 [feature.benchmark.pypi-dependencies]
 skillevaluator = { git = "https://github.com/NVIDIA/SkillEvaluator.git", rev = "707fb9a8cbfaf6c8f766506f43bb699212234f01", extras = ["tier3"] }
 
-# Reported, never gating: advisory Tier 3 only (no policy, no autopilot, so it
-# needs an existing evals/ dataset). `--n-attempts` and `--model` are set per
-# run by .github/workflows/benchmark-skills.yml; the output dir gets BENCHMARK.md.
+# Reported, never gating: advisory Tier 3 (no policy, no autopilot, so it
+# needs an existing evals/ dataset). SkillEvaluator always runs Tier 1 and
+# rejects `--tiers 3` on its own, hence `1,3`. `--n-attempts` and `--model` are
+# set per run by .github/workflows/benchmark-skills.yml; the output dir gets
+# BENCHMARK.md.
 [feature.benchmark.tasks]
-skill-benchmark = { cmd = "skillevaluator validate --tiers 3 --no-autopilot -a claude-code -r json", description = "Run SkillEvaluator's Tier 3 benchmark (claude-code agent) on a skill, e.g. `pixi run -e benchmark skill-benchmark plugins/<plugin>/skills/<skill> -o <out-dir>`" }
+skill-benchmark = { cmd = "skillevaluator validate --tiers 1,3 --no-autopilot -a claude-code -r json", description = "Run SkillEvaluator's Tier 3 benchmark (claude-code agent) on a skill, e.g. `pixi run -e benchmark skill-benchmark plugins/<plugin>/skills/<skill> -o <out-dir>`" }
 
 [environments]
 default = { features = ["okf"], solve-group = "default" }

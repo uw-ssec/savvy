@@ -8,9 +8,12 @@ name: Benchmark Skills
 # prints a compare link; a person opens the PR.
 #
 # Provider settings for SkillEvaluator's claude-code agent through the LiteLLM
-# proxy. DERIVED FROM SOURCE, NOT YET VERIFIED with
-# `skillevaluator doctor -a claude-code --verify-models` (maintainer hand-off:
-# run that with a real key before the first dispatch).
+# proxy, derived from source and verified on 2026-11-22 with a real key: the
+# skill-benchmark task on `researching` with ssec-claude-haiku-5-5 and 1 attempt
+# ran all 14 attempts (7 cases, baseline and skill) in Docker and wrote
+# BENCHMARK.md. (`skillevaluator doctor -a claude-code` passes but only warns
+# that catalog access does not verify runtime credentials; the real run is the
+# evidence.)
 #   SKILL_EVAL_LLM_PROVIDER=anthropic       provider_config.py:549 (_selected_provider)
 #   ANTHROPIC_API_KEY=<LITELLM_API_KEY>     provider_config.py:586 (required for anthropic)
 #   ANTHROPIC_BASE_URL=<LITELLM_PROXY_URL>  provider_config.py:777-779; a trailing /v1 is
@@ -32,8 +35,10 @@ on:
         required: false
         type: string
         default: ''
+      # Sonnet by default: in that verification run Haiku never activated the
+      # skill, so every cell came out INCONCLUSIVE with no uplift to report.
       model:
-        description: LiteLLM model id for the claude-code agent and the judge
+        description: LiteLLM model id for the claude-code agent and the judge (Haiku rarely activates skills)
         required: false
         type: string
         default: ssec-claude-sonnet-5-5

@@ -28,6 +28,25 @@ First tagged release. Only `ai-research-workflows` ships in it and moves to this
 
 - Initial tagged release.
 
+#### Fixed
+
+- `podman`: Quadlet examples no longer run `systemctl --user enable` on the generated unit, which systemctl refuses ("transient or generated"); the `[Install]` section handles auto-start, and the examples now use `start`.
+- `dockerfile-patterns`: "Mistake 4" no longer claims stage names are case-sensitive. BuildKit lowercases them; the real trap is a misspelled `--from`, which is pulled as an image.
+- `compose-orchestration`: merge rules say volumes merge by container path instead of concatenating, and that identical ports appear once (use `!override` to replace the list). Interpolation priority drops `env_file:`, which never feeds interpolation, and says `--env-file` replaces the project `.env`. An unset `${VAR}` warns and becomes empty instead of failing, and `.env` files do support inline comments and quoted multi-line values.
+- `devcontainers`: the Codespaces prebuild lifecycle no longer runs `postCreateCommand` during the prebuild; it runs when the codespace is created. The multi-file Compose example adds the required `workspaceFolder`.
+- `gpu-containers`: the driver/CUDA rules no longer say a 535 driver tops out at CUDA 12.2. They explain minor version compatibility (CUDA 12.x on 525+, without PTX JIT) and that each `nvidia/cuda` tag lists the extra driver branches it starts on in `NVIDIA_REQUIRE_CUDA`, with a command to check. The forward/backward compatibility terms now match NVIDIA's, and the compat package is limited to data center and select GPUs.
+- `singularity-apptainer`: the MPI hybrid model now matches the Apptainer docs: the host's launcher starts the containers and the container's MPI must be compatible with the host's. Running `mpirun` inside one container is labeled a single-node test. The three definition-file assets no longer fail to build: comment lines inside `\`-continued `apt-get install` lists ended the command in `%post`, the MPI asset deleted its own working directory before `pip` ran, and the GPU asset's base image `nvidia/cuda:12.4.1-devel-ubuntu24.04` (and the ROCm alternative `rocm/dev-ubuntu-24.04:6.1`) don't exist, so they now use the Ubuntu 22.04 tags.
+- `container-security` and `container-registries`: keyless `cosign verify` and `verify-attestation` examples name the signer identity and OIDC issuer, which cosign v3 requires. The Chainguard example uses its exact identity and the SLSA v1 predicate type.
+
+#### Security
+
+- `container-security`: Trivy, Grype and Syft installs no longer pipe `install.sh` from the `main` branch into `sh`. They download a pinned release, check it with `sha256sum` against the release checksums (with an optional `cosign verify-blob` of the checksums file), and pin the Docker image tags. The Trivy apt setup drops the deprecated `apt-key add` for a dearmored keyring with `signed-by`.
+- `devcontainers`: the example Feature `install.sh`, which runs as root, downloads a versioned artifact and checks a pinned SHA-256 instead of piping a script into `bash`.
+- `container-security`: the nightly CI scans resolve the published tag to a digest once and scan that, instead of pulling `:latest`.
+- `container-security`, `container-registries` and `dockerfile-patterns`: workflow assets and the Trivy/Grype CI examples pin every action to a commit SHA, replacing mutable refs such as `aquasecurity/trivy-action@master` and `@0.28.0` (the TeamPCP tag hijack moved 76 `trivy-action` tags). The Grype example moves to `anchore/scan-action` v7.4.2 with Grype pinned to v0.121.3, since v4.1.2 ran a Grype too old to get database updates. Checkout no longer persists credentials in these assets.
+- `singularity-apptainer`: the MPI definition asset verifies the Open MPI source tarball's SHA-256 before building.
+- `compose-orchestration`: the pgAdmin default email uses the reserved `example.com` instead of the registrable `localhost.com`.
+
 ### gaia-data-downloader
 
 #### Added

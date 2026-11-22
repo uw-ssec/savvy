@@ -49,44 +49,47 @@ In the bind model, the host's MPI installation is bind-mounted into the containe
 
 ### Hybrid Model
 
-In the hybrid model, the container ships its own complete MPI installation. The MPI inside the container is used for all communication.
+In the hybrid model, the container ships its own complete MPI installation, and the host's MPI launcher (`mpirun` or `srun`) starts the containers: `mpirun -n 16 apptainer exec image.sif /opt/my_mpi_app`. Both MPIs are used. The host side launches the ranks and wires them up through PMI/PMIx, and the application inside talks through the container's MPI libraries. The container's MPI must therefore be compatible with the host's MPI and PMIx version.
 
 ```
 ┌──────────────────────────────────────────────────┐
 │  Host System                                     │
-│                                                  │
-│  apptainer exec ────►┌──────────────────┐        │
-│                      │  Container       │        │
-│                      │  ┌────────────┐  │        │
-│                      │  │ MPI (own)  │  │        │
-│                      │  └────────────┘  │        │
-│                      │  Application     │        │
-│                      └──────────────────┘        │
+│  ┌─────────────────┐                             │
+│  │ Host MPI / PMIx │                             │
+│  │ (launcher)      │     ┌──────────────────┐    │
+│  └─────────────────┘     │  Container       │    │
+│  mpirun / srun ─────────►│  ┌────────────┐  │    │
+│                          │  │ MPI (own)  │  │    │
+│                          │  └────────────┘  │    │
+│                          │  Application     │    │
+│                          └──────────────────┘    │
 └──────────────────────────────────────────────────┘
 ```
 
 **Advantages:**
-- Fully self-contained -- works on any cluster
-- No MPI version compatibility concerns with the host
+- No host paths to bind; works where administrators disable user bind mounts
+- The image carries the exact MPI build the application was tested with
 - Simpler to build and test
 
 **Disadvantages:**
-- May not leverage high-speed interconnects without explicit driver binding
+- Container MPI must still be compatible with the host's MPI/PMIx version
+- Fast interconnects need fabric support (UCX, libfabric, verbs) built into the container's MPI
 - Larger container images (includes full MPI installation)
-- Single-node only unless SSH or PMIx is configured for cross-node communication
+
+Running the container's own `mpirun` inside a single container (`apptainer exec image.sif mpirun -np 4 ./app`) is neither model. It needs no host MPI, but it only uses one node, so keep it for local testing.
 
 ### Decision Criteria
 
 | Criterion | Bind Model | Hybrid Model |
 |-----------|-----------|--------------|
-| InfiniBand / OmniPath needed | Yes | Requires driver binding |
-| Portability across clusters | Low | High |
-| Performance optimization | Maximum | Good (TCP default) |
+| InfiniBand / OmniPath needed | Yes | Requires fabric support in container MPI |
+| Portability across clusters | Low | Medium (needs a compatible host MPI) |
+| Performance optimization | Maximum | Good to maximum, depending on the container MPI build |
 | Ease of setup | Moderate | Simple |
 | Image size | Smaller | Larger |
-| Host MPI required | Yes | No |
+| Host MPI required | Yes (bound into the container) | Yes (launcher, compatible version) |
 
-**Recommendation:** Use the bind model for production HPC workloads where performance matters. Use the hybrid model for development, testing, or when portability is the priority.
+**Recommendation:** Use the bind model for production HPC workloads where performance matters. Use the hybrid model when you can't bind host paths, or when you want the image to carry its own tested MPI build.
 
 ---
 
@@ -173,7 +176,11 @@ srun --mpi=pmix -n 128 apptainer exec \
     --bind /opt/openmpi:/opt/openmpi \
     image.sif /opt/my_mpi_app
 
-# Hybrid model: container's internal mpirun
+# Hybrid model: host launcher, container's own MPI (no --bind of host MPI)
+mpirun -np 16 apptainer exec image.sif /opt/my_mpi_app
+srun --mpi=pmix -n 128 apptainer exec image.sif /opt/my_mpi_app
+
+# Single-node test only: the container's own mpirun
 apptainer exec image.sif mpirun -np 4 /opt/my_mpi_app
 ```
 
@@ -249,7 +256,10 @@ srun -n 64 apptainer exec \
     --bind /opt/cray:/opt/cray \
     image.sif /opt/my_mpi_app
 
-# Hybrid model
+# Hybrid model: host launcher, container's own MPICH (ABI-compatible with the host)
+mpirun -np 64 apptainer exec image.sif /opt/my_mpi_app
+
+# Single-node test only: the container's own mpirun
 apptainer exec image.sif mpirun -np 4 /opt/my_mpi_app
 ```
 
@@ -320,10 +330,10 @@ From: ubuntu:24.04
 ### Running Intel MPI Containers
 
 ```bash
-# With Slurm
+# Hybrid model with Slurm
 srun --mpi=pmi2 -n 64 apptainer exec image.sif /opt/my_mpi_app
 
-# Direct mpirun (hybrid model)
+# Single-node test only: the container's own mpirun
 apptainer exec image.sif mpirun -np 4 /opt/my_mpi_app
 ```
 

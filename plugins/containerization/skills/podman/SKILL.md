@@ -26,9 +26,9 @@ export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/podman/podman.sock
 # Pod operations (Podman-specific)
 podman pod create --name app-pod
 
-# Quadlet service management
+# Quadlet service management (generated units can't be enabled; [Install] does that)
 systemctl --user daemon-reload
-systemctl --user enable --now my-service
+systemctl --user start my-service
 ```
 
 ## Rootless Container Example
@@ -66,9 +66,11 @@ WantedBy=default.target
 ```
 
 ```bash
-# Load and start
+# Load and start. Don't run `systemctl enable`: Quadlet units are generated,
+# so it fails. The [Install] section above already starts it at login
+# (at boot too, after `loginctl enable-linger`).
 systemctl --user daemon-reload
-systemctl --user enable --now myapp
+systemctl --user start myapp
 
 # Validate
 systemctl --user status myapp

@@ -37,6 +37,8 @@ docker run --rm --device=/dev/kfd --device=/dev/dri rocm/pytorch:latest rocm-smi
 | 12.1 | 530.30+ |
 | 11.8 | 520.61+ |
 
+These are the drivers that fully support each release. An `nvidia/cuda` image also starts on the older driver branches its `NVIDIA_REQUIRE_CUDA` lists, and the list differs per tag (12.4.1 accepts 470, 525 and 535; 12.9.1 accepts 535 and newer). Starting is not running: CUDA 12.x code runs on a 525+ driver through minor version compatibility, which breaks PTX JIT and some newer APIs, and on 470 only with the forward compatibility package on supported data center GPUs. Test the workload; don't rely on the table alone.
+
 ## End-to-End Workflow With Validation Gates
 
 1. Check host GPU driver/tooling.

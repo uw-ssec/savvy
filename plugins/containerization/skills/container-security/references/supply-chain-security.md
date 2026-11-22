@@ -25,7 +25,20 @@ syft from Anchore is a purpose-built SBOM generator that supports multiple outpu
 ```bash
 # Install syft
 brew install syft                    # macOS
-curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin  # Linux
+
+# Linux amd64: pinned release; check the signed checksums, then the tarball
+SYFT_VERSION=1.57.1
+BASE="https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}"
+curl -fsSLO "${BASE}/syft_${SYFT_VERSION}_linux_amd64.tar.gz"
+curl -fsSLO "${BASE}/syft_${SYFT_VERSION}_checksums.txt"
+curl -fsSLO "${BASE}/syft_${SYFT_VERSION}_checksums.txt.sigstore.json"
+cosign verify-blob "syft_${SYFT_VERSION}_checksums.txt" \
+  --bundle "syft_${SYFT_VERSION}_checksums.txt.sigstore.json" \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity https://github.com/anchore/syft/.github/workflows/release.yaml@refs/heads/main &&
+  sha256sum --ignore-missing -c "syft_${SYFT_VERSION}_checksums.txt" &&
+  tar -xzf "syft_${SYFT_VERSION}_linux_amd64.tar.gz" syft &&
+  install -D -m 0755 syft "$HOME/.local/bin/syft"
 
 # Generate SPDX SBOM from container image
 syft myapp:latest -o spdx-json > sbom.spdx.json
@@ -108,7 +121,7 @@ Keyless signing uses your OIDC identity (GitHub, Google, Microsoft) to sign imag
 ```bash
 # Install cosign
 brew install cosign                   # macOS
-go install github.com/sigstore/cosign/v2/cmd/cosign@latest  # Go
+go install github.com/sigstore/cosign/v3/cmd/cosign@v3.1.4  # Go (pin a release)
 
 # Sign an image (interactive OIDC flow)
 cosign sign myregistry/myapp@sha256:abc123...
@@ -144,8 +157,9 @@ cosign verify --key cosign.pub myregistry/myapp:latest
 ### Verification
 
 ```bash
-# Verify keyless signature (checks Fulcio + Rekor)
-cosign verify myregistry/myapp:latest
+# Keyless verification (checks Fulcio + Rekor) must name the expected signer.
+# cosign v3 refuses to run without --certificate-identity (or
+# --certificate-identity-regexp) and --certificate-oidc-issuer.
 
 # Verify with identity constraints
 cosign verify \
@@ -185,7 +199,10 @@ For multi-architecture images, sign the manifest list (index):
 cosign sign myregistry/myapp@sha256:manifestlist-digest...
 
 # Verify works for any platform
-cosign verify myregistry/myapp:latest
+cosign verify \
+  --certificate-identity "https://github.com/org/repo/.github/workflows/build.yml@refs/heads/main" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  myregistry/myapp:latest
 ```
 
 ## SLSA Provenance and Attestation
@@ -220,8 +237,10 @@ Attestations are signed statements about an artifact. Provenance is one type of 
 cosign attest --predicate provenance.json --type slsaprovenance \
   myregistry/myapp@sha256:abc123...
 
-# Verify an attestation
+# Verify an attestation (same identity rules as cosign verify)
 cosign verify-attestation --type slsaprovenance \
+  --certificate-identity "https://github.com/org/repo/.github/workflows/build.yml@refs/heads/main" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   myregistry/myapp:latest
 
 # Custom attestation (e.g., vulnerability scan results)
@@ -283,13 +302,16 @@ Use base images from verified, trusted sources:
 # Verify Docker Official Image signatures
 docker trust inspect python:3.12-slim
 
-# Verify Chainguard image signatures
+# Verify Chainguard image signatures (exact identity; a loose regexp such as
+# ".*chainguard.*" would also accept any repository with "chainguard" in its name)
 cosign verify cgr.dev/chainguard/python:latest \
   --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
-  --certificate-identity-regexp=".*chainguard.*"
+  --certificate-identity="https://github.com/chainguard-images/images/.github/workflows/release.yaml@refs/heads/main"
 
-# Check image provenance
-cosign verify-attestation --type slsaprovenance \
+# Check image provenance (Chainguard publishes SLSA v1 provenance)
+cosign verify-attestation --type slsaprovenance1 \
+  --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+  --certificate-identity="https://github.com/chainguard-images/images/.github/workflows/release.yaml@refs/heads/main" \
   cgr.dev/chainguard/python:latest
 ```
 

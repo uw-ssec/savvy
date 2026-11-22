@@ -325,7 +325,7 @@ GitHub Actions integration:
 
 ```yaml
 - name: Scan image for vulnerabilities
-  uses: aquasecurity/trivy-action@0.28.0
+  uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
   with:
     image-ref: myapp:latest
     format: 'sarif'
@@ -333,7 +333,7 @@ GitHub Actions integration:
     severity: 'CRITICAL,HIGH'
 
 - name: Upload scan results
-  uses: github/codeql-action/upload-sarif@v3
+  uses: github/codeql-action/upload-sarif@9418214df1f2c4b8128c770156c409013b07d6b9 # v3.39.3
   with:
     sarif_file: 'trivy-results.sarif'
 ```

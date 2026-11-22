@@ -4,13 +4,13 @@
 
 | Section | Lines | Description |
 |---------|-------|-------------|
-| Multi-File Compose | 17–89 | Base + override pattern, explicit file composition with -f flags |
-| Profiles for Optional Services | 90–163 | Tagging services with profiles for conditional startup |
-| Extend and Include Directives | 164–229 | Reusing service definitions across files with extend and include |
-| Variable Interpolation and .env Files | 230–292 | Environment variable substitution, defaults, .env loading order |
-| GPU Service Configuration | 293–360 | Reserving GPU devices for ML/scientific workloads |
-| Build Context Patterns | 361–458 | Context, dockerfile, target, args, and multi-stage builds |
-| Compose Watch for Development | 459–527 | File watching with sync, rebuild, and sync+restart actions |
+| Multi-File Compose | 17–93 | Base + override pattern, explicit file composition with -f flags |
+| Profiles for Optional Services | 94–167 | Tagging services with profiles for conditional startup |
+| Extend and Include Directives | 168–233 | Reusing service definitions across files with extend and include |
+| Variable Interpolation and .env Files | 234–297 | Environment variable substitution, defaults, .env loading order |
+| GPU Service Configuration | 298–365 | Reserving GPU devices for ML/scientific workloads |
+| Build Context Patterns | 366–463 | Context, dockerfile, target, args, and multi-stage builds |
+| Compose Watch for Development | 464–532 | File watching with sync, rebuild, and sync+restart actions |
 
 ---
 
@@ -58,7 +58,11 @@ When Compose merges files, later values override earlier ones:
 
 - **Scalar values** (image, command): replaced entirely
 - **Mappings** (environment, labels): merged key-by-key; later keys win
-- **Sequences** (ports, volumes): concatenated (duplicates are not removed)
+- **Volumes**: merged by container path (`target`); a later entry for the same path replaces the earlier one
+- **Ports**: concatenated, so an override adds mappings rather than replacing them (identical entries appear only once); use `ports: !override` to replace the list
+- **Command-style sequences** (command, entrypoint, healthcheck `test`): replaced entirely
+
+Check the result with `docker compose config` rather than predicting it.
 
 ```yaml
 # compose.yml
@@ -234,7 +238,7 @@ services:
 ```yaml
 services:
   api:
-    image: myapp:${TAG}                    # Required — fails if unset
+    image: myapp:${TAG}                    # Unset → warning, then empty string
     image: myapp:${TAG:-latest}            # Default value if unset or empty
     image: myapp:${TAG-latest}             # Default value only if unset
     image: myapp:${TAG:?Tag is required}   # Error message if unset or empty
@@ -243,13 +247,14 @@ services:
 
 ### .env File Loading Order
 
-Compose resolves variables in this priority (highest first):
+Compose resolves `${VAR}` in the compose file in this priority (highest first):
 
 1. Shell environment variables
-2. Values from `--env-file` flag
-3. Values from `env_file` directive in the compose file
-4. Values from `.env` file in the project directory
-5. Default values in `${VAR:-default}` syntax
+2. Values from the `--env-file` file(s); when you pass `--env-file`, the project `.env` is not read
+3. Values from the `.env` file in the project directory
+4. Default values in `${VAR:-default}` syntax
+
+The `env_file:` attribute of a service is not in this list. It sets variables inside that service's container and never feeds interpolation of the compose file.
 
 ### .env File Format
 
@@ -257,15 +262,15 @@ Compose resolves variables in this priority (highest first):
 # .env
 # Comments start with #
 POSTGRES_USER=researcher
-POSTGRES_PASSWORD=s3cret!value    # Inline comments NOT supported
+POSTGRES_PASSWORD=s3cret!value    # Inline comment: needs a space before #
 POSTGRES_DB=research_db
 
 # Quoted values (quotes are stripped)
 APP_NAME="My Research App"
 DESCRIPTION='Single-quoted also works'
 
-# Multi-line values are NOT supported in .env files
-# Use config files or secrets for multi-line content
+# Double-quoted values may span lines; for large multi-line content
+# (keys, certificates) prefer config files or secrets
 ```
 
 ### Escaping and Special Characters

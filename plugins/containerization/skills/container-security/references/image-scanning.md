@@ -23,18 +23,33 @@
 # macOS (Homebrew)
 brew install trivy
 
-# Linux (Debian/Ubuntu)
-sudo apt-get install -y wget apt-transport-https gnupg lsb-release
-wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
-echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | \
+# Linux (Debian/Ubuntu): the key goes in its own keyring, trusted only for this repo
+sudo apt-get install -y wget gnupg
+wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | \
+  gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | \
   sudo tee /etc/apt/sources.list.d/trivy.list
 sudo apt-get update && sudo apt-get install -y trivy
 
-# Docker (no installation required)
-docker run --rm aquasec/trivy image myapp:latest
+# Docker (no installation required; pin the version)
+docker run --rm aquasec/trivy:0.76.2 image myapp:latest
 
-# Binary release (Linux/macOS)
-curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+# Binary release (Linux amd64): pin a version and verify it before installing.
+# Don't pipe install.sh from the main branch into sh.
+TRIVY_VERSION=0.76.2
+BASE="https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}"
+curl -fsSLO "${BASE}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+curl -fsSLO "${BASE}/trivy_${TRIVY_VERSION}_checksums.txt"
+curl -fsSLO "${BASE}/trivy_${TRIVY_VERSION}_checksums.txt.sigstore.json"
+# One && chain, so nothing is installed if a check fails. The cosign step proves
+# the checksums file came from Trivy's release workflow; drop it if you lack cosign.
+cosign verify-blob "trivy_${TRIVY_VERSION}_checksums.txt" \
+  --bundle "trivy_${TRIVY_VERSION}_checksums.txt.sigstore.json" \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity "https://github.com/aquasecurity/trivy/.github/workflows/reusable-release.yaml@refs/tags/v${TRIVY_VERSION}" &&
+  sha256sum --ignore-missing -c "trivy_${TRIVY_VERSION}_checksums.txt" &&
+  tar -xzf "trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" trivy &&
+  install -D -m 0755 trivy "$HOME/.local/bin/trivy"
 ```
 
 ### Core Commands
@@ -96,11 +111,18 @@ trivy image --format cyclonedx --output sbom.cdx.json myapp:latest
 # macOS (Homebrew)
 brew install grype
 
-# Linux (install script)
-curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+# Linux amd64: pinned release, verified before installing
+# (not install.sh from the main branch piped into sh)
+GRYPE_VERSION=0.121.3
+BASE="https://github.com/anchore/grype/releases/download/v${GRYPE_VERSION}"
+curl -fsSLO "${BASE}/grype_${GRYPE_VERSION}_linux_amd64.tar.gz"
+curl -fsSLO "${BASE}/grype_${GRYPE_VERSION}_checksums.txt"
+sha256sum --ignore-missing -c "grype_${GRYPE_VERSION}_checksums.txt" &&
+  tar -xzf "grype_${GRYPE_VERSION}_linux_amd64.tar.gz" grype &&
+  install -D -m 0755 grype "$HOME/.local/bin/grype"
 
-# Docker (no installation required)
-docker run --rm anchore/grype myapp:latest
+# Docker (no installation required; pin the version)
+docker run --rm anchore/grype:v0.121.3 myapp:latest
 
 # Verify installation
 grype version
@@ -433,13 +455,15 @@ jobs:
       security-events: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Build image
         run: docker build -t ${{ github.repository }}:${{ github.sha }} .
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: '${{ github.repository }}:${{ github.sha }}'
           format: 'sarif'
@@ -448,7 +472,7 @@ jobs:
           exit-code: '1'
 
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@9418214df1f2c4b8128c770156c409013b07d6b9 # v3.39.3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
@@ -472,22 +496,25 @@ jobs:
       security-events: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Build image
         run: docker build -t ${{ github.repository }}:${{ github.sha }} .
 
       - name: Scan image with Grype
-        uses: anchore/scan-action@v4
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
         id: grype-scan
         with:
+          grype-version: v0.121.3   # pin the scanner too; old Grype lost DB updates
           image: '${{ github.repository }}:${{ github.sha }}'
           fail-build: true
           severity-cutoff: critical
           output-format: sarif
 
       - name: Upload Grype scan results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@9418214df1f2c4b8128c770156c409013b07d6b9 # v3.39.3
         if: always()
         with:
           sarif_file: ${{ steps.grype-scan.outputs.sarif }}
@@ -512,21 +539,30 @@ jobs:
       issues: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
-      - name: Pull latest production image
-        run: docker pull ghcr.io/${{ github.repository }}:latest
+      # Resolve the deployed tag to a digest once; scan that immutable reference
+      - name: Resolve production image digest
+        id: image
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}
+        run: |
+          IMAGE="${IMAGE,,}"   # registry paths must be lowercase
+          DIGEST=$(docker buildx imagetools inspect "${IMAGE}:latest" --format '{{printf "%s" .Manifest.Digest}}')
+          echo "ref=${IMAGE}@${DIGEST}" >> "$GITHUB_OUTPUT"
 
       - name: Run Trivy scan
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: 'ghcr.io/${{ github.repository }}:latest'
+          image-ref: '${{ steps.image.outputs.ref }}'
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
 
       - name: Upload results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@9418214df1f2c4b8128c770156c409013b07d6b9 # v3.39.3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'

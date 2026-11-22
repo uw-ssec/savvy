@@ -594,8 +594,10 @@ cosign verify-attestation \
   --certificate-identity-regexp '^https://github.com/myorg/myapp/' \
   ghcr.io/myorg/myapp:v1.0.0
 
-# Verify SBOM attachment
+# Verify SBOM attestation
 cosign verify-attestation \
   --type spdx \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity-regexp '^https://github.com/myorg/myapp/' \
   ghcr.io/myorg/myapp:v1.0.0
 ```

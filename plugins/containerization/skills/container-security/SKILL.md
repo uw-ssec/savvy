@@ -45,9 +45,13 @@ grype myapp:latest --fail-on high
 # SBOM
 syft myapp:latest -o spdx-json > sbom.spdx.json
 
-# Sign + verify
-cosign sign myregistry/myapp:latest
-cosign verify myregistry/myapp:latest
+# Sign by digest; keyless verify must name the signer (cosign v3 requires it):
+# the CI workflow that signed, as here, or your email if you signed interactively
+cosign sign myregistry/myapp@sha256:<digest>
+cosign verify \
+  --certificate-identity "https://github.com/org/repo/.github/workflows/build.yml@refs/heads/main" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  myregistry/myapp@sha256:<digest>
 ```
 
 ## Keep SKILL.md Lean; Use Deep References

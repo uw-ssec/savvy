@@ -424,8 +424,11 @@ oras push ghcr.io/myorg/myapp:v1.0.0-sbom \
 cosign sign ghcr.io/myorg/myapp@sha256:abc123...
 
 # The signature is stored as a separate OCI artifact in the same repository
-# Verify
-cosign verify ghcr.io/myorg/myapp:v1.0.0
+# Verify (keyless verify must name the signer's identity and issuer)
+cosign verify \
+  --certificate-identity "https://github.com/myorg/myapp/.github/workflows/release.yml@refs/tags/v1.0.0" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  ghcr.io/myorg/myapp:v1.0.0
 ```
 
 ### ORAS (OCI Registry As Storage)

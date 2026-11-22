@@ -532,7 +532,8 @@ Layer Compose files for different environments:
     "docker-compose.yml",
     "docker-compose.dev.yml"
   ],
-  "service": "app"
+  "service": "app",
+  "workspaceFolder": "/workspace"
 }
 ```
 

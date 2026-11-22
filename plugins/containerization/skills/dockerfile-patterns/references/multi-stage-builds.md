@@ -600,14 +600,18 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 ### 4. Not Using --from with the Correct Stage Name
 
-```dockerfile
-# WRONG: stage name is case-sensitive and must match exactly
-FROM python:3.12 AS Builder
-# ...
-COPY --from=builder /app /app  # Error: stage "builder" not found
+Stage names are not case-sensitive: BuildKit lowercases them, so `AS Builder` and `--from=builder` match (the `StageNameCasing` check warns about the uppercase name). A misspelled name is the real trap. A `--from` value that matches no stage is treated as an image reference and pulled from a registry.
 
-# RIGHT: match the case
-COPY --from=Builder /app /app
+```dockerfile
+# WRONG: typo in the stage name
+FROM python:3.12 AS builder
+# ...
+FROM python:3.12-slim
+# Fails: "buildr: failed to resolve source metadata for docker.io/library/buildr:latest"
+COPY --from=buildr /app /app
+
+# RIGHT: use the exact stage name; keep stage names lowercase
+COPY --from=builder /app /app
 ```
 
 ### 5. Copying Source Code When Only Artifacts Are Needed

@@ -69,8 +69,8 @@ non-trivial) → build (`implementing-plans`) → verify
 
 Each skill runs **Collaborative** (one question at a time, gate on approval) or
 **Direct** (act, narrate briefly, stop only when blocked); see
-`references/interaction-modes.md`. Destructive or outward-facing actions always
-need confirmation.
+`references/interaction-modes.md`. Destructive, irreversible or outward-facing
+actions always need confirmation.
 
 ## References
 

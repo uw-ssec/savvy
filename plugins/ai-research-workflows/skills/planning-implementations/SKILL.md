@@ -70,6 +70,8 @@ choice under Resolved Decisions.
   code, watch it pass, commit. For research code the failing test checks a
   known result, analytic case or invariant
   (`ai-research-workflows:hardening-research-code`).
+- **Anchor every phase**, including one that only runs or regenerates: cite
+  `file:line` for the code it changes or runs; mark files it creates `(new)`.
 - **Split success criteria** into Automated (commands) and Manual (judgment).
 - **Fill in "What We're NOT Doing"**, even when small: it stops scope creep.
 

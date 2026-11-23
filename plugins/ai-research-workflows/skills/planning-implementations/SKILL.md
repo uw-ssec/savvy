@@ -71,7 +71,8 @@ choice under Resolved Decisions.
   known result, analytic case or invariant
   (`ai-research-workflows:hardening-research-code`).
 - **Anchor every phase**, including one that only runs or regenerates: cite
-  `file:line` for the code it changes or runs; mark files it creates `(new)`.
+  `file:line` for the files it changes or runs, code or docs; mark files it
+  creates `(new)`.
 - **Split success criteria** into Automated (commands) and Manual (judgment).
 - **Fill in "What We're NOT Doing"**, even when small: it stops scope creep.
 

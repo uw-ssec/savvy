@@ -89,6 +89,23 @@
       "expected_script": null
     },
     {
+      "id": "iterating-plans-006",
+      "prompt": "Cut the scheduled monthly run (Phase 3) from docs/rse/specs/plan-report-export.md; we'll trigger exports by hand for now. I've already agreed this with the team, so there's no need to check back with me. The repo is at input/report-export/.",
+      "files": [
+        "files/report-export"
+      ],
+      "expected_output": "Direct mode: the agent states the edits it is making and applies them to the plan in place without asking for confirmation. Phase 3 and its success criteria are removed, the scheduled run is listed under What We're NOT Doing with the reason, Phases 1 and 2 are unchanged, and the agent reports what changed.",
+      "assertions": [
+        "The agent read the full plan before editing",
+        "The agent stated the intended edits and applied them to docs/rse/specs/plan-report-export.md in this turn, without stopping to ask for confirmation",
+        "Phase 3 and its success criteria are removed and the scheduled monthly run is listed under What We're NOT Doing with the reason (exports are triggered by hand)",
+        "Phases 1 and 2 and the existing What We're NOT Doing entry are unchanged, and no other plan or source file was rewritten",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+      ],
+      "expected_skill": "iterating-plans",
+      "expected_script": null
+    },
+    {
       "id": "iterating-plans-neg-001",
       "prompt": "The plan in docs/rse/specs/plan-bootstrap-ci-pipeline.md is approved. The repo is at input/bootstrap-ci/. It was copied in without its git history, so first run `git init -b feature/bootstrap-ci && git add -A && git -c user.name=dev -c user.email=dev@example.invalid commit -qm base` there. Start building Phase 1.",
       "files": [

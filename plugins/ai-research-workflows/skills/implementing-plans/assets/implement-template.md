@@ -101,17 +101,17 @@
 
 ### Manual Verification
 
-[List what was manually tested, referencing the plan's manual verification criteria]
+[List every manual check from the plan. Mark one ✅ only if the user has
+confirmed it; until then it stays pending for the user.]
 
-- ✅ UI renders correctly — Tested at `http://localhost:3000/feature`
-- ✅ User can successfully [perform action]
-- ✅ Error messages are clear and helpful
-- ⚠️ Performance under load — [Notes if any concerns]
-- ✅ Edge case: [describe] behaves correctly
+- ⏸️ Pending user confirmation: UI renders correctly at `http://localhost:3000/feature`
+- ⏸️ Pending user confirmation: user can successfully [perform action]
+- ✅ Confirmed by the user on [date]: [manual check the user reported done]
+- ⚠️ [Manual check] — [Notes if the user reported a concern]
 - [Continue with all manual checks from plan]
 
 **Manual Testing Notes:**
-[Any observations from manual testing]
+[Observations the user reported, or "Manual verification pending: awaiting the user's checks."]
 
 ## Issues Encountered
 
@@ -183,7 +183,7 @@
 
 **Recommended Actions:**
 - Perform systematic validation against the plan
-- Create git commit with your changes
+- Commit any changes the plan's commit steps didn't cover
 - Create pull request for review
 
 ## Lessons Learned

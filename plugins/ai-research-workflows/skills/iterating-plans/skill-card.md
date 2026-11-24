@@ -4,7 +4,7 @@ Format follows NVIDIA's Skill Card template (NVIDIA/Trustworthy-AI). Sections no
 
 ## Description
 
-Instructs an agent to revise an existing implementation plan (`docs/rse/specs/plan-*.md`) with focused edits: read the whole plan, research the codebase if the change needs it, confirm the proposed changes with the user, edit surgically, and check the plan is still internally consistent. It is written instructions plus a reference document and ships no code.
+Instructs an agent to revise an existing implementation plan (`docs/rse/specs/plan-*.md`) with focused edits: read the whole plan, research the codebase if the change needs it, propose the changes (and, in the default Collaborative mode, get the user's confirmation), edit surgically, and run a required consistency scan. It is written instructions plus a reference document and ships no code.
 
 ## Owner
 
@@ -16,7 +16,7 @@ BSD-3-Clause (as declared in the plugin manifest, `plugins/ai-research-workflows
 
 ## Use Case
 
-Developers and researchers who need to change a plan before or during execution: add a phase, revise scope, update success criteria, or fold in experiment results. Typical triggers: "update the plan", "add a phase", "revise scope".
+Developers and researchers who need to change a plan before or during execution: add a phase, revise scope, update success criteria, or fold in experiment results. Typical triggers: "update the plan", "add a phase", "split a phase", "revise scope", "incorporate experiment results".
 
 ## Deployment Geography
 
@@ -39,7 +39,7 @@ Capability declarations (`metadata` in `SKILL.md`) and what each implies:
 Accepted security findings: none for this skill in `.github/skill-security-accepted.yml`.
 
 Risk: edits to a plan can break its internal consistency (phase numbering, cross-references, the automated versus manual verification split) or silently invalidate its reproducibility or numerical-correctness criteria.
-Mitigation: the skill requires a consistency scan after editing and a re-check of the research criteria when the approach changes. It requires the agent to present the proposed changes and get the user's confirmation before writing to the plan file, and the skill states no exemption from that confirmation. The skill points to the plugin's mode protocol for override rules, which lets "go ahead" select Direct mode, and it does not say whether that lifts this confirmation. It also forbids leaving open questions in the plan.
+Mitigation: the skill requires a numbered consistency scan after every edit (contiguous phase numbers, resolving cross-references, no references to removed work, the Automated/Manual split intact, no open questions) and a re-check of the research criteria when the approach changes or a results-producing phase is added. Confirmation is keyed to the interaction mode: in Collaborative mode (the default, including a bare "go" or a specific change request) the agent presents the proposed changes and does not write to the plan file until the user says yes; only when the user says not to check back ("no need to check back", "don't ask", "just do it") does the agent state the intended edits and then apply them.
 
 Risk: an agent rewrites more of the plan than was asked.
 Mitigation: the skill specifies surgical edits and lists whole-plan rewrites as a bad edit. Review the diff of the plan.
@@ -56,7 +56,7 @@ Released with the `ai-research-workflows` plugin. The version is the release tag
 
 ## Ethics
 
-The plan may later be executed by an agent with the user's permissions, so an altered plan changes what the agent will do. The skill therefore always asks the user to confirm proposed changes before they are written and to raise conflicts rather than hiding them. Developers should confirm the skill fits their team's policies before adoption.
+The plan may later be executed by an agent with the user's permissions, so an altered plan changes what the agent will do. The skill therefore states every intended edit before it is written, asks the user to confirm unless the user has said not to check back, and raises conflicts rather than hiding them. Developers should confirm the skill fits their team's policies before adoption.
 
 ## Reference(s)
 

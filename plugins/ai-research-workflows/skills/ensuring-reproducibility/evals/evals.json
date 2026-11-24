@@ -7,9 +7,9 @@
       "files": [
         "files/baseline-classifier"
       ],
-      "expected_output": "A '## Reproducibility' section appended to the experiment's spec file under docs/rse/specs/ (or a new reproducibility-<slug>.md if none exists), recording the interpreter version, active lockfile, git commit hash with dirty-tree status, hardware details, data inputs with version or content hashes, the seed 42, config contents, and the exact shell commands. The result was re-run in a clean environment and the outcome of that comparison against 0.790 is reported, or a minimal reproduction was run if a full one was infeasible.",
+      "expected_output": "A '## Reproducibility' section appended to the experiment's spec file under docs/rse/specs/ (or a new reproducibility-<slug>.md if none exists), recording the interpreter version, the active lockfile (or, since the project has none, the installed dependency versions and a note that no lockfile existed), git commit hash with dirty-tree status, hardware details, data inputs with version or content hashes, the seed 42, config contents, and the exact shell commands. The result was re-run in a clean environment and the outcome of that comparison against 0.790 is reported, or a minimal reproduction was run if a full one was infeasible.",
       "assertions": [
-        "The agent wrote a Reproducibility section or file under docs/rse/specs/ containing the interpreter version, lockfile name, and git commit hash",
+        "The agent wrote a Reproducibility section or file under docs/rse/specs/ containing the interpreter version, the lockfile name or (when the project has no lockfile) the installed dependency versions with a note that no lockfile existed, and the git commit hash",
         "The agent's record lists the seed 42, the config file configs/baseline.json, and the exact python commands",
         "The agent's record includes data input identifiers with a version tag or content hash",
         "The agent attempted a clean-environment re-run and reported whether the result matched 0.790, or reported a concrete technical reason it could not be run",
@@ -58,9 +58,9 @@
       "files": [
         "files/figure-3"
       ],
-      "expected_output": "A provenance record for the figure with the commit, environment and lockfile, the exact copy-pasteable command, input data identifiers and seeds, plus the outcome of a clean-environment regeneration.",
+      "expected_output": "A provenance record for the figure with the commit, environment and lockfile (or the installed dependency versions and a note that no lockfile existed), the exact copy-pasteable command, input data identifiers and seeds, plus the outcome of a clean-environment regeneration.",
       "assertions": [
-        "The agent recorded the commit, the interpreter or environment version and the lockfile used",
+        "The agent recorded the commit, the interpreter or environment version, and the lockfile used or (when the project has no lockfile) the installed dependency versions with a note that no lockfile existed",
         "The agent recorded the exact, copy-pasteable command used to run scripts/make_fig3.py rather than a paraphrase such as 'run the figure script'",
         "The agent recorded input data identifiers as a path plus a version tag or content hash, and any random seeds",
         "The agent wrote the record to a file under docs/rse/specs/",

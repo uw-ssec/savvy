@@ -142,3 +142,9 @@ state the same sentence as what you are doing and continue.
    Phase N+1 (tasks X+1-Y: [objective B]). Each phase will be independently
    testable. Sound good?"
 3. Edit the plan to split; update subsequent phase numbering.
+
+## Common Mistakes
+
+- Deleting cut tasks without adding them to "What We're NOT Doing" or removing their success criteria.
+- Inserting a phase without renumbering later phases and their cross-references.
+- Editing before confirming in Collaborative mode, or saving an "Open question" in the plan.

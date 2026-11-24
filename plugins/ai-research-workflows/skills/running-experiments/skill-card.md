@@ -16,7 +16,7 @@ BSD-3-Clause (as declared in the plugin manifest, `plugins/ai-research-workflows
 
 ## Use Case
 
-Developers and researchers for whom the best technical approach is genuinely uncertain and a head-to-head prototype comparison is worth the cost. Typical triggers: "should I use X or Y", "try both", "compare approaches", "benchmark before committing", "which is faster on our data". Surveys of existing tools or papers belong to the `researching` skill. The skill is optional and says not to use it when the answer is already clear.
+Developers and researchers for whom the best technical approach is genuinely uncertain and a head-to-head prototype comparison is worth the cost. Typical triggers: "should I use X or Y", "prototype both", "compare approaches", "benchmark before committing", "which is faster on our data". Surveys of existing tools or papers belong to the `researching` skill. The skill is optional and says not to use it when the answer is already clear.
 
 ## Deployment Geography
 

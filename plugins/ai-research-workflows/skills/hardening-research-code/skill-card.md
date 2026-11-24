@@ -4,7 +4,7 @@ Format follows NVIDIA's Skill Card template (NVIDIA/Trustworthy-AI). Sections no
 
 ## Description
 
-Instructs an agent to make research and scientific code trustworthy by stating explicit correctness criteria and backing them with tests: reference or analytic checks, numerical tolerances, regression baselines, stability checks and invariant checks. It is written instructions only and ships no code. Test mechanics are deferred to the `scientific-python-development:python-testing` skill.
+Instructs an agent to make research and scientific code trustworthy by stating explicit correctness criteria and backing them with tests: reference or analytic checks, numerical tolerances, regression baselines, stability checks and invariant checks. It is written instructions plus one reference document (`references/techniques.md`, the detail for each kind of test) and ships no code. Test mechanics are deferred to the `scientific-python-development:python-testing` skill.
 
 ## Owner
 
@@ -32,7 +32,7 @@ Capability declarations (`metadata` in `SKILL.md`) and what each implies:
 
 - `capability-network: none`. The skill does not direct any network access.
 - `capability-shell: runs-commands`. The skill directs the agent to run the test suite, and to run each correctness test while its expected value or input is deliberately perturbed to confirm it fails. The agent runs these with the user's permissions, and test code can do anything the project code can.
-- `capability-file: write`. The skill directs the agent to add or edit test files, reference or golden data files and notes on tolerances.
+- `capability-file: write`. The skill directs the agent to add or edit test files, reference or golden data files and notes on tolerances. When a correctness test fails on the current code, it also allows the agent to fix the code under test if the cause is clear and in scope.
 - `capability-environment: none`. No environment variables are read.
 - `capability-mcp: none`. No MCP tools are used.
 
@@ -46,6 +46,9 @@ Mitigation: the skill requires a reference to be independent of the code under t
 
 Risk: a tolerance chosen to make a test pass hides a bug.
 Mitigation: the skill says to derive tolerances from the numerics, to document the justification, and never to tune them to the result.
+
+Risk: a correctness test exposes a real defect and the agent changes the code under test, which can change results the user has already reported.
+Mitigation: the skill says to report the failed criterion with expected and actual values, to fix the code only when the cause is clear and within what the user asked to harden, and otherwise to leave the test failing and ask. Review any change to non-test code in the diff.
 
 Risk: the agent edits a test's expected value while checking that it fails and does not restore it.
 Mitigation: the skill's workflow says to restore the original after seeing the test fail. Review the diff.
@@ -67,3 +70,4 @@ For scientific code, wrong results can propagate into published findings. The sk
 ## Reference(s)
 
 - [SKILL.md](SKILL.md)
+- [references/techniques.md](references/techniques.md)

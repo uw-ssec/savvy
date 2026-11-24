@@ -1,5 +1,62 @@
 # Validating Implementations — Report Templates
 
+## Contents
+
+- [Report layout](#report-layout)
+- [Header and provenance](#header-and-provenance)
+- [Implementation Status per Phase](#implementation-status-per-phase)
+- [Automated Verification Results](#automated-verification-results)
+- [Code Review Findings](#code-review-findings)
+- [Manual Testing Required](#manual-testing-required)
+- [Recommendations](#recommendations)
+- [References](#references)
+- [Closing the conversation](#closing-the-conversation)
+- [Special cases](#special-cases)
+
+## Report layout
+
+Write the report to `docs/rse/specs/validation-<slug>.md`, where `<slug>` comes
+from the plan's file name (`plan-oauth-support.md` → `validation-oauth-support.md`).
+Create `docs/rse/specs/` if it does not exist. Overwrite any earlier validation
+of the same plan; git history keeps earlier verdicts. Present the same content
+inline, then confirm the file's path.
+
+The file contains, in order:
+
+1. Header and provenance, with the Overall Status and Summary
+2. **Implementation Status**: per-phase completion with task-level detail
+3. **Automated Verification Results**: pass/fail for each command, with root
+   cause and recommendation for each failure
+4. **Code Review Findings**: what matches the plan, deviations, potential issues
+5. **Manual Testing Required**: actionable steps for items a human must check
+6. **Recommendations**: Critical / Important / Nice to Have / Follow-Up
+7. **References**: links to the plan and the implementation summary
+
+## Header and provenance
+
+```markdown
+# Validation: [Feature Name]
+
+> Validated against `docs/rse/specs/plan-[slug].md` / `docs/rse/specs/implement-[slug].md`
+> at commit `[short-sha]` on `[YYYY-MM-DD]`.
+
+## Overall Status: [Ready, Issues Found or Incomplete — write one]
+
+## Summary
+- Phases: [X] of [Y] fully implemented
+- Automated Checks: [X] passing, [Y] failing
+- Manual Testing: [X] items require human verification
+- Critical Issues: [X]
+- Important Issues: [Y]
+```
+
+Get the short SHA with `git rev-parse --short HEAD`. If there is no
+`implement-[slug].md`, name the plan only and say so. Status rules: **Ready**
+only when every check you ran passed and every criterion is met; **Issues
+Found** when anything failed or is unexplained, even if phases are also
+unfinished (failures take precedence); **Incomplete** when phases are
+unfinished and nothing that ran failed.
+
 ## Implementation Status per Phase
 
 ```markdown
@@ -23,15 +80,15 @@
 ## Automated Verification Results
 
 ### Passing Checks:
-- ✅ `make test` — All 45 tests passing
-- ✅ `npm run lint` — No linting errors
-- ✅ `mypy src/` — Type checking passed
+- ✅ `pixi run pytest` — 45 passed (expected 45)
+- ✅ `pixi run mypy src/` — no errors
 
 ### Failing Checks:
-- ❌ `pytest tests/test_auth.py::test_token_refresh` — failing with timeout error
-  - **Root Cause:** Token refresh endpoint not handling concurrent requests
-  - **Location:** `api/auth.py:123`
-  - **Recommendation:** Add lock mechanism or queue
+- ❌ `pixi run pytest tests/test_spectrum.py::test_parseval` — 2 failed (expected 0)
+  - **Error:** `AssertionError: power 0.97 != 1.00 within rtol=1e-6`
+  - **Root Cause:** implementation bug — window normalisation applied twice
+  - **Location:** `src/pkg/spectrum.py:34`
+  - **Recommendation:** remove the second normalisation (Critical)
 
 [No failing checks? State "All automated verification checks passed."]
 ```
@@ -45,15 +102,15 @@
 - [List items that match]
 
 ### Deviations from Plan:
-- **Deviation 1:** [Description]
-  - **Reason:** [If known]
-  - **Impact:** [Operational / complexity effect]
+- **Deviation 1:** [Description, with `file:line`]
+  - **Reason:** [If known; otherwise "not recorded"]
+  - **Impact:** [Effect on behaviour, results or complexity]
   - **Assessment:** Acceptable | Problematic
 
 [No deviations? State "Implementation matches plan exactly."]
 
 ### Potential Issues:
-- [Issue with file:line reference and description]
+- [Issue with `file:line` reference and description]
 
 [No issues? State "No issues identified."]
 ```
@@ -65,9 +122,8 @@
 
 1. **[Test area]**
    - [Step-by-step instructions]
-   - [Expected outcome]
-
-[Mark items completed if already tested in this session]
+   - Expected: [outcome]
+   - Status: pending | confirmed by the user in this session
 ```
 
 ## Recommendations
@@ -88,38 +144,22 @@
 - [Item]
 ```
 
-## Writing & presenting the report
+## References
 
-Write the full report to `docs/rse/specs/validation-<slug>.md` (overwriting any
-prior validation of the same plan — git preserves earlier verdicts) and present
-the same content inline. Both open with the provenance line and header:
-
-```
-# Validation Complete
-
-> Validated against `docs/rse/specs/plan-[slug].md` / `docs/rse/specs/implement-[slug].md`
-> at commit `[short-sha]` on `[date]`.
-
-## Overall Status: ✅ Ready | ⚠️ Issues Found | ❌ Incomplete
-
-## Summary:
-- Phases: [X] of [Y] fully implemented
-- Automated Checks: [X] passing, [Y] failing
-- Manual Testing: [X] items require human verification
-- Critical Issues: [X]
-- Important Issues: [Y]
-```
-
-Append the full report sections above, then close the document with a References
-section:
+End the document with relative links to the plan and implementation summary,
+computed from where each one actually is (a legacy plan under `.agents/` is
+not in the report's directory). When both sit beside the report:
 
 ```markdown
 ## References
-- Plan: `docs/rse/specs/plan-[slug].md`
-- Implementation: `docs/rse/specs/implement-[slug].md`
+
+- [Plan: Feature Name](plan-[slug].md)
+- [Implementation: Feature Name](implement-[slug].md)
 ```
 
-Close with:
+## Closing the conversation
+
+After presenting the report inline, offer next steps without acting on them:
 
 ```
 Would you like me to:
@@ -128,12 +168,12 @@ Would you like me to:
 3. Run additional verification checks
 ```
 
-## Special Cases
+## Special cases
 
 ### Implementation Incomplete
 
 ```markdown
-## Implementation Status: ❌ Incomplete
+## Implementation Status: Incomplete
 
 ### Completed Phases:
 - Phase 1: ✅ Complete
@@ -148,9 +188,9 @@ Would you like me to:
 ### No Automated Checks Defined
 
 ```markdown
-## Automated Verification: ⚠️ No Checks Defined
+## Automated Verification: No Checks Defined
 
-The plan does not include automated verification checks. Manual validation only
+The plan does not include automated verification checks. Manual validation alone
 is insufficient for complex changes.
 
 **Recommendation:** Add test commands, file-existence checks, or scripts to the
@@ -159,6 +199,5 @@ plan before re-validating.
 
 ### Failing Tests
 
-Document each failure using the "Failing Checks" format shown above: command,
-error output, root cause, location, recommendation, and priority (Critical /
-Important / Nice to Have).
+Document each failure in the "Failing Checks" format above: command, error
+output, root cause, location, recommendation and priority.

@@ -26,6 +26,7 @@ First tagged release. Only `ai-research-workflows` ships in it and moves to this
 #### Changed
 
 - `ensuring-reproducibility`: `SKILL.md` is now a short entry point (Iron Law, field table, clean-room steps, red flags). The full field list, record location and tolerance example moved to a new `references/provenance-record.md`, which also adds steps for a project with no lockfile and a record skeleton. The description gains triggers for numbers that differ across runs or machines, reviewer or journal requests and reporting a number in a paper, and names the neighboring skills it doesn't own ([#155](https://github.com/uw-ssec/savvy/issues/155)).
+- `validating-implementations`: slimmer `SKILL.md` (detail moved to `references/`) with explicit rules to investigate "flaky" failures, write the report file even for chat-only requests, choose one overall status and leave the code under review unchanged ([#163](https://github.com/uw-ssec/savvy/issues/163)).
 
 ### containerization
 

@@ -4,7 +4,7 @@ Format follows NVIDIA's Skill Card template (NVIDIA/Trustworthy-AI). Sections no
 
 ## Description
 
-Instructs an agent to record the provenance of a result (environment and lockfile, code commit, hardware, data versions or hashes, seeds, configuration, exact commands) and to reproduce it in a clean environment before calling it reproducible. It is written instructions only and ships no code.
+Instructs an agent to record the provenance of a result (environment and lockfile, or the exact installed versions when there is no lockfile, code commit, hardware, data versions or hashes, seeds, configuration, exact commands, result values) and to reproduce it in a clean environment before calling it reproducible. It is written instructions only and ships no code: `SKILL.md` is the entry point and `references/provenance-record.md` holds the full field list, tolerance format and record skeleton.
 
 ## Owner
 
@@ -16,7 +16,7 @@ BSD-3-Clause (as declared in the plugin manifest, `plugins/ai-research-workflows
 
 ## Use Case
 
-Researchers and research software engineers who need a result, experiment or analysis to be reproducible by others or by a future session. Typical triggers: "make this reproducible", "capture provenance", "why can't I reproduce X".
+Researchers and research software engineers who need a result, experiment or analysis to be reproducible by others or by a future session. Typical triggers: "make this reproducible", "capture provenance", "can't reproduce my results", "a reviewer asks for code and data availability".
 
 ## Deployment Geography
 
@@ -32,7 +32,7 @@ Capability declarations (`metadata` in `SKILL.md`) and what each implies:
 
 - `capability-network: read`. The skill directs the agent to record data URLs and retrieval dates and to reproduce from a pinned lockfile in a fresh environment (for example `uv sync --frozen` or a clean pixi environment). That installs packages and may download recorded data from the network.
 - `capability-shell: runs-commands`. The agent runs commands to read the commit hash (`git rev-parse HEAD`), and runs the recorded commands (for example training and evaluation scripts) in a clean environment. It will run whatever those recorded commands say, with the user's permissions.
-- `capability-file: write`. The skill directs the agent to append a `## Reproducibility` section to an existing artifact in `docs/rse/specs/` or to create `docs/rse/specs/reproducibility-<slug>.md`.
+- `capability-file: write`. The skill directs the agent to append a `## Reproducibility` section to an existing artifact in `docs/rse/specs/` or to create `docs/rse/specs/reproducibility-<slug>.md` with that heading.
 - `capability-environment: none`. No environment variables are read as inputs.
 - `capability-mcp: none`. No MCP tools are used.
 
@@ -42,10 +42,10 @@ Risk: re-running recorded commands can be slow or costly (long jobs, GPUs) and d
 Mitigation: the skill allows a minimal reproduction (smaller subset, fewer steps, one seed). The skill leans Direct and has no pause before the re-run, and it says that lack of time is never a reason to skip the reproduction, so the agent may start compute without asking. Review the recorded commands beforehand, or ask the agent to confirm before it runs them.
 
 Risk: the record is written to a committed path (`docs/rse/specs/`) and the skill has the agent capture config file contents, data URLs and exact commands, so tokens in URLs, secrets in config files or an environment dump the agent chooses to take (the skill does not direct one) can end up in version control.
-Mitigation: the skill has no secret filter. Review the record for credentials before committing it, and keep credentials out of recorded URLs and commands.
+Mitigation: the reference tells the agent to keep tokens, secret config values and environment dumps out of the record, but the skill has no secret filter. Review the record for credentials before committing it.
 
-Risk: the skill re-runs the exact recorded commands and does not say to redirect their outputs, so a re-run in the same checkout can overwrite the original checkpoint or result being reproduced.
-Mitigation: none in the skill. Copy the original outputs aside, or reproduce into a separate output directory, before the re-run.
+Risk: the skill re-runs the exact recorded commands, so a re-run in the same checkout could overwrite the original checkpoint or result being reproduced.
+Mitigation: the skill's clean-room procedure starts from a fresh clone or copy, which leaves the original outputs intact. An agent that ignores that step and re-runs in place can still overwrite them, so copy irreplaceable outputs aside first.
 
 Risk: a provenance record can look complete without having been verified.
 Mitigation: the skill states that an unreproduced record is a hypothesis. It permits deferral only when a fresh run is technically impossible, never for lack of time, and requires any tolerance to be documented.
@@ -67,3 +67,4 @@ The skill supports research integrity: a reported number should be backed by a r
 ## Reference(s)
 
 - [SKILL.md](SKILL.md)
+- [references/provenance-record.md](references/provenance-record.md)

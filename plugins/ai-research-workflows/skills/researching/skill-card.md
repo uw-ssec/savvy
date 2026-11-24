@@ -4,7 +4,7 @@ Format follows NVIDIA's Skill Card template (NVIDIA/Trustworthy-AI). Sections no
 
 ## Description
 
-Instructs an agent to investigate the current codebase (call paths, module dependencies), external prior art (papers, tools, methods, documentation), or both, and to synthesize one research document that feeds planning. It is written instructions, two reference documents and a template, and ships no code.
+Instructs an agent to investigate the current codebase (call paths, module dependencies), external prior art (papers, tools, methods, documentation), or both, and to synthesize one research document that feeds planning. It is written instructions, three reference documents and a template, and ships no code.
 
 ## Owner
 
@@ -67,3 +67,4 @@ Research findings feed design decisions and sometimes published work, so the ski
 - [assets/research-template.md](assets/research-template.md)
 - [references/codebase-research.md](references/codebase-research.md)
 - [references/prior-art-research.md](references/prior-art-research.md)
+- [references/writing-and-review.md](references/writing-and-review.md)

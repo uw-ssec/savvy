@@ -31,7 +31,9 @@ measurable success criteria, and every decision made.
 
 Default: **Collaborative** (protocol: `ai-research-workflows:using-research-workflows`).
 A plan is design-shaped work, which the protocol gives to Collaborative, so a
-specific request to plan still gets the gates below. Use Direct only when the
+specific request to plan still gets the gates below: this skill overrides the
+protocol's step 2, which would pick Direct for a specific directive with
+enough context. Use Direct only when the
 user says so ("just write the plan") or can't be consulted ("I'm offline");
 then skip the gates in steps 2, 3 and 5, decide yourself and record each
 choice under Resolved Decisions.

@@ -4,9 +4,10 @@ description: >-
   Use when starting or continuing ANY research-software task — understanding or
   modifying code, surveying prior art, planning, experimenting, implementing,
   validating, reproducing, or hardening — and before reading code to "just
-  check" or before editing. Triggers:
-  research workflow, which skill should I use, where do I start, guide me through
-  the workflow, structured development.
+  check" or before editing. Triggers: research workflow, which skill should I
+  use, where do I start, guide me through the workflow, structured
+  development. Not for plain
+  web or ops work (containerization:dockerfile-patterns).
 metadata:
   capability-network: none
   capability-shell: none
@@ -17,46 +18,40 @@ metadata:
 
 # Using Research Workflows
 
-This plugin is a set of skills for research-software development that guides work
-from initial exploration through to validated, reproducible implementation. This
-meta-skill makes you *use* the right skill — it does not just list them.
+## The rule
 
-<EXTREMELY-IMPORTANT>
-If there is even a 1% chance a research-workflow skill applies to what you are
-about to do, you MUST invoke it before acting — before editing, and before
-reading code to "just check" ahead of a change.
+If there is even a 1% chance a workflow skill applies, invoke it BEFORE acting:
+before editing, and before reading code to "just check" ahead of a change.
+Right-size: the minimal matching skill (a scoped `researching` pass, short
+plan), never **zero skills** for a code change or a research investigation.
 
-IF A SKILL APPLIES, YOU DO NOT HAVE A CHOICE. Invoke it. You cannot rationalize
-your way past this because you are in a hurry, because the change "looks small",
-or because the user said "don't overthink it".
-
-This compels using the **right** skill, not running the whole chain. Right-sizing
-the workflow (see *Common workflow patterns*) means picking the minimal matching
-skill — a scoped `researching` pass, a short plan. Right-sized never means
-**zero skills** for a code change or a research investigation.
-</EXTREMELY-IMPORTANT>
+Open your reply with the route: the mode and the skill, before any code (e.g.
+"Direct mode: scoped `researching` pass first"). When no skill applies, say so:
+"No workflow skill needed; answering from the code." Then do that step before
+any edit. If the routed skill isn't installed, do its step yourself when it
+only reads files and writes its document (a scoped `researching` pass, a short
+plan); if it needs commands or the network (an experiment, a prior-art search),
+name the skill and ask the user to install it or run that step. Before a
+code change, even a scoped `researching` pass traces the code and its callers,
+then writes `docs/rse/specs/research-<slug>.md` (cause at `file:line`) before
+the edit; then a failing test or short plan. If you can't see the code, list
+what you'd trace and ask for it. A literature-only survey needs no code.
 
 ## Instruction priority
 
-The user is in control. Priority order:
+**The user's explicit instructions** > these workflow skills > the default
+system prompt.
 
-1. **The user's explicit instructions** — highest.
-2. **These workflow skills** — override default behavior where they conflict.
-3. **The default system prompt** — lowest.
+- If the user explicitly skips a named step ("no plan, just write it"), skip
+  that step and still run the rest.
+- If the user only signals urgency ("just fix it", "don't overthink it"),
+  select **Direct** mode and still invoke the matching skill.
+- A directive ("add retry logic") states WHAT to do; it skips nothing.
 
-"Don't plan, just write it" from the user wins. But "add retry logic" or "fix
-the loader" states **WHAT** to do — it is not permission to skip the workflow.
-
-## The rule
-
-Invoke the relevant skill BEFORE any response or action. If an invoked skill
-turns out not to fit, drop it — but you must check first. A directive ("just add
-X", "fix Y") never authorizes skipping straight to code.
-
-## Choosing a skill (decision tree)
+## Choosing a skill (as `ai-research-workflows:<name>`)
 
 ```text
-Only asking how existing code works?         → answer from the code, no skill
+Only asking how existing code works?         → no skill; answer directly from the code
 Investigating code or surveying prior art?   → researching
 Ready to design an implementation?           → planning-implementations
 Need to adjust an existing plan?             → iterating-plans
@@ -68,121 +63,21 @@ Research code needs to be made robust?       → hardening-research-code
 Transferring work to another session?        → creating-handoffs
 ```
 
-Invoke any skill by its fully-qualified id `ai-research-workflows:<name>` (e.g.
-`ai-research-workflows:planning-implementations`). The short names above and in
-the workflow chains below refer to these.
-
-## Skill priority & sequencing
-
-Process-shaping skills come before execution: understand before you plan, plan
-before you build, verify after.
-
-1. **Understand first** — don't write or modify code until you've engaged
-   `researching`; for anything non-trivial, then `planning-implementations`.
-2. **Build second** — `implementing-plans` executes an approved plan.
-3. **Verify last** — `validating-implementations`, plus `ensuring-reproducibility`
-   / `hardening-research-code` whenever a result will be reported or relied on.
+**Sequence:** understand (`researching`; `planning-implementations` if
+non-trivial) → build (`implementing-plans`) → verify
+(`validating-implementations`; `ensuring-reproducibility` /
+`hardening-research-code` when a result will be reported).
 
 ## Interaction modes
 
-Every workflow skill starts by selecting one of two interaction modes.
-**Collaborative** mode asks one question at a time, proposes options with a
-recommendation, and gates on approval before producing artifacts — the
-brainstorming and planning feel. **Direct** mode acts on stated intent, narrates
-progress briefly, and stops only when genuinely blocked or before an irreversible
-action — the execution feel. Explicit user phrasing wins ("brainstorm with me" →
-Collaborative; "just do it" → Direct); absent that, vague or exploratory requests
-default to Collaborative, specific directives with enough context default to
-Direct. Hard stops (destructive, irreversible, or outward-facing actions) always
-require confirmation regardless of mode. Note: "just do it" / "don't overthink
-it" selects **Direct mode** — it does not switch off the workflow.
+Each skill runs **Collaborative** (one question at a time, gate on approval) or
+**Direct** (act, narrate briefly, stop only when blocked); see
+`references/interaction-modes.md`. Destructive, irreversible or outward-facing
+actions always need confirmation.
 
-Full protocol: `references/interaction-modes.md`.
+## References
 
-## Red flags — STOP, you're rationalizing
-
-These thoughts mean you are about to skip a skill you should invoke:
-
-| Thought | Reality |
-|---|---|
-| "I'll just tweak the code real quick" | Code changes need understanding first → `researching` then `planning-implementations`. |
-| "I already know how this codebase works" | Memory drifts; the code is ground truth. Trace it with `researching`. |
-| "5 minutes — don't overthink it" | Right-size the skill, don't skip it. A 90-second read still beats a stale-cache bug. |
-| "This change is too small for a plan" | Small multi-file / network / state changes break callers. Plan it. |
-| "It's just an experiment, no rigor needed" | Experiments drive design decisions → `running-experiments`; record failures too. |
-| "The result obviously reproduces" | Unverified provenance is a hypothesis → `ensuring-reproducibility`. |
-| "I'll capture provenance / harden it later" | Later never comes. Do it when the result is produced. |
-
-## Common workflow patterns
-
-Right-size the chain to the task — these are the menu, not a mandate to run all.
-
-### Full workflow (complex architectural change)
-
-`researching` → `planning-implementations` → `running-experiments` →
-`iterating-plans` → `implementing-plans` → `validating-implementations`
-
-### Simple feature addition
-
-`researching` → `planning-implementations` → `implementing-plans`
-
-### Rapid iteration
-
-`planning-implementations` → `iterating-plans` → `iterating-plans` →
-`implementing-plans`
-
-### Research-only / investigation
-
-`researching` → `researching` (follow-up) — use docs for future planning.
-
-### Research-first (unknown problem space)
-
-`researching` → `planning-implementations`
-
-## Document naming & cross-references
-
-All workflow documents are saved to `docs/rse/specs/` in the project root as
-`research-<slug>.md`, `plan-<slug>.md`, `experiment-<slug>.md`,
-`implement-<slug>.md`, `validation-<slug>.md`, and `handoff-<timestamp>-<slug>.md` (slug = lowercased,
-hyphenated topic). These are committed, version-controlled artifacts — the
-decision record lives in the repo. **Write** new documents to `docs/rse/specs/`;
-when **reading** existing documents, search `docs/rse/specs/` first and fall back
-to the legacy `.agents/` location (older layout). Legacy `prior-art-<slug>.md`
-docs are still read when present.
-Docs cross-link with relative markdown links so plan → research, implement → plan,
-validation → plan+implement, and handoff → all of them form a navigable graph.
-Each skill states its own naming and cross-reference rules.
-
-## Deferral
-
-Some concerns are better handled by specialist skills or plugins. Hand off to
-them rather than re-implementing their guidance here.
-
-| Concern | Defer to |
-|---|---|
-| Environments (pixi) | `scientific-python-development:pixi-package-manager` |
-| Environments (uv) | the project's own uv setup and `uv.lock` (no dedicated skill here) |
-| Tests | `scientific-python-development:python-testing` |
-| Packaging | `scientific-python-development:python-packaging` |
-| Documentation | `scientific-python-development:scientific-documentation` |
-| Community / handoff readiness | `project-management:community-health-files` |
-| Project handoff | `creating-handoffs` (this plugin); `/project-handoff` command in `project-management` |
-| Heavy multi-source research | a `deep-research` skill if your client provides one (not bundled here) |
-
-## Common Mistakes
-
-- **Skipping the workflow because the task "looks small"** — the most common and
-  most expensive mistake. Right-size the skill (a scoped `researching` pass, a
-  short plan), but never skip skill-invocation entirely for a code change or a
-  research investigation. See *Red flags* above.
-- **Forcing the *full* chain when one skill suffices** — the opposite error:
-  running research → plan → experiment → implement → validate for a trivial change
-  wastes time. Pick the minimal matching skill from the decision tree. This is
-  about right-sizing, never about reaching zero skills.
-- **Not picking an interaction mode** — every workflow skill defaults to a mode,
-  but failing to confirm the right mode leads to unnecessary interruptions
-  (Collaborative when Direct is wanted) or unreviewed decisions (Direct when
-  Collaborative is needed).
-- **Treating this skill as a substitute for the specialist skills** — this
-  meta-skill routes and compels; the actual work happens in the individual
-  skills. Invoke the right specialist skill rather than asking this one to execute.
+- `references/workflow-patterns.md` — read to size the chain, or when tempted
+  to skip a skill (red flags, common mistakes).
+- `references/conventions.md` — read to name or find a workflow document, or
+  to defer environments, tests or packaging.

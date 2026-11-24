@@ -4,7 +4,7 @@ Format follows NVIDIA's Skill Card template (NVIDIA/Trustworthy-AI). Sections no
 
 ## Description
 
-Instructs an agent to execute an approved phased implementation plan (`docs/rse/specs/plan-*.md`): review the plan critically, confirm the working branch, implement one phase at a time, run the plan's automated checks, pause for human manual verification, and write an implementation summary. It is written instructions plus templates and ships no code.
+Instructs an agent to execute an approved phased implementation plan (`docs/rse/specs/plan-*.md`): review the plan critically, confirm the working branch (creating a local feature branch rather than writing code on `main` or `master`), implement one phase at a time, commit only where the plan's tasks say to, run the plan's automated checks, pause for human manual verification, and write an implementation summary. It is written instructions plus templates and ships no code.
 
 ## Owner
 
@@ -16,7 +16,7 @@ BSD-3-Clause (as declared in the plugin manifest, `plugins/ai-research-workflows
 
 ## Use Case
 
-Developers and researchers who have an approved plan and want an agent to write the code. Typical triggers: "implement the plan", "execute the plan", "start building".
+Developers and researchers who have an approved plan and want an agent to write the code. Typical triggers: "implement the plan", "execute the plan", "the plan is approved, go build it", "resume implementation".
 
 ## Deployment Geography
 
@@ -32,16 +32,16 @@ Capability declarations (`metadata` in `SKILL.md`) and what each implies:
 
 - `capability-network: none`. The skill does not direct any network access. Commands taken from a plan may still use the network.
 - `capability-shell: runs-commands`. The skill directs the agent to run the commands in the plan's "Automated Verification" section (for example `make test`, `pytest`, `mypy`). The agent runs whatever the plan lists, with the user's permissions, so a plan is effectively an instruction set to be trusted or reviewed.
-- `capability-file: write`. The skill directs the agent to edit project source files, tick checkboxes in the plan file, and write `docs/rse/specs/implement-<slug>.md`.
+- `capability-file: write`. The skill directs the agent to edit project source files, tick checkboxes in the plan file, and write `docs/rse/specs/implement-<slug>.md`. It may create a local feature branch, and it commits only at the plan's own commit steps, on that branch.
 - `capability-environment: none`. No environment variables are read.
 - `capability-mcp: none`. No MCP tools are used.
 
 Accepted security findings: none for this skill in `.github/skill-security-accepted.yml`.
 
 Risk: executing a plan that is wrong, stale or unsafe changes the codebase and runs its commands.
-Mitigation: the skill requires the agent to review the plan critically before any code is written. This review is the agent's own; if it finds nothing to raise, the agent proceeds, so it is not a human gate. It requires a stop and a mismatch report when the code differs from the plan, and it forbids starting on `main` or `master` without explicit user consent.
+Mitigation: the skill requires the agent to review the plan critically before any code is written. This review is the agent's own; if it finds nothing to raise, the agent proceeds, so it is not a human gate. It requires a stop and a mismatch report when the plan can't be followed as written (a named file, function or signature is missing, or a prerequisite is absent), and it forbids writing code on `main` or `master` without explicit user consent.
 
-Risk: when resuming a plan, the skill says to "Trust that completed work is done" and to re-verify earlier phases only if tests fail, files are missing or something looks inconsistent. A stale or wrong checkmark is therefore built on without being checked.
+Risk: when resuming a plan, the skill says to trust existing checkmarks and start at the first unchecked item, re-verifying earlier phases only if tests fail, files are missing or something looks inconsistent. A stale or wrong checkmark is therefore built on without being checked.
 Mitigation: the skill's conditions for re-verifying (failing tests, missing files, inconsistencies) are the only safeguard. Check the plan's existing checkmarks against the code before resuming work that depends on them.
 
 Risk: automated checks pass while manual criteria are untested.
@@ -59,10 +59,11 @@ Released with the `ai-research-workflows` plugin. The version is the release tag
 
 ## Ethics
 
-The skill keeps a person in the loop at phase boundaries and requires deviations from the plan to be reported to them before the agent continues. For research code it directs the agent to capture provenance for results with the `ensuring-reproducibility` skill. Review changes before merging; the agent's report of passing checks is not a substitute. Developers should confirm the skill fits their team's policies before adoption.
+The skill keeps a person in the loop at phase boundaries and requires a mismatch with the plan to be reported to them before the agent continues; incidental drift (a shifted line number, say) is adapted to and recorded as a deviation in the summary. For research code it directs the agent to capture provenance for results with the `ensuring-reproducibility` skill. Review changes before merging; the agent's report of passing checks is not a substitute. Developers should confirm the skill fits their team's policies before adoption.
 
 ## Reference(s)
 
 - [SKILL.md](SKILL.md)
 - [assets/implement-template.md](assets/implement-template.md)
 - [references/templates.md](references/templates.md)
+- [references/workflow.md](references/workflow.md)

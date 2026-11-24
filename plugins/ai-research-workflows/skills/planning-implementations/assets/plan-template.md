@@ -256,9 +256,11 @@ tests, plus the test data needed.
 
 **Note:** These are estimates and may change based on discoveries during implementation.
 
-## Open Questions
+## Resolved Decisions
 
-[CRITICAL: This section should be EMPTY in the final plan. If there are open questions, they must be resolved before the plan is complete.]
+[Each decision this plan depends on, who made it (user, team, or the agent in Direct mode), and why. Answers only: if an entry would be a question, resolve it before saving the plan.]
+
+- **[Decision]:** [Choice made] ([who decided]; [why])
 
 ---
 

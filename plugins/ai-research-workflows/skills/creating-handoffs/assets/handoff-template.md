@@ -18,7 +18,7 @@
 | [Task 1] | ✅ Complete / 🔄 In Progress / 📋 Planned | [Brief note] |
 | [Task 2] | ✅ Complete / 🔄 In Progress / 📋 Planned | [Brief note] |
 
-**Current Workflow Phase:** Research | Plan | Iterate Plan | Experiment | Implement | Validate
+**Current Workflow Phase:** Research | Plan | Iterate Plan | Experiment | Implement | Validate | Reproduce | Harden
 
 ## Workflow Artifacts
 

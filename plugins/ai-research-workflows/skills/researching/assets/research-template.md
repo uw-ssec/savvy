@@ -2,6 +2,7 @@
 
 **Date:** [YYYY-MM-DD]
 **Scope:** [internal codebase / external prior art / both]
+**Codebase state:** [commit SHA from `git rev-parse --short HEAD` that the codebase findings were read against; omit if no internal pass ran]
 **Related Documents:** [links to related research or plan documents, if any]
 
 ## Question / Scope

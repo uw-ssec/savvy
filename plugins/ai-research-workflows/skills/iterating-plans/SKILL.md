@@ -30,12 +30,14 @@ Default mode: Collaborative (protocol: `ai-research-workflows:using-research-wor
 2. **Research only if the change adds technical requirements or alters the
    approach:** find real `path/file.ext:12-30` anchors; never guess a path.
 3. **Propose, keyed to the mode.**
-   - *Collaborative* (default, including a bare "go" or a specific request,
-     because a plan edit changes what later agents execute): reply with
+   - *Collaborative* (default, including a bare "go" or a specific request:
+     this skill overrides the protocol's step 2, which would pick Direct for
+     a specific directive, because a plan edit changes what later agents
+     execute): reply with
      **Current state** (phases), **Proposed changes**, **Sections affected**,
      then "Does this match?" Don't touch the file until the user says yes.
    - *Direct* (the user says not to check back: "no need to check back",
-     "don't ask", "just do it"): list the intended edits, then apply them. Example:
+     "don't ask", "just do it", "go ahead"): list the intended edits, then apply them. Example:
      "Applying: insert Phase 2, renumber old Phases 2–3 to 3–4."
 
    Push back on changes that conflict with existing phases.
@@ -61,6 +63,7 @@ worked pattern per change.
 | Change | Touch | Leave alone |
 |---|---|---|
 | Add a phase | New phase (each task names its file, cites `path/file.ext:12-30` for existing code it changes or calls, marks new files as new; test first; Automated/Manual criteria); later numbers and references | Other phases |
+| Add a task | The task in its phase: names its file, cites `path/file.ext:12-30` for existing code it changes or calls, marks new files as new; its success criteria | Other tasks and phases |
 | Cut scope | Its tasks, success criteria and tests; add it to "What We're NOT Doing" with the reason | Unrelated phases |
 | Update criteria | The items, in the right Automated or Manual list | Tasks |
 | New approach or experiment results | Implementation Approach; affected tasks; References (link the report); research criteria | Unaffected phases; Current State Analysis unless the results disprove it |

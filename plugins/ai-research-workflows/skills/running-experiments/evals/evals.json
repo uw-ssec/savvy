@@ -1,0 +1,115 @@
+{
+  "skill_name": "running-experiments",
+  "evals": [
+    {
+      "id": "running-experiments-001",
+      "prompt": "Compare two ways of deduplicating a list of 1 million strings in Python: a set-based approach versus sorting and then removing adjacent duplicates. I want real benchmark numbers, not guesses.",
+      "expected_output": "Working prototype code for both the set-based and the sort-and-adjacent-dedupe approaches, saved in an isolated scratch location, each executed on the same input with repeated timing runs. A comparison of measured results (with variance) and a recommendation of one approach justified by those measurements.",
+      "assertions": [
+        "The agent wrote and executed actual code for both deduplication approaches rather than estimating the performance of either one",
+        "The agent placed the prototype code in an isolated location such as a scratch directory like .experiments/<slug> or a temporary experiment branch, and stated where it lives",
+        "The agent ran each benchmark multiple times on the same input and reported variance or a spread, not just a single number",
+        "The agent's final response gives a recommendation of one approach that cites the measured results",
+        "The agent wrote an experiment document at docs/rse/specs/experiment-<slug>.md that records the commands run and the measured results",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or modify files outside the project and its experiment scratch location (installing the libraries under comparison is expected)"
+      ],
+      "expected_skill": "running-experiments",
+      "expected_script": null
+    },
+    {
+      "id": "running-experiments-002",
+      "prompt": "I'm building a small service that needs to cache computed results. I can't decide between an in-process LRU cache and running Redis as a separate cache. Which is faster and simpler for our workload of ~5k requests/sec with 10KB payloads? Can you actually try both out before I commit?",
+      "expected_output": "Prototypes of an in-process LRU cache and a Redis-backed cache, run under the same simulated workload (about 5k requests/sec, 10KB payloads), with measured latency and throughput numbers, a complexity comparison (lines of code, dependencies, operational overhead), and an experiment document under docs/rse/specs/. The recommendation is backed by those results, and any approach that could not be built (for example Redis unavailable) is labeled an unverified assumption, not presented as a benchmark.",
+      "assertions": [
+        "The agent built and ran a prototype for every approach it reports measurements for, and did not reason about either approach theoretically in place of measuring it",
+        "The agent applied the same workload parameters (request rate and payload size) to both approaches",
+        "The agent's final response includes a comparison covering both performance measurements and complexity (e.g., lines of code, dependencies, or operational burden)",
+        "If either approach could not be run (e.g., Redis unavailable), the agent explicitly labeled its result as an unverified assumption instead of presenting an estimate as a benchmark",
+        "The agent wrote an experiment document at docs/rse/specs/experiment-<slug>.md",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or modify files outside the project and its experiment scratch location (installing the libraries under comparison is expected)"
+      ],
+      "expected_skill": "running-experiments",
+      "expected_script": null
+    },
+    {
+      "id": "running-experiments-003",
+      "prompt": "We've got a plan doc at docs/rse/specs/plan-ingest-pipeline.md that proposes parsing our 2GB CSV logs. The team is split: pandas chunked reading, Polars lazy scan, or plain csv module with generators. Nobody has measured anything. Can you help us figure out which to go with before we lock the design?",
+      "expected_output": "The agent reads the plan document (or reports it could not be found), states the measurable question, the three approaches (pandas chunked reading, Polars lazy scan, csv module with generators) and the success criteria for each. If it goes on to build prototypes in the same turn, it builds and runs all three on the same data and reports measured results; it never estimates an approach.",
+      "assertions": [
+        "The agent read the referenced plan document at docs/rse/specs/plan-ingest-pipeline.md, or reported that it could not be found, before proposing the comparison",
+        "The agent stated the specific, measurable question the experiment must answer",
+        "The agent named the three approaches (pandas chunked reading, Polars lazy scan, csv module with generators) and the success criteria for each",
+        "If the agent went on to build prototypes in the same turn, it built and ran all three approaches and did not estimate any of them",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+      ],
+      "expected_skill": "running-experiments",
+      "expected_script": null
+    },
+    {
+      "id": "running-experiments-004",
+      "prompt": "Should we use SQLite or DuckDB for our nightly aggregation over ~50M rows? Just tell me which is faster, you don't need to actually run anything.",
+      "expected_output": "Either the agent builds and runs both prototypes and reports measured results, or it answers without running anything as the user asked, explicitly labels that answer an unverified assumption (not a benchmark), and offers to run a real comparison. It does not present an estimate as a measurement.",
+      "assertions": [
+        "The agent either built and ran both prototypes, or answered without running anything and explicitly labelled the answer an unverified assumption, not a benchmark, and offered to run a real comparison",
+        "Any figure the agent reported as a measurement was measured by the agent; any figure it did not measure is labelled an estimate or unverified assumption",
+        "The agent did not present estimated numbers as benchmark results",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or modify files outside the project and its experiment scratch location (installing the libraries under comparison is expected)"
+      ],
+      "expected_skill": "running-experiments",
+      "expected_script": null
+    },
+    {
+      "id": "running-experiments-005",
+      "prompt": "Compare two JSON parsers for our 500 MB event files, orjson and the standard library json. Please also keep a record of anything you tried that didn't work.",
+      "expected_output": "An experiment document under docs/rse/specs/ with measured results for both parsers and the negative observations recorded as data: any failed or rejected attempt with its reason, or an explicit statement that no attempt failed.",
+      "assertions": [
+        "The agent ran both parsers on the same input and reported measured results",
+        "The agent wrote an experiment document under docs/rse/specs/ named experiment-<slug>.md",
+        "The experiment document records negative observations for each parser (failed or rejected attempts with the reason), or states explicitly that no attempt failed; it does not omit the losing approach's results",
+        "The agent's recommendation cites the measured results",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or modify files outside the project and its experiment scratch location (installing the libraries under comparison is expected)"
+      ],
+      "expected_skill": "running-experiments",
+      "expected_script": null
+    },
+    {
+      "id": "running-experiments-neg-001",
+      "prompt": "What libraries and published methods already exist for out-of-core joins on tabular data? I want a literature and tools survey with sources, no prototypes.",
+      "expected_output": "A survey of existing libraries and published methods with sources. This belongs to researching, not to building and benchmarking prototypes. No prototype is built.",
+      "assertions": [
+        "The agent did not write or run benchmark or prototype code",
+        "The agent treated the request as a literature and tools survey (searching for or proposing sources), not as a head-to-head experiment",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or modify files outside the project and its experiment scratch location (installing the libraries under comparison is expected)"
+      ],
+      "expected_skill": null,
+      "expected_script": null
+    },
+    {
+      "id": "running-experiments-neg-002",
+      "prompt": "Our codebase uses JWT everywhere. Add JWT auth to the new endpoint. No need to compare alternatives.",
+      "expected_output": "The agent follows the existing JWT pattern and adds JWT auth to the new endpoint, without staging an experiment comparing authentication approaches.",
+      "assertions": [
+        "The agent did not build or benchmark prototypes of alternative authentication approaches",
+        "The agent did not create an experiment-*.md document or an experiment branch or scratch directory",
+        "The agent followed the codebase's existing JWT pattern for the new endpoint, or asked where the endpoint is",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or modify files outside the project and its experiment scratch location (installing the libraries under comparison is expected)"
+      ],
+      "expected_skill": null,
+      "expected_script": null
+    }
+  ],
+  "generation": {
+    "mode": "llm",
+    "grounding": "skill",
+    "inputs": [
+      {
+        "kind": "skill_md",
+        "path": "SKILL.md",
+        "sha256": "769795e0d28f2d23aa8d3e700b75c955577cc9d6582d32903f274b81f99b00b8"
+      }
+    ],
+    "generated_at": "2026-11-20T20:45:20.835584+00:00",
+    "review_state": "unreviewed",
+    "needs_review_count": 0
+  }
+}

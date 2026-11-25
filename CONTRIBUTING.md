@@ -131,7 +131,7 @@ This checklist is the security part of reviewing a skill. It doesn't cover wheth
 
 Review the exact revision you're merging. If a later commit in the pull request, or a later pull request, adds a command, URL, script, tool grant or MCP server, review those items again instead of carrying the earlier sign-off forward.
 
-Automated checks help but don't replace this review. CI (currently the **Validate Plugins** workflow) flags hardcoded secrets and private keys, `rm -rf /`, `curl` to a raw IP address, `eval(` and `base64 -d`. It matches patterns and can't judge intent. SkillEvaluator's quality score, run on pull requests that change a skill, measures quality, not safety.
+Automated checks help but don't replace this review. CI (currently the **Validate Plugins** workflow) flags hardcoded secrets and private keys, `rm -rf /`, `curl` to a raw IP address, `eval(` and `base64 -d`. It matches patterns and can't judge intent. SkillEvaluator's quality score measures quality, not safety. For pilot skills (currently `ai-research-workflows`), the [security gate](#-evaluating-skills) also runs SkillEvaluator's Tier 1 `validate` with Semgrep, SkillSpector and Gitleaks, which still can't judge intent.
 
 Review the raw files, not GitHub's rendered view, which hides HTML comments. This search, run from the repository root, lists most of what to look at:
 
@@ -212,6 +212,17 @@ Some rules matter to clients other than Claude Code:
 - **MCP servers** need both files. `.mcp.json` is for Claude Code. `mcp.json` is the portable version that Codex, Copilot and Cursor read: it has the Agent Plugins `$schema`, an explicit `type` on each server, and no other top-level fields. Cursor doesn't expand `${PLUGIN_ROOT}` or `${PLUGIN_DATA}`, so avoid them in `mcp.json`.
 - **Agent `skills:`** must be a YAML list (`skills:` then `  - name`), even for one skill. Claude Code accepts a string, but Copilot CLI silently skips an agent whose `skills` is a plain string, so `check` requires a list.
 - **Skill `metadata` values** must be strings, as the [Agent Skills spec](https://agentskills.io/specification) requires. List files space-separated (`references: references/a.md references/b.md`), and quote dates (`last-verified: '2026-10-27'`), because YAML otherwise reads them as dates. `check` fails on any other type.
+- **Skill capability declarations** (trust pilot, `ai-research-workflows` only for now): put five keys under `metadata`, each with one allowed value.
+
+  | Key | Allowed values |
+  | --- | --- |
+  | `capability-network` | `none`, `read`, `write` |
+  | `capability-shell` | `none`, `runs-commands` |
+  | `capability-file` | `none`, `read`, `write` |
+  | `capability-environment` | `none`, `read` |
+  | `capability-mcp` | `none`, `uses` |
+
+  A value states what the skill **directs the agent to do**, not what code it ships. `network: read` means it tells the agent to fetch pages or packages. `write` means it tells the agent to publish or upload. `environment: read` means it tells the agent to read environment variables or credentials. CI checks that the keys are present and the values are allowed; a reviewer, not CI, checks that the values match the skill's content.
 - **Agents and commands** don't load everywhere: agents load in Claude Code, Cursor and Antigravity CLI, and commands only in Claude Code and Cursor. Put anything other clients need in a skill, and update the matrix in [docs/install.md](docs/install.md) when client support changes.
 
 ## 📚 Skill Catalog
@@ -250,7 +261,7 @@ Every pull request adds its entry to [`CHANGELOG.md`](CHANGELOG.md) under `## [U
 
 ## 📊 Evaluating Skills
 
-On every pull request that changes a skill, **Skill quality check** runs [SkillEvaluator](https://github.com/NVIDIA/SkillEvaluator)'s keyless `quality-check` (pinned to v0.6.0) on each changed skill. It fails if a skill scores below 70, and lists every changed skill's score and grade in the job summary. It scores quality only: SkillEvaluator's full `validate` (schema, PII and security scanners) is not part of this check. To check a skill locally before pushing, using the same pinned version as CI:
+On every pull request that changes a skill, **Skill quality check** runs [SkillEvaluator](https://github.com/NVIDIA/SkillEvaluator)'s keyless `quality-check` (pinned to commit 707fb9a, which reports 1.0.1) on each changed skill. It fails if a skill scores below 70, and lists every changed skill's score and grade in the job summary. It scores quality only. To check a skill locally before pushing, using the same pinned version as CI:
 
 ```bash
 pixi run -e ci skill-quality-check plugins/<plugin>/skills/<skill>
@@ -259,9 +270,17 @@ pixi run -e ci skill-quality-check plugins/<plugin>/skills/<skill>
 Or, without pixi:
 
 ```bash
-uv tool install --python 3.13 "skillevaluator @ git+https://github.com/NVIDIA/SkillEvaluator.git@5320d9329c36ecc72bc94c4f58cc813d6b54224b"
+uv tool install --python 3.13 "skillevaluator @ git+https://github.com/NVIDIA/SkillEvaluator.git@707fb9a8cbfaf6c8f766506f43bb699212234f01"
 skillevaluator quality-check plugins/<plugin>/skills/<skill> --min-score 70
 ```
+
+**Security gate for pilot skills.** For skills in a pilot plugin (currently `ai-research-workflows`), the same workflow's `security-scan` job also runs SkillEvaluator's full Tier 1 `validate` (schema, PII, licence, and the Semgrep, SkillSpector and Gitleaks scanners). A high or critical finding fails the check unless it is accepted in [`.github/skill-security-accepted.yml`](.github/skill-security-accepted.yml); lower severities are reported but don't block. To run the scan locally (the first run builds Gitleaks, which needs network access):
+
+```bash
+pixi run -e ci skill-security-scan plugins/<plugin>/skills/<skill> -o <dir>
+```
+
+Each accepted finding names the skill, check, file, flagged line, a `reason`, and the `file_sha256` of the flagged file. The digest pins the acceptance to that exact file content, so any edit to an accepted file needs a new digest and a fresh review. Compute it with `shasum -a 256 <file>` (or `sha256sum <file>`). The acceptance file and `.github/scripts/skill_trust.py`, which decides what an acceptance can waive, are covered by [`CODEOWNERS`](.github/CODEOWNERS), so changes to them need maintainer review. `CODEOWNERS` also covers `.github/skillevaluator-policy.yml` (its `severity_overrides` can downgrade any finding, so it is a waiver channel) and the two workflows that run the scans. The scan's flags live in the `skill-security-scan` task in `pixi.toml` and the scanner pins in `pixi.lock`, and `.github/scripts/skill-quality.py` picks which skills are scanned, so `CODEOWNERS` covers those three files too. A change to any gate input (the two scripts, the acceptance file, the policy, the workflow, `pixi.toml` or `pixi.lock`) re-scans every pilot skill, not only the changed ones. A report that names any scanner as incomplete fails the gate, even when SkillEvaluator's overall status is `failed` rather than `incomplete`. So does a report without a result from each security validator (Security Scan, Code Risk Analysis, Secrets Detection, PII Scan and Unicode Smuggling Detection), or with one marked skipped. `CODEOWNERS` only binds once **Require review from Code Owners** is enabled for `main` in the repository's branch protection.
 
 Two manually triggered workflows measure skills (**Actions → workflow → Run workflow**). Neither runs on pull requests.
 

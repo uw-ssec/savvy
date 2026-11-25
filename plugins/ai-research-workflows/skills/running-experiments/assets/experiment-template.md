@@ -3,7 +3,7 @@
 ---
 **Date:** [YYYY-MM-DD]
 **Author:** AI Assistant
-**Status:** Complete
+**Status:** Complete | Incomplete (name the approach that was not built or run)
 **Related Documents:**
 - [Research: Related Topic](research-slug.md) *(if applicable)*
 - [Plan: Related Plan](plan-slug.md) *(if applicable)*
@@ -77,8 +77,10 @@
 ## Experiment Setup
 
 **Environment:**
-- [Environment details]
+- [Python and library versions, hardware]
 - [Dependencies needed]
+
+**Prototype location:** [`.experiments/<slug>/` or the `experiment-<slug>` branch]
 
 **Test Data:**
 - [Test data used]
@@ -113,7 +115,7 @@
 - ⚠️ [Caveats or concerns]
 
 **Metrics:**
-- [Relevant metric 1]: [Value]
+- [Relevant metric 1]: [Median and spread over N runs]
 - [Relevant metric 2]: [Value]
 
 ### Experiment 2: Testing Approach 2
@@ -140,7 +142,7 @@
 - ⚠️ [Caveats or concerns]
 
 **Metrics:**
-- [Relevant metric 1]: [Value]
+- [Relevant metric 1]: [Median and spread over N runs]
 - [Relevant metric 2]: [Value]
 
 ### Experiment 3: Testing Approach 3 *(if applicable)*

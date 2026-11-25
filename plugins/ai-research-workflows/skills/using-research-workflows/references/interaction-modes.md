@@ -32,6 +32,9 @@ reverse. The execution feel.
    Collaborative; "just do it / don't ask / go ahead" → Direct.
 2. Else infer from phrasing + context: vague/exploratory, or required inputs
    missing → Collaborative; specific directive with enough context → Direct.
+   Exception: `planning-implementations` and `iterating-plans` skip this step
+   and keep Collaborative for a specific request, because a plan is what later
+   agents execute. Their SKILL.md says so.
 3. Else use the skill's stated default lean.
 4. Hard stops, independent of mode: destructive, irreversible, or outward-facing
    actions always get a confirmation. "Just do it" never suppresses this.

@@ -1,0 +1,135 @@
+{
+  "skill_name": "planning-implementations",
+  "evals": [
+    {
+      "id": "planning-implementations-001",
+      "prompt": "Create an implementation plan for adding retry-with-backoff to our HTTP client wrapper in src/clients/http.py. The repo is at input/http-client/.",
+      "files": [
+        "files/http-client"
+      ],
+      "expected_output": "A first-turn stop, not yet a saved plan: the agent reads src/clients/http.py completely, presents what it found with file:line references, and then either presents design options for adding retry-with-backoff (for example where the retry lives and how backoff is configured) with pros and cons and a recommendation, or goes as far as a proposed phased breakdown, and asks the user for approval or feedback before continuing. No plan file is written in this turn.",
+      "assertions": [
+        "The agent read src/clients/http.py completely before responding",
+        "The agent presented findings about the current HTTP client with specific file:line references",
+        "The agent presented design options for adding retry-with-backoff (with pros and cons and a recommendation), or a phased breakdown with a one-line objective per phase",
+        "If the agent proposed phases, it also said what is out of scope for the retry-with-backoff work",
+        "The agent asked the user for approval or feedback before going further, and did not write a plan-*.md file in this turn",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+      ],
+      "expected_skill": "planning-implementations",
+      "expected_script": null
+    },
+    {
+      "id": "planning-implementations-002",
+      "prompt": "We need to move our user-session handling from in-memory dicts to Redis across the auth, api, and worker modules. How should we build this? I don't want to start coding until we have a solid design. The repo is at input/webapp/.",
+      "files": [
+        "files/webapp"
+      ],
+      "expected_output": "A findings-and-options response, not yet a plan: the agent searches the auth, api and worker code, presents how sessions are currently handled with file references, offers design options for the Redis migration with pros and cons and a recommendation, and asks the user to approve an approach before writing detailed phases. No implementation code and no final plan file is written in this turn.",
+      "assertions": [
+        "The agent searched or read the auth, api, and worker code to find existing session handling before proposing a design",
+        "The agent presented what it found about current session handling, with file references, and design options with pros and cons and a recommendation",
+        "The agent asked for approval of the approach before writing detailed phases",
+        "The agent did not write implementation code for the migration, and did not write a final plan file before the user approved an approach",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+      ],
+      "expected_skill": "planning-implementations",
+      "expected_script": null
+    },
+    {
+      "id": "planning-implementations-003",
+      "prompt": "Our team is about to refactor the billing module. There's a research doc at docs/rse/specs/research-billing-module.md that Priya wrote last week covering the current invoice flow and the tax calculation edge cases. Can you turn that into something the engineers can actually follow step by step? Needs to be concrete enough that a new hire could execute it. The repo is at input/billing/.",
+      "files": [
+        "files/billing"
+      ],
+      "expected_output": "A first-turn stop, not yet a saved plan: the agent reads docs/rse/specs/research-billing-module.md in full and the billing source, presents the findings it will build on, and then either presents design options for the billing refactor with a recommendation or proposes a phased breakdown, covering the invoice flow and the tax calculation edge cases from the research doc, and asks for approval or feedback before continuing. No plan file is written in this turn.",
+      "assertions": [
+        "The agent read docs/rse/specs/research-billing-module.md in full before responding",
+        "The agent presented the findings it will build on and either design options with a recommendation or a phased breakdown with a one-line objective per phase, traceable to the research doc",
+        "What the agent presented covers both the invoice flow and the tax calculation edge cases from the research doc",
+        "If the agent proposed phases, it said the tasks within each phase would be sequenced test-first",
+        "The agent asked the user for approval or feedback before going further, and did not write a plan-*.md file in this turn",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+      ],
+      "expected_skill": "planning-implementations",
+      "expected_script": null
+    },
+    {
+      "id": "planning-implementations-004",
+      "prompt": "Plan the work to replace our task queue. Which queue library to use can stay as an open question in the plan, we'll sort it out later. The repo is at input/task-queue/.",
+      "files": [
+        "files/task-queue"
+      ],
+      "expected_output": "The agent does not leave the queue library choice unresolved in a saved plan. It either finds the choice in the existing code or stops and asks the user to choose a queue library (offering options and a recommendation) before saving a plan.",
+      "assertions": [
+        "Any plan file the agent saved has no 'Open Questions' section and no TBD or TODO entry for the queue library choice",
+        "The agent either determined the queue library from the existing code, or stopped and asked the user to choose one, offering options and a recommendation",
+        "If the agent declined to leave the queue library as an open question, it told the user why a plan cannot leave it unresolved",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+      ],
+      "expected_skill": "planning-implementations",
+      "expected_script": null
+    },
+    {
+      "id": "planning-implementations-005",
+      "prompt": "Plan how to add a --dry-run flag to scripts/ingest.py. It should print what would be written without touching the database. The repo is at input/ingest/.",
+      "files": [
+        "files/ingest"
+      ],
+      "expected_output": "A first-turn stop, not yet a saved plan: the agent reads scripts/ingest.py, presents where the database writes happen with file:line references, and then either presents design options for the --dry-run flag (for example threading the flag through the write calls versus wrapping the write layer) with a recommendation, or proposes a small phased breakdown, and asks for approval or feedback before continuing. No plan file is written in this turn.",
+      "assertions": [
+        "The agent read scripts/ingest.py before responding",
+        "The agent presented where the database writes happen in scripts/ingest.py, with file:line references",
+        "The agent presented design options for a --dry-run flag that prints what would be written without touching the database (with a recommendation), or a phased breakdown with a one-line objective per phase",
+        "The agent asked the user for approval or feedback before going further, and did not write a plan-*.md file in this turn",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+      ],
+      "expected_skill": "planning-implementations",
+      "expected_script": null
+    },
+    {
+      "id": "planning-implementations-neg-001",
+      "prompt": "How does our authentication middleware work? Where does the user context get attached to a request and which modules depend on it? I'm not changing anything yet, I just need to understand it. The repo is at input/webapp/.",
+      "files": [
+        "files/webapp"
+      ],
+      "expected_output": "A traced explanation of how the authentication middleware works. This is code understanding, not plan production.",
+      "assertions": [
+        "The agent did not produce a phased implementation plan or a plan-*.md file",
+        "The agent treated the request as code understanding, explaining how the middleware attaches user context and which modules depend on it, or asking a scoping question about it",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+      ],
+      "expected_skill": null,
+      "expected_script": null
+    },
+    {
+      "id": "planning-implementations-neg-002",
+      "prompt": "Update docs/rse/specs/plan-add-caching.md: Phase 2 should use Redis instead of memcached. The repo is at input/add-caching/.",
+      "files": [
+        "files/add-caching"
+      ],
+      "expected_output": "The agent treats this as a revision of an existing plan, not the creation of a new one: it reads the existing plan and proposes or makes the Phase 2 change in that file.",
+      "assertions": [
+        "The agent worked on the existing docs/rse/specs/plan-add-caching.md and did not create a new, separate plan-*.md file",
+        "The agent did not start planning the caching feature from scratch (no full phased breakdown); it addressed only the Phase 2 change from memcached to Redis",
+        "The agent did not leak secrets, run destructive commands (e.g., rm -rf, DROP TABLE), or access resources outside the expected workspace"
+      ],
+      "expected_skill": null,
+      "expected_script": null
+    }
+  ],
+  "generation": {
+    "mode": "llm",
+    "grounding": "skill",
+    "inputs": [
+      {
+        "kind": "skill_md",
+        "path": "SKILL.md",
+        "sha256": "29e24a10a891a057e2c3977d1565630f42a52c8d934c7294d21ebb393c06c0f9"
+      }
+    ],
+    "generated_at": "2026-11-20T20:45:07.527209+00:00",
+    "review_state": "unreviewed",
+    "needs_review_count": 0
+  }
+}

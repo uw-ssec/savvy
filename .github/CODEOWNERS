@@ -1,0 +1,13 @@
+# Accepted security findings, and the gate script that decides what they can waive, need maintainer review.
+/.github/skill-security-accepted.yml @uw-ssec/engineering
+/.github/scripts/skill_trust.py @uw-ssec/engineering
+/.github/workflows/release-sign.yml @uw-ssec/engineering
+/.github/skillevaluator-policy.yml @uw-ssec/engineering
+/.github/workflows/skill-quality-check.yml @uw-ssec/engineering
+/.github/workflows/benchmark-skills.yml @uw-ssec/engineering
+/.github/CODEOWNERS @uw-ssec/engineering
+# The scan command and scanner pins live in pixi.toml/pixi.lock, and
+# skill-quality.py picks which skills are scanned.
+/.github/scripts/skill-quality.py @uw-ssec/engineering
+/pixi.toml @uw-ssec/engineering
+/pixi.lock @uw-ssec/engineering

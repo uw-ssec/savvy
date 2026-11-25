@@ -3,152 +3,84 @@ name: planning-implementations
 description: >-
   Use when a feature, refactor, or multi-file change needs to be designed before
   coding. Triggers: plan X, design the implementation, how should we build X,
-  create an implementation plan.
+  create an implementation plan, phased plan, success
+  criteria, design before coding. Not for changing an existing plan (use
+  iterating-plans) or executing an approved one (use implementing-plans).
+metadata:
+  capability-network: none
+  capability-shell: none
+  capability-file: write
+  capability-environment: none
+  capability-mcp: none
 ---
 
 # Planning Implementations
 
-Produce a comprehensive, phased implementation plan grounded in actual codebase
-research, with measurable success criteria and no unresolved decisions.
+Produce a phased plan grounded in the actual code, with test-first tasks,
+measurable success criteria, and every decision made.
 
-## Interaction mode
+## When to use
 
-This skill leans **Collaborative** by default. For the full Collaborative-vs-Direct protocol and override rules, see the Interaction Modes reference in the `ai-research-workflows:using-research-workflows` skill.
+- A feature, refactor or multi-file change needs designing before code.
+- Not when a plan already exists: use `ai-research-workflows:iterating-plans`.
+- Not when the approach is genuinely uncertain: run
+  `ai-research-workflows:running-experiments` first.
+- Not for one-line fixes or explaining code.
 
-## Starting the skill
+## Mode
 
-If no topic is given, enter Collaborative mode and ask what to plan (and check
-`docs/rse/specs/` (then legacy `.agents/`) for existing research/prior-art). If the topic is given without a
-research doc, look for `docs/rse/specs/research-*.md` matches and suggest running
-`ai-research-workflows:researching` first if none are found — then proceed on user
-preference.
+Default: **Collaborative** (protocol: `ai-research-workflows:using-research-workflows`).
+A plan is design-shaped work, which the protocol gives to Collaborative, so a
+specific request to plan still gets the gates below: this skill overrides the
+protocol's step 2, which would pick Direct for a specific directive with
+enough context. Use Direct only when the
+user says so ("just write the plan") or can't be consulted ("I'm offline");
+then skip the gates in steps 2, 3 and 5, decide yourself and record each
+choice under Resolved Decisions.
 
 ## Process
 
-### Step 1: Context Gathering
+1. **Gather context.** No topic given? Ask what to plan. Read every mentioned
+   file completely. Check `docs/rse/specs/` (then legacy `.agents/`) for
+   `research-*`, `prior-art-*` and `experiment-*` docs; with no research doc,
+   suggest `ai-research-workflows:researching` and proceed as the user prefers.
+   Investigate patterns, integration points, dependencies and tests, in
+   parallel where possible; finish all of it before synthesizing. Ask only
+   what the code can't answer.
+2. **Approach gate.** Present findings with `file:line` references, design
+   options with pros, cons and a recommendation, and what is out of scope. Ask
+   for approval. Don't write the plan file yet.
+3. **Structure gate.** Propose the phases, one-line objective each; get
+   feedback.
+4. **Write the plan.** Read `references/plan-writing.md` first, then fill in
+   `assets/plan-template.md` and save it to `docs/rse/specs/plan-<slug>.md`.
+5. **Review.** Give the approach, phase count and criteria counts; ask about
+   phasing, criteria, approach and edge cases. Revise with
+   `ai-research-workflows:iterating-plans`; execute with
+   `ai-research-workflows:implementing-plans`.
 
-- Read all mentioned files **completely** before anything else.
-- Check `docs/rse/specs/research-*.md` (and legacy `.agents/research-*.md`, `.agents/prior-art-*.md`) for relevant context.
-- Investigate related files, existing patterns, integration points, and test
-  coverage in parallel where possible.
-- Only ask questions that code cannot answer (product decisions, ambiguous
-  scenarios). Never ask "which database?" — read the code.
-- In Collaborative mode, present findings and focused questions before
-  proceeding.
+## Hard rules
 
-### Step 2: Research & Discovery
+- **No open questions.** Resolve every uncertainty (read the code, or ask)
+  before saving, even when the user asks to leave one open: explain that the
+  implementer would have to guess, offer options with a recommendation, and
+  ask them to choose (in Direct mode, take the recommendation and record it).
+  No "Open Questions" section.
+- **No placeholders.** No "TBD", "add appropriate error handling", "write
+  tests for the above" or "similar to Phase N". Show the test code and commands.
+- **Test-first tasks.** Each unit of work: failing test, watch it fail, minimal
+  code, watch it pass, commit. For research code the failing test checks a
+  known result, analytic case or invariant
+  (`ai-research-workflows:hardening-research-code`).
+- **Anchor every phase**, including one that only runs or regenerates: cite
+  `file:line` for the files it changes or runs, code or docs; mark files it
+  creates `(new)`.
+- **Split success criteria** into Automated (commands) and Manual (judgment).
+- **Fill in "What We're NOT Doing"**, even when small: it stops scope creep.
 
-- Investigate in parallel: existing patterns, integration points, available
-  dependencies, current test coverage.
-- **Wait for all research to complete** before synthesizing.
-- In Collaborative mode, present design options with pros/cons and a
-  recommendation; get approval before continuing.
+## Quick reference
 
-### Step 3: Plan Structure (Collaborative mode)
-
-- Propose a phased breakdown with a one-line objective per phase.
-- Get feedback before writing detailed steps.
-
-### Step 4: Plan Writing
-
-Generate filename from the topic slug (`plan-<slug>.md`). Read the template:
-`assets/plan-template.md`.
-
-**Required sections:**
-
-1. Overview — what, why, high-level how
-2. Current State Analysis — existing code with `file:line` references
-3. Desired End State — observable success outcomes
-4. What We're NOT Doing — explicit scope boundaries
-5. Implementation Approach — technical strategy and key decisions
-6. Implementation Phases — phased tasks with file paths and verification steps
-7. Success Criteria — split into Automated and Manual (see below)
-8. Testing Strategy — unit, integration, manual
-9. References — research docs, files analyzed, external docs
-
-Each phase needs: a clear objective, tasks with `path/to/file.ext:lines`,
-dependencies on prior phases, and verification steps.
-
-#### Bite-sized, test-first tasks
-
-Each phase's tasks must be **executable steps an engineer can follow without
-guessing**, sequenced test-first. Write the actual content, not a description:
-
-- Sequence each unit of work as: write the failing test → run it, watch it fail
-  → implement the minimal code → run the test, watch it pass → commit.
-- Show the actual code or the exact command for any step that changes code or
-  runs something — never a paraphrase.
-- Reference an exact `path/to/file.ext:line` for every task.
-
-(For numerical/research code, the "failing test" is an assertion against a known
-result, analytic case, or invariant — see `ai-research-workflows:hardening-research-code`.)
-
-#### Blocking rule: NO placeholders
-
-A step that says *what* to do without showing *how* is a plan failure. Never
-ship any of these — resolve each before saving:
-
-- "TBD", "TODO", "implement later", "fill in details".
-- "Add appropriate error handling" / "add validation" / "handle edge cases" —
-  name the specific cases and show how each is handled.
-- "Write tests for the above" without the actual test code.
-- "Similar to Phase N" — repeat the code; phases may be executed out of order.
-- Any reference to a type, function, or file not defined in some task.
-
-#### Success Criteria split
-
-**Automated Verification** — commands agents can run without human intervention
-(`make test`, `pytest`, file-existence checks, linters).
-
-**Manual Verification** — steps requiring human judgment (UI behavior, UX, edge
-cases, performance under real conditions).
-
-#### Blocking rule: NO open questions
-
-If an uncertainty surfaces while writing, **stop**, then either research the
-code to resolve it or ask the user. Resume only after it is resolved. A plan
-section titled "Open Questions" with unresolved items is **not acceptable**.
-
-### Step 5: Review & Iterate (Collaborative mode)
-
-Present a summary (approach, phase count, criteria counts) and ask for feedback
-on phasing, success criteria, technical approach, and edge cases.
-
-For major revisions use the `ai-research-workflows:iterating-plans` skill.
-
-## References and output
-
-- Ground the plan in `docs/rse/specs/research-*.md` (and legacy `.agents/research-*.md`, `.agents/prior-art-*.md`);
-  incorporate `docs/rse/specs/experiment-*.md` (or legacy `.agents/experiment-*.md`) when present.
-- List all referenced docs in the References section with relative markdown links.
-- Create `docs/rse/specs/` if needed; write to `docs/rse/specs/plan-<slug>.md`.
-- To revise an existing plan use `ai-research-workflows:iterating-plans`; to execute use
-  `ai-research-workflows:implementing-plans`.
-
-## Common Mistakes
-
-- **Confirming approach too late** — writing a detailed multi-phase plan before the user has approved the overall strategy wastes effort; in Collaborative mode, get approach sign-off after Step 2.
-- **Placeholder tasks** — "add appropriate error handling", "write tests for the above", or any step that states intent without the concrete code/command is a plan the executor cannot follow; write the actual content.
-- **Tests bolted on at the end** — lumping all tests into a trailing Testing Strategy section produces tests-last code; sequence tasks test-first (the failing test before the implementation) within each phase.
-- **Vague success criteria** — "works well" or "passes tests" is not a criterion; every item must be a concrete, runnable command or an observable human-verifiable outcome.
-- **Unsplit Automated vs Manual** — lumping all criteria together hides what requires human judgment; always separate the two categories explicitly.
-- **Leaving open questions in the "final" plan** — a plan section titled "Open Questions" with unresolved items ships ambiguity to the implementer; resolve or explicitly defer every question before saving the plan.
-- **Skipping scope boundaries** — omitting the "What We're NOT Doing" section lets scope creep in silently; fill it out even when the answer seems obvious.
-
-## Quality checklist
-
-Before completing the plan verify:
-
-- [ ] All referenced files read completely
-- [ ] All research completed and incorporated
-- [ ] User consulted on approach and structure (Collaborative mode)
-- [ ] Official template used
-- [ ] Saved to `docs/rse/specs/plan-<slug>.md`
-- [ ] Every phase has `file:line` references
-- [ ] Phase tasks are bite-sized and test-first (failing test before implementation)
-- [ ] No placeholder tasks ("add appropriate error handling", "write tests for the above", or intent-without-code)
-- [ ] Success criteria split into Automated and Manual
-- [ ] Criteria are measurable and concrete
-- [ ] "What We're NOT Doing" section is filled out
-- [ ] NO open questions remain
-- [ ] References section links to research and experiment docs
+| Need | Read |
+|---|---|
+| Sections, task shape, placeholders, criteria split, checklist | `references/plan-writing.md` |
+| The plan skeleton | `assets/plan-template.md` |

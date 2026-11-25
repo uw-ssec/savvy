@@ -46,12 +46,12 @@ Dropping the padding everywhere keeps one rule with no translation step: **the g
 "Changed" is decided mechanically, not by judgment:
 
 ```bash
-git diff --name-only <previous-tag>..HEAD -- plugins/<name>
-# or, for a community plugin:
-git diff --name-only <previous-tag>..HEAD -- community-plugins/<name>
+pixi run -e ci python .github/scripts/skill_trust.py changed-plugins <previous-tag>
 ```
 
-If that returns at least one path, the plugin changed and its version becomes the new release. If it returns nothing, the version stays as it is.
+If that lists a plugin, it changed and its version becomes the new release. A plugin it does not list keeps its version. For the first release there is no previous tag: skip the command, and every plugin takes the new version.
+
+The command prints every plugin directory (`plugins/<name>` and `community-plugins/<name>`) with at least one changed path outside a skill's evidence files: `skills/<skill>/evals/`, `skills/<skill>/BENCHMARK.md`, and `skills/<skill>/skill-card.md`. Evidence describes how a skill was tested; it does not change what the skill does, so a pull request that only adds or refreshes it does not move the plugin's version. The same file elsewhere (for example `skills/<skill>/references/BENCHMARK.md`) is ordinary content and does count.
 
 **Order matters.** Compute the changed set **before editing any manifest**, and commit the version bumps **before cutting the tag**. A version bump is itself a write inside the plugin's directory, so computing the set after bumping — or tagging before the bumps land — marks every plugin as changed at every release, destroying the signal this rule exists to provide.
 

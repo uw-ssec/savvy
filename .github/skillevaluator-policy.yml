@@ -1,0 +1,9 @@
+# Policy overlay for `pixi run -e ci skill-security-scan`, applied on top of
+# SkillEvaluator's `external` profile.
+#
+# SCHEMA.author_missing is downgraded to low: the SSEC Engineering Team is the
+# author of every skill here, recorded in each plugin's plugin.json, and no
+# public per-skill email is published. Once skills carry `metadata.author`,
+# this override can be removed.
+severity_overrides:
+  SCHEMA.author_missing: low

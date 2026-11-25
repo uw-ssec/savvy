@@ -1,197 +1,69 @@
 ---
 name: iterating-plans
 description: >-
-  Use when an existing implementation plan needs changes before or during
-  execution. Triggers: update the plan, change the plan, add a phase, revise
-  scope, incorporate experiment results.
+  Use when an existing implementation plan (`docs/rse/specs/plan-*.md`) needs
+  changes before or during execution. Triggers: update the plan, change the
+  plan, revise the plan, add a phase, split a phase, reorder or drop a phase,
+  revise scope, cut scope, fix success criteria, incorporate experiment
+  results, review feedback on a plan. Not for writing a first plan
+  (`ai-research-workflows:planning-implementations`) or executing an approved
+  one unchanged (`ai-research-workflows:implementing-plans`).
+metadata:
+  capability-network: none
+  capability-shell: runs-commands
+  capability-file: write
+  capability-environment: none
+  capability-mcp: none
 ---
 
 # Iterating Plans
 
-Revise an existing `docs/rse/specs/plan-*.md` with focused, surgical edits that
-preserve good content and maintain internal consistency.
+Revise an existing plan in place with surgical, consistent edits.
 
-## Interaction mode
-
-This skill leans **Collaborative** by default. For the full Collaborative-vs-Direct protocol and override rules, see the Interaction Modes reference in the `ai-research-workflows:using-research-workflows` skill.
-
-## Starting the skill
-
-If the plan file or the requested change is missing, enter Collaborative mode
-and ask for it (list recent plans with `ls -lt docs/rse/specs/plan-*.md .agents/plan-*.md 2>/dev/null | head -5`).
+Default mode: Collaborative (protocol: `ai-research-workflows:using-research-workflows`).
 
 ## Process
 
-### Step 1: Read and understand the current plan
+1. **Read.** If the plan or the change is missing, ask (recent plans:
+   `ls -lt docs/rse/specs/plan-*.md .agents/plan-*.md 2>/dev/null | head -5`).
+   Read the whole plan and any `experiment-*.md` the change draws on.
+2. **Research only if the change adds technical requirements or alters the
+   approach:** find real `path/file.ext:12-30` anchors; never guess a path.
+3. **Propose, keyed to the mode.**
+   - *Collaborative* (default, even for a bare "go" or a specific request;
+     this overrides the protocol's step 2 because a plan edit changes what
+     later agents execute): reply with
+     **Current state** (phases), **Proposed changes**, **Sections affected**,
+     then "Does this match?" Don't touch the file until the user says yes.
+   - *Direct* (the user waives the check-in: "no need to check back",
+     "don't ask", "just do it", "go ahead"): list the intended edits, then
+     apply them. Example:
+     "Applying: insert Phase 2, renumber old Phases 2–3 to 3–4."
 
-Read the entire plan completely (avoid partial reads). Identify:
+   Push back on changes that conflict with existing phases.
+4. **Edit surgically in place** per the Quick Reference, matching the existing
+   phase format. Never regenerate the plan or reformat untouched sections.
+5. **Consistency scan (required)** after every edit:
+   1. Renumber later phases: numbers are monotonic and contiguous.
+   2. Update every cross-reference (dependencies, "(Phase N)" in success
+      criteria and testing strategy, file anchors) to the new numbering.
+   3. Nothing references a removed task, phase, function or file.
+   4. Each phase keeps its Automated / Manual Verification split.
+   5. No open question or placeholder entered the plan: research it or ask.
+6. **Research-criteria re-check (required when the approach changes or a
+   results-producing phase is added):** the Reproducibility & Correctness
+   criteria (seeds, provenance, tolerances) still hold and cover the new work.
+7. **Report** the changes by section and their effect on criteria.
 
-- Number of phases, current scope, defined success criteria, implementation
-  approach, and included references.
+Read `references/iteration-patterns.md` for the step 3 and 7 messages, a
+worked pattern per change and common mistakes.
 
-Parse the requested change: adding/removing phases or tasks, updating success
-criteria, changing technical approach, incorporating new information, splitting
-or reordering phases.
+## Quick Reference
 
-Determine whether the change requires codebase research:
-
-- **Research needed** — changes introduce new technical requirements or alter
-  approach
-- **No research needed** — structural changes (reordering, splitting),
-  clarifications, or minor scope adjustments
-
-### Step 2: Research if needed
-
-Only if changes require new technical understanding:
-
-- Investigate in parallel: how a new requirement is currently handled, examples
-  of a pattern the new phase should follow, dependencies for a new component,
-  tests covering a related area.
-- **Wait for all research to complete** before proceeding.
-- Synthesize: what files need adding to tasks, what patterns to reference, what
-  success criteria to add, what risks to note.
-
-### Step 3: Confirm understanding before editing
-
-Before making any changes, present:
-
-```
-I've read the plan and understand you want to [summary of requested changes].
-
-Current state:
-- Phases: [list]
-- Scope: [summary]
-
-Proposed changes:
-- [Change 1]
-- [Change 2]
-
-Sections affected:
-- [Section 1]
-- [Section 2]
-
-[If research was done] Key findings:
-- [Finding]
-
-Does this match what you're looking for?
-```
-
-Get user confirmation. If the user says no, clarify and adjust; only proceed on yes.
-
-### Step 4: Update the plan — surgical edits
-
-Make focused, precise edits to the plan in place (at its existing path — `docs/rse/specs/plan-*.md`, or a legacy `.agents/plan-*.md`).
-
-**Good edits:** add a new phase section between existing phases; update specific
-success criteria items; modify task descriptions within a phase; add file
-references to existing tasks.
-
-**Bad edits:** replace the entire plan; rewrite sections that don't need
-changes; change formatting or structure unnecessarily.
-
-Maintain existing structure unless explicitly changing it: same phase format,
-same task description pattern, same reference style, same level of detail.
-
-When adding tasks or phases include specific `path/to/file.ext:123-145`
-references — research actual code locations if needed.
-
-When scope changes update success criteria (add/remove items) and preserve the
-**Automated vs. Manual verification split**:
-
-```markdown
-### Automated Verification
-[Commands and checks that run without human intervention]
-
-### Manual Verification
-[Steps requiring human testing and judgment]
-```
-
-Ensure consistency: new phases follow existing structure; scope changes update
-"What We're NOT Doing"; approach changes update "Implementation Approach"; new
-tasks reference actual codebase examples.
-
-After editing, run a **consistency scan**: phase numbering is monotonic and
-contiguous; every cross-reference (to a phase, file, or success criterion) still
-resolves; no task references a type, function, or file removed elsewhere; and the
-Automated/Manual split is intact. Fix any drift before presenting.
-
-When a change alters the technical approach or adds a results-producing phase,
-**re-check the plan's research criteria** too — reproducibility, seeds/provenance,
-and numerical-correctness success criteria (`ai-research-workflows:ensuring-reproducibility`,
-`ai-research-workflows:hardening-research-code`) — so an edit doesn't silently
-invalidate them.
-
-### Step 5: Present the changes
-
-```
-# Plan Updated
-
-Changes to `docs/rse/specs/plan-[slug].md`:
-
-## Changes Made
-- [Change 1 — specific section]
-- [Change 2 — specific section]
-
-## Impact
-- [How changes affect implementation]
-- [New/removed success criteria]
-
-Would you like any further adjustments?
-```
-
-If the user wants more changes, re-read the plan first and apply the same process.
-
-## Important guidelines
-
-**Be skeptical** — push back on changes that conflict with existing phases;
-question vague feedback ("when you say 'more robust', do you mean...?"); verify
-technical feasibility with code research before adding tasks.
-
-**Be surgical** — edit only what needs changing; don't reformat or rewrite for
-style.
-
-**Be thorough** — read the entire plan before editing; never guess at file paths.
-
-**No open questions** — this is a BLOCKING REQUIREMENT. If a requested change
-raises questions, ask or research immediately. Do NOT update the plan with
-unresolved questions; plans must be complete specifications.
-
-## Common iteration patterns
-
-For the five detailed patterns (adding a phase, updating success criteria,
-adjusting scope, incorporating experiment results, splitting a complex phase),
-see `references/iteration-patterns.md`.
-
-## Common Mistakes
-
-- **Rewriting whole sections instead of surgical edits** — only change what the
-  user asked to change; preserve structure, formatting, and unaffected content.
-- **Editing without confirming first** — always present the proposed changes and
-  get user confirmation before writing to the plan file.
-- **Leaving open questions in the plan** — if a requested change raises
-  unresolved questions, ask or research immediately; never commit ambiguity to
-  the plan.
-- **Skipping research when technical changes require it** — changing approach or
-  adding phases that reference new code requires investigating the codebase first.
-- **Breaking internal consistency** — after edits, verify that phase numbering,
-  scope statements, success criteria, and references are still coherent.
-
-## Cross-references
-
-After iterating, execute with the `ai-research-workflows:implementing-plans` skill. Incorporate
-`docs/rse/specs/experiment-*.md` (or legacy `.agents/experiment-*.md`) results when revising the technical approach.
-
-## Quality checklist
-
-Before completing, verify:
-
-- [ ] Read the entire existing plan before making changes
-- [ ] Ran research tasks if technical understanding was needed
-- [ ] Confirmed understanding with user before editing
-- [ ] Made precise edits without unnecessary rewrites
-- [ ] Maintained consistency with existing structure
-- [ ] Updated all affected sections (approach, criteria, references)
-- [ ] Preserved Automated vs. Manual verification split
-- [ ] All file:line references are accurate
-- [ ] No open questions remain in the updated plan
-- [ ] User is satisfied with changes
+| Change | Touch | Leave alone |
+|---|---|---|
+| Add a phase or task | Each new task names its file, cites `path/file.ext:12-30` for existing code it changes or calls, marks new files as new; test first; its Automated/Manual criteria. A new phase also updates later numbers and references | Other tasks and phases |
+| Cut scope | Its tasks, success criteria and tests; add it to "What We're NOT Doing" with the reason | Unrelated phases |
+| Update criteria | The items, in the right Automated or Manual list | Tasks |
+| New approach or experiment results | Implementation Approach; affected tasks; References (link the report); research criteria | Unaffected phases; Current State Analysis unless the results disprove it |
+| Split or reorder | The phases, each independently testable; later numbers and references | Tasks that don't move |

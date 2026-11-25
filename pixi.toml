@@ -18,13 +18,75 @@ pyyaml = "6.0.3.*"
 pytest = "9.2.0.*"
 check-jsonschema = "0.38.2.*"
 lychee = "0.24.2.*"
+# model-signing 1.1.1 imports OpenSSL but does not declare pyopenssl.
+pyopenssl = ">=26.4.0,<27"
 
 # The single pin for SkillEvaluator's version: skill-quality-check.yml runs
 # the checker through pixi (the skill-quality-check task below), so bumping
-# this rev is the only place a version bump is needed. Bump deliberately:
-# scores can shift between SkillEvaluator releases.
+# this rev is the place to bump. The same rev is repeated in [feature.benchmark]
+# below (it needs the tier3 extra); test_skill_trust.py enforces the two match.
+# Bump deliberately: scores can shift between SkillEvaluator releases.
+# Rev 707fb9a (main after 5320d93) accepts SkillSpector's `complete_with_caveats`
+# when every caveat is a non-fatal missing reference; older revs flag it incomplete.
 [feature.ci.pypi-dependencies]
-skillevaluator = { git = "https://github.com/NVIDIA/SkillEvaluator.git", rev = "5320d9329c36ecc72bc94c4f58cc813d6b54224b" }
+skillevaluator = { git = "https://github.com/NVIDIA/SkillEvaluator.git", rev = "707fb9a8cbfaf6c8f766506f43bb699212234f01" }
+# OpenSSF model signing (Sigstore), here for the tamper test in test-scripts;
+# release-sign.yml uses the smaller `signing` environment below, with the same pin.
+# Not on conda-forge, so PyPI, pinned exactly.
+model-signing = "==1.1.1"
+
+# The signing environment, the only one release-sign.yml installs: that job
+# holds `id-token: write`, so it gets just what stage/sign/pack need (skill_trust.py
+# imports yaml at load). model-signing and pyopenssl are pinned the same in `ci`
+# so test-scripts still runs the tamper test; test_skill_trust.py enforces the match.
+[feature.signing.dependencies]
+python = "3.12.*"
+pyyaml = "6.0.3.*"
+pyopenssl = ">=26.4.0,<27"
+
+[feature.signing.pypi-dependencies]
+model-signing = "==1.1.1"
+
+# SkillEvaluator's full Tier 1 `validate` shells out to SkillSpector, Semgrep
+# and Gitleaks, and reports `incomplete` when one is missing. Where each lives:
+# SkillSpector, Semgrep and Gitleaks live in the `scanners` feature below, and
+# `skill-security-scan` points SkillEvaluator at them.
+
+# The scanner environment. Semgrep is not on conda-forge, so it comes from
+# PyPI, pinned exactly; PyPI has no osx-64 wheel, so the feature leaves that
+# platform out. Gitleaks is on neither conda-forge nor PyPI, so
+# `install-gitleaks` builds the pinned release with Go; Go verifies module
+# checksums against its sumdb. The binary goes in its own directory so that
+# `skill-security-scan` can put only it on PATH (the env's whole bin/ would
+# shadow the ci Python).
+# SkillSpector needs yara-python, which has no osx-arm64 conda-forge build and
+# publishes PyPI macOS wheels only for macOS 14+, hence the macOS 14.0
+# system requirement (without it the solver falls back to a source build that
+# fails). Semgrep publishes Linux wheels only for glibc 2.34+ (manylinux_2_34),
+# hence the libc requirement (with pixi's default glibc 2.28 the lock falls
+# back to the sdist, whose built wheel a locked install then rejects).
+# pixi 0.83 warns that `system-requirements` is deprecated, but a feature's
+# `platforms` list takes plain strings only.
+[feature.scanners]
+platforms = ["linux-64", "osx-arm64", "win-64"]
+
+[feature.scanners.system-requirements]
+macos = "14.0"
+libc = "2.34"
+
+[feature.scanners.dependencies]
+python = "3.12.*"
+go = "1.27.*"
+
+# SkillSpector v2.13.4. Not v2.13.6: its `dependency_inspection` key is
+# rejected by the SkillEvaluator rev above.
+[feature.scanners.pypi-dependencies]
+semgrep = "==1.186.0"
+skillspector = { git = "https://github.com/NVIDIA/SkillSpector.git", rev = "54824463814a0be01360792523ec7245a69190fc" }
+
+[feature.scanners.tasks]
+# The Go module path of v8.30.1 is github.com/zricethezav/gitleaks/v8; keep it as is, do not "fix" it.
+install-gitleaks = { cmd = "go install github.com/zricethezav/gitleaks/v8@v8.30.1", env = { GOBIN = "$CONDA_PREFIX/libexec/gitleaks" }, outputs = ["$CONDA_PREFIX/libexec/gitleaks/gitleaks"], description = "Build the pinned Gitleaks release with Go into its own directory" }
 
 [feature.ci.tasks]
 plugins-sync = { cmd = "python .github/scripts/agent_plugins.py sync", description = "Regenerate the generated plugin manifests and marketplaces" }
@@ -34,14 +96,43 @@ links-check = { cmd = "lychee --config lychee.toml --no-progress --hidden .", de
 test-scripts = { cmd = "pytest .github/scripts/tests -q", description = "Run the CI script tests" }
 catalog-sync = { cmd = "python .github/scripts/skill_catalog.py sync", description = "Regenerate docs/catalog.md from SKILL.md frontmatter and docs/catalog.yml" }
 catalog-check = { cmd = "python .github/scripts/skill_catalog.py check", description = "Check docs/catalog.md is current and every skill has a catalog entry (CI gate)" }
-check-all = { depends-on = ["plugins-check", "catalog-check", "test-scripts"], description = "Run the offline CI gates: plugins-check, catalog-check and test-scripts" }
+trust-check = { cmd = "python .github/scripts/skill_trust.py check", description = "Check each pilot skill's capability declarations, skill card and eval task set (CI gate: Validate Plugins and `check-all`)" }
+check-all = { depends-on = ["plugins-check", "catalog-check", "trust-check", "test-scripts"], description = "Run the offline CI gates: plugins-check, catalog-check, trust-check and test-scripts" }
 skill-quality-check = { cmd = "skillevaluator quality-check --min-score 70", description = "Run SkillEvaluator's quality-check on a skill, e.g. `pixi run -e ci skill-quality-check plugins/<plugin>/skills/<skill>`" }
+# The scanner paths below assume POSIX (Linux and macOS; CI is ubuntu) and
+# will not resolve on Windows. SKILLEVALUATOR_REQUIRE_SEMGREP makes a missing
+# Semgrep an incomplete scan (which fails the gate) instead of a silent skip.
+skill-security-scan = { cmd = "skillevaluator validate --tiers 1 --policy .github/skillevaluator-policy.yml -r cli,json", depends-on = [{ task = "install-gitleaks", environment = "scanners" }], env = { SKILLEVALUATOR_REQUIRE_SEMGREP = "1", SKILLEVALUATOR_SEMGREP_PATH = "$PIXI_PROJECT_ROOT/.pixi/envs/scanners/bin/semgrep", SKILLEVALUATOR_SKILLSPECTOR_PATH = "$PIXI_PROJECT_ROOT/.pixi/envs/scanners/bin/skillspector", PATH = "$PIXI_PROJECT_ROOT/.pixi/envs/scanners/libexec/gitleaks:$PATH" }, description = "Run SkillEvaluator's Tier 1 security validation on a skill, e.g. `pixi run -e ci skill-security-scan plugins/<plugin>/skills/<skill> -o <out-dir>`" }
 
 # OKF agent memory: provides the `okf` CLI that reads and writes the knowledge/
 # bundle (see the okf-memory skill in .agents/skills/).
 [feature.okf.dependencies]
 okf-agent-memory = ">=0.6.1,<0.7"
 
+# The benchmark environment: Tier 3 runs the agent in Docker through Harbor,
+# which SkillEvaluator ships in its `tier3` extra. Kept apart from `ci` so the
+# gates that don't run agents don't install Harbor. Same rev as `ci` above:
+# bump both together. Harbor's own wheels cover only these platforms.
+[feature.benchmark]
+platforms = ["linux-64", "osx-arm64"]
+
+[feature.benchmark.dependencies]
+python = "3.12.*"
+
+[feature.benchmark.pypi-dependencies]
+skillevaluator = { git = "https://github.com/NVIDIA/SkillEvaluator.git", rev = "707fb9a8cbfaf6c8f766506f43bb699212234f01", extras = ["tier3"] }
+
+# Reported, never gating: advisory Tier 3 (no policy, no autopilot, so it
+# needs an existing evals/ dataset). SkillEvaluator always runs Tier 1 and
+# rejects `--tiers 3` on its own, hence `1,3`. `--n-attempts` and `--model` are
+# set per run by .github/workflows/benchmark-skills.yml; the output dir gets
+# BENCHMARK.md.
+[feature.benchmark.tasks]
+skill-benchmark = { cmd = "skillevaluator validate --tiers 1,3 --no-autopilot -a claude-code -r json", description = "Run SkillEvaluator's Tier 3 benchmark (claude-code agent) on a skill, e.g. `pixi run -e benchmark skill-benchmark plugins/<plugin>/skills/<skill> -o <out-dir>`" }
+
 [environments]
 default = { features = ["okf"], solve-group = "default" }
 ci = { features = ["ci"], no-default-feature = true }
+scanners = { features = ["scanners"], no-default-feature = true }
+benchmark = { features = ["benchmark"], no-default-feature = true }
+signing = { features = ["signing"], no-default-feature = true }

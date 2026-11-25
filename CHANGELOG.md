@@ -14,28 +14,6 @@ Changes that touch no plugin — CI, repository documentation, tooling — go un
 
 ## [Unreleased]
 
-First tagged release. Only `ai-research-workflows` ships in it and moves to this release's version. The other plugins below are marked `released: false` in [docs/catalog.yml](docs/catalog.yml) until they are ready, so no marketplace lists them yet and their entries wait for the release that ships them.
-
-### ai-research-workflows
-
-#### Added
-
-- Initial tagged release.
-- Capability metadata, a skill card and a public eval task set on each skill, as part of the skill trust evidence pilot ([#293](https://github.com/uw-ssec/savvy/issues/293)).
-
-#### Changed
-
-- `ensuring-reproducibility`: `SKILL.md` is now a short entry point (Iron Law, field table, clean-room steps, red flags). The full field list, record location and tolerance example moved to a new `references/provenance-record.md`, which also adds steps for a project with no lockfile and a record skeleton. The description gains triggers for numbers that differ across runs or machines, reviewer or journal requests and reporting a number in a paper, and names the neighboring skills it doesn't own ([#155](https://github.com/uw-ssec/savvy/issues/155)).
-- `validating-implementations`: slimmer `SKILL.md` (detail moved to `references/`) with explicit rules to investigate "flaky" failures, write the report file even for chat-only requests, choose one overall status and leave the code under review unchanged ([#163](https://github.com/uw-ssec/savvy/issues/163)).
-- `creating-handoffs`: slimmed `SKILL.md` to an entry point with a quick-reference table and moved the section-by-section detail, next-skill table and summary format to `references/writing-guide.md`; the skill now has the agent re-run the tests, leave the working tree as it found it, and check its account of the work against the repository, and its description names more triggers and its neighbors ([#154](https://github.com/uw-ssec/savvy/issues/154)).
-- `hardening-research-code`: SKILL.md is now a short entry point (Iron Law, a criteria quick-reference table, the tolerance rule, the workflow and red flags), with the per-test-type detail moved to `references/techniques.md`; it now says what to do when a correctness test fails on the current code, and its description covers more trigger phrasings and names neighboring skills ([#156](https://github.com/uw-ssec/savvy/issues/156)).
-- `implementing-plans`: SKILL.md is now a short entry point (hard gates, workflow, red flags) with the step detail in `references/workflow.md`; it now says when drift becomes a mismatch, that it may create a feature branch, and that it commits only at the plan's commit steps, and its summary template no longer shows unconfirmed manual checks as done ([#157](https://github.com/uw-ssec/savvy/issues/157)).
-- `researching`: the description lists triggers only and names `running-experiments` and `planning-implementations` as the neighbors it doesn't cover. `SKILL.md` is cut to a quick reference, the interaction-mode rule and the hard rules; the presenting, writing, self-review and user-review detail moves to `references/writing-and-review.md`, and the research template gains a **Codebase state** field for the commit SHA. The false claim that `using-research-workflows` surveys this skill automatically is gone ([#160](https://github.com/uw-ssec/savvy/issues/160)).
-- `running-experiments`: `SKILL.md` is a short entry point (Iron Law, red flags, process table, checklist) with detail moved to `references/running-the-comparison.md` and `references/reporting.md`. It now says what to do when the user asks not to run anything and how to keep and clean up prototypes, and its description adds "prototype both" and "which is faster on our data" triggers ([#161](https://github.com/uw-ssec/savvy/issues/161)).
-- `iterating-plans`: SKILL.md cut to a short entry point (from about 1,000 words) with a numbered, required consistency scan, a Quick Reference table and confirmation keyed to the interaction mode (Collaborative confirms before editing; Direct states the edits, then applies them). The message templates and edit guidance moved to `references/iteration-patterns.md`, and the description adds split, reorder and feedback triggers and names its neighbors ([#158](https://github.com/uw-ssec/savvy/issues/158)).
-- `planning-implementations`: `SKILL.md` is now a short entry point (when to use, mode, process, hard rules), and the section, task-shape, placeholder and checklist detail moves to `references/plan-writing.md`. The plan template's "Open Questions" section becomes "Resolved Decisions", so filling in the template no longer reintroduces the section the skill forbids. A request to leave a decision open now gets options and a recommendation instead of an unresolved plan, and Direct mode applies only when the user asks for it or can't be consulted.
-- `using-research-workflows`: slim the entry point to the rule, instruction priority, decision tree and pointers; move workflow patterns, red flags and common mistakes to `references/workflow-patterns.md` and document naming and deferral to `references/conventions.md`; an explicitly skipped step is skipped while urgency only selects Direct mode, and the agent states the route and writes the research document before editing ([#162](https://github.com/uw-ssec/savvy/issues/162)).
-
 ### containerization
 
 #### Added
@@ -164,6 +142,30 @@ First tagged release. Only `ai-research-workflows` ships in it and moves to this
 - `cloud-storage-backends`: rewrite the Icechunk examples for the current `Repository` and session API (the 0.1 `StorageConfig`/`IcechunkStore` API no longer exists), document which fsspec and zarr caches actually work with `FsspecStore`, and correct the CMIP6 example, the `zarr[remote]` extra, GCS anonymous access, v3 consolidated metadata, slow-open causes and broken helper snippets.
 - `cloud-storage-backends`: replace hard-coded MinIO, Azure and AWS credentials in the examples with environment variables, profiles or managed identity.
 - `data-migration`: recipes that corrupted data with no error. `encoding=` now keeps packing, fill values, `missing_value` and `_Unsigned` data; appended finer time steps get correct dates; kerchunk merges keep every file's times; and validation compares attribute values, including global attributes, without loading whole arrays. The VirtualiZarr 2.x, Icechunk and h5py code runs on current releases.
+
+## [26.11.0] -- 2026-11-25
+
+First tagged release. Only `ai-research-workflows` ships in it and moves to this release's version. The other plugins are marked `released: false` in [docs/catalog.yml](docs/catalog.yml) until they are ready, so no marketplace lists them yet, and their entries stay under [Unreleased](#unreleased) until the release that ships them.
+
+### ai-research-workflows
+
+#### Added
+
+- Initial tagged release.
+- Capability metadata, a skill card and a public eval task set on each skill, as part of the skill trust evidence pilot ([#293](https://github.com/uw-ssec/savvy/issues/293)).
+
+#### Changed
+
+- `ensuring-reproducibility`: `SKILL.md` is now a short entry point (Iron Law, field table, clean-room steps, red flags). The full field list, record location and tolerance example moved to a new `references/provenance-record.md`, which also adds steps for a project with no lockfile and a record skeleton. The description gains triggers for numbers that differ across runs or machines, reviewer or journal requests and reporting a number in a paper, and names the neighboring skills it doesn't own ([#155](https://github.com/uw-ssec/savvy/issues/155)).
+- `validating-implementations`: slimmer `SKILL.md` (detail moved to `references/`) with explicit rules to investigate "flaky" failures, write the report file even for chat-only requests, choose one overall status and leave the code under review unchanged ([#163](https://github.com/uw-ssec/savvy/issues/163)).
+- `creating-handoffs`: slimmed `SKILL.md` to an entry point with a quick-reference table and moved the section-by-section detail, next-skill table and summary format to `references/writing-guide.md`; the skill now has the agent re-run the tests, leave the working tree as it found it, and check its account of the work against the repository, and its description names more triggers and its neighbors ([#154](https://github.com/uw-ssec/savvy/issues/154)).
+- `hardening-research-code`: SKILL.md is now a short entry point (Iron Law, a criteria quick-reference table, the tolerance rule, the workflow and red flags), with the per-test-type detail moved to `references/techniques.md`; it now says what to do when a correctness test fails on the current code, and its description covers more trigger phrasings and names neighboring skills ([#156](https://github.com/uw-ssec/savvy/issues/156)).
+- `implementing-plans`: SKILL.md is now a short entry point (hard gates, workflow, red flags) with the step detail in `references/workflow.md`; it now says when drift becomes a mismatch, that it may create a feature branch, and that it commits only at the plan's commit steps, and its summary template no longer shows unconfirmed manual checks as done ([#157](https://github.com/uw-ssec/savvy/issues/157)).
+- `researching`: the description lists triggers only and names `running-experiments` and `planning-implementations` as the neighbors it doesn't cover. `SKILL.md` is cut to a quick reference, the interaction-mode rule and the hard rules; the presenting, writing, self-review and user-review detail moves to `references/writing-and-review.md`, and the research template gains a **Codebase state** field for the commit SHA. The false claim that `using-research-workflows` surveys this skill automatically is gone ([#160](https://github.com/uw-ssec/savvy/issues/160)).
+- `running-experiments`: `SKILL.md` is a short entry point (Iron Law, red flags, process table, checklist) with detail moved to `references/running-the-comparison.md` and `references/reporting.md`. It now says what to do when the user asks not to run anything and how to keep and clean up prototypes, and its description adds "prototype both" and "which is faster on our data" triggers ([#161](https://github.com/uw-ssec/savvy/issues/161)).
+- `iterating-plans`: SKILL.md cut to a short entry point (from about 1,000 words) with a numbered, required consistency scan, a Quick Reference table and confirmation keyed to the interaction mode (Collaborative confirms before editing; Direct states the edits, then applies them). The message templates and edit guidance moved to `references/iteration-patterns.md`, and the description adds split, reorder and feedback triggers and names its neighbors ([#158](https://github.com/uw-ssec/savvy/issues/158)).
+- `planning-implementations`: `SKILL.md` is now a short entry point (when to use, mode, process, hard rules), and the section, task-shape, placeholder and checklist detail moves to `references/plan-writing.md`. The plan template's "Open Questions" section becomes "Resolved Decisions", so filling in the template no longer reintroduces the section the skill forbids. A request to leave a decision open now gets options and a recommendation instead of an unresolved plan, and Direct mode applies only when the user asks for it or can't be consulted.
+- `using-research-workflows`: slim the entry point to the rule, instruction priority, decision tree and pointers; move workflow patterns, red flags and common mistakes to `references/workflow-patterns.md` and document naming and deferral to `references/conventions.md`; an explicitly skipped step is skipped while urgency only selects Direct mode, and the agent states the route and writes the research document before editing ([#162](https://github.com/uw-ssec/savvy/issues/162)).
 
 ### Repository
 

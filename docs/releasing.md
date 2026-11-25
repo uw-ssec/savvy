@@ -10,6 +10,7 @@ The full release checklist is tracked in [#132](https://github.com/uw-ssec/savvy
 |---|---|---|
 | GitHub Release published | zenodo.org: a new version of the savvy record, with a permanent DOI | The tag without the `v`, e.g. `26.11.0` |
 | Push to `main` | sandbox.zenodo.org: a rehearsal of the same steps; sandbox DOIs are never registered | `CITATION.cff`'s version plus `g` and the commit, e.g. `26.11.0+g1ad2911` |
+| Manual run (Actions → Zenodo publish → Run workflow, or `gh workflow run zenodo-publish.yml`) | sandbox.zenodo.org, from the branch you choose | Same as a push to `main` |
 
 The workflow finds the savvy record by its keyword `uw-ssec-software:savvy`. The first run on each host creates the record, and every later run adds a version to it, so the concept DOI stays the same.
 

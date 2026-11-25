@@ -40,7 +40,9 @@ None. The version is the current date (see `docs/versioning.md`).
    - `gh run list --workflow zenodo-publish.yml --branch main --limit 1` — the
      latest sandbox publish from `main` must have succeeded. It rehearses the
      production publish with the same metadata. If it failed, stop and report
-     the error from its log
+     the error from its log. To rehearse again without a new commit, run
+     `gh workflow run zenodo-publish.yml --ref main`, which always targets the
+     sandbox
 
 4. Compute the set of changed plugins. This only reads; edit nothing yet:
 

@@ -1,0 +1,61 @@
+name: Zenodo publish
+description: >-
+  Publish files to Zenodo (production or sandbox) as a new record, or as a new
+  version of the record that carries record-keyword. Needs only the runner's python3.
+
+inputs:
+  token:
+    description: Zenodo token with deposit:write and deposit:actions scopes, for the host that sandbox selects.
+    required: true
+  sandbox:
+    description: "'true' publishes to sandbox.zenodo.org; anything else publishes to zenodo.org."
+    required: false
+    default: "false"
+  metadata:
+    description: Path to a JSON file of Zenodo deposition metadata, such as `cffconvert -f zenodo` output.
+    required: true
+  files:
+    description: Newline-separated paths of the files to upload. They replace the previous version's files.
+    required: true
+  record-keyword:
+    description: Keyword unique to this project, used to find its record across versions. Added to the metadata.
+    required: true
+  version:
+    description: Version string. Overrides the metadata's version.
+    required: false
+    default: ""
+  upload-type:
+    description: Zenodo upload type.
+    required: false
+    default: software
+  community:
+    description: Zenodo community identifier to submit the record to. Empty for none.
+    required: false
+    default: uw-ssec
+
+outputs:
+  doi:
+    description: DOI of the version just published.
+    value: ${{ steps.publish.outputs.doi }}
+  concept-doi:
+    description: DOI that stays the same across all versions.
+    value: ${{ steps.publish.outputs.concept-doi }}
+  record-url:
+    description: URL of the published record.
+    value: ${{ steps.publish.outputs.record-url }}
+
+runs:
+  using: composite
+  steps:
+    - id: publish
+      shell: bash
+      env:
+        ZENODO_TOKEN: ${{ inputs.token }}
+        ZENODO_SANDBOX: ${{ inputs.sandbox }}
+        ZENODO_METADATA: ${{ inputs.metadata }}
+        ZENODO_FILES: ${{ inputs.files }}
+        ZENODO_RECORD_KEYWORD: ${{ inputs.record-keyword }}
+        ZENODO_VERSION: ${{ inputs.version }}
+        ZENODO_UPLOAD_TYPE: ${{ inputs.upload-type }}
+        ZENODO_COMMUNITY: ${{ inputs.community }}
+      run: python3 "$GITHUB_ACTION_PATH/zenodo_publish.py"

@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - '.github/scripts/**'
+      - '.github/actions/zenodo-publish/**'
       - '.github/workflows/test-ci-scripts.yml'
       - 'pixi.toml'
       - 'pixi.lock'
@@ -15,10 +16,12 @@ on:
       - '.github/workflows/generate-testcases.yml'
       - '.github/workflows/skill-quality-check.yml'
       - '.github/workflows/validate-plugins.yml'
+      - '.github/workflows/zenodo-publish.yml'
   push:
     branches: [main]
     paths:
       - '.github/scripts/**'
+      - '.github/actions/zenodo-publish/**'
       - '.github/workflows/test-ci-scripts.yml'
       - 'pixi.toml'
       - 'pixi.lock'
@@ -29,6 +32,7 @@ on:
       - '.github/workflows/generate-testcases.yml'
       - '.github/workflows/skill-quality-check.yml'
       - '.github/workflows/validate-plugins.yml'
+      - '.github/workflows/zenodo-publish.yml'
 
 permissions: {}
 

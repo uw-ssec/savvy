@@ -7,6 +7,8 @@ name: Zenodo publish
 #   Release published → zenodo.org (production DOI)
 #   Push to main      → sandbox.zenodo.org (rehearses the same steps; sandbox
 #                       DOIs are never registered)
+#   Manual run        → sandbox.zenodo.org, from the chosen branch (Actions →
+#                       Zenodo publish → Run workflow), to rehearse on demand
 #
 # Metadata comes from CITATION.cff. Tokens are the org secrets ZENODO_TOKEN and
 # ZENODO_SANDBOX_TOKEN, which belong to SSEC's shared Zenodo account.
@@ -15,6 +17,7 @@ on:
     types: [published]
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions: {}
 
@@ -47,7 +50,7 @@ jobs:
           cache: false
 
       # Release: the tag (no v) must be a calendar version and match CITATION.cff.
-      # Main: CITATION.cff's version plus g and the commit (setuptools-scm style), e.g. 26.11.0+g1ad2911.
+      # Main or a manual run: CITATION.cff's version plus g and the commit (setuptools-scm style), e.g. 26.11.0+g1ad2911.
       - name: Set version
         id: version
         env:

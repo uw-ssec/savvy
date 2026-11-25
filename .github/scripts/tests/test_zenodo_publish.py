@@ -168,6 +168,12 @@ def test_set_version_main_push_appends_commit(tmp_path):
     assert out["version"] == "26.11.0+g1ad2911"
 
 
+def test_set_version_manual_run_matches_a_main_push(tmp_path):
+    proc, out = _set_version(tmp_path, "26.11.0", EVENT="workflow_dispatch", TAG="", SHA="2d6be7aabcdef")
+    assert proc.returncode == 0, proc.stderr
+    assert out["version"] == "26.11.0+g2d6be7a"
+
+
 def test_only_a_published_release_reaches_production():
     doc = yaml.safe_load((WORKFLOWS / "zenodo-publish.yml").read_text(encoding="utf-8"))
     job = doc["jobs"]["publish"]
@@ -180,3 +186,4 @@ def test_only_a_published_release_reaches_production():
     triggers = doc.get("on", doc.get(True))
     assert triggers["release"]["types"] == ["published"]
     assert triggers["push"]["branches"] == ["main"]
+    assert "workflow_dispatch" in triggers

@@ -27,6 +27,9 @@ exclude = [
     # Loads fine in a browser (and via curl), but resets the connection for
     # lychee's client specifically, even with a browser user-agent. #249.
     "^https://vizier\\.cds\\.unistra\\.fr/$",
+    # Same CDS service as VizieR. In CI, lychee fails it with a TLS error
+    # (invalid peer certificate: UnknownIssuer). #249.
+    "^https?://simbad\\.cds\\.unistra\\.fr/$",
     # README DOI badge: Zenodo returns 404 until the first release is archived.
     # Delete these lines after the first release.
     "^https://zenodo\\.org/badge/1091290859\\.svg$",

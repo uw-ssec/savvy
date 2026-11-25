@@ -64,6 +64,7 @@ jobs:
           status=$?
           set -e
           cat "$RUNNER_TEMP/lychee.md" >> "$GITHUB_STEP_SUMMARY"
+          cat "$RUNNER_TEMP/lychee.md" # TEMP: print report to the log; revert before merge
           if [ "$status" -ne 0 ]; then
             echo "::error::Broken external links; see the job summary. Fix the URL, or add it to the exclude list in lychee.toml with a reason."
           fi

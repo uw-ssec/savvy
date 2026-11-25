@@ -75,6 +75,7 @@ Manifests and Other Clients" section before editing any plugin.
 | `test-ci-scripts.yml`     | PRs touching `.github/scripts/` or workflows  | `pixi run test-scripts`                                                                                                                                    |
 | `zizmor.yml`              | PRs touching `.github/workflows/`             | Workflow security lint                                                                                                                                     |
 | `check-links.yml`         | Push to `main` (Markdown), weekly             | `pixi run links-check` (lychee, external URLs only)                                                                                                        |
+| `zenodo-publish.yml`      | Release published; push to `main`             | Archives savvy on Zenodo with the `zenodo-publish` action: a release goes to zenodo.org, a push to `main` to sandbox.zenodo.org                            |
 | `evaluate-*.yml`          | Manual                                        | Skill evals against the private testcases repo                                                                                                             |
 | `generate-testcases.yml`  | Manual                                        | Drafts testcases for skills a PR adds                                                                                                                      |
 

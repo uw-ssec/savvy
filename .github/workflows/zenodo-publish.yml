@@ -1,0 +1,94 @@
+name: Zenodo publish
+
+# Archives savvy on Zenodo through the API (the zenodo-publish action), so the
+# Zenodo GitHub integration must stay switched off for this repository: with
+# both on, every release gets two records.
+#
+#   Release published → zenodo.org (production DOI)
+#   Push to main      → sandbox.zenodo.org (rehearses the same steps; sandbox
+#                       DOIs are never registered)
+#
+# Metadata comes from CITATION.cff. Tokens are the org secrets ZENODO_TOKEN and
+# ZENODO_SANDBOX_TOKEN, which belong to SSEC's shared Zenodo account.
+on:
+  release:
+    types: [published]
+  push:
+    branches: [main]
+
+permissions: {}
+
+# One publish per target at a time, never cancelled: two overlapping runs
+# would both open a new version of the same record.
+concurrency:
+  group: zenodo-${{ github.event_name == 'release' && 'production' || 'sandbox' }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    # A pre-release would still get a permanent production DOI.
+    if: github.event_name != 'release' || !github.event.release.prerelease
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      # A release event checks out the tagged commit; a push, the pushed commit.
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: prefix-dev/setup-pixi@ad1da6449d9e506fd127fd67ab2d054a769f6a94 # v0.11.2
+        with:
+          pixi-version: v0.82.0
+          environments: ci
+          locked: true
+          # This job holds the Zenodo token: don't restore a cache other workflows can write.
+          cache: false
+
+      # Release: the tag (no v) must be a calendar version and match CITATION.cff.
+      # Main: CITATION.cff's version plus g and the commit (setuptools-scm style), e.g. 26.11.0+g1ad2911.
+      - name: Set version
+        id: version
+        env:
+          EVENT: ${{ github.event_name }}
+          TAG: ${{ github.event.release.tag_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          cff_version=$(sed -n 's/^version:[[:space:]]*//p' CITATION.cff | tr -d "\"'" | tr -d '[:space:]')
+          if [ -z "$cff_version" ]; then
+            echo "::error::CITATION.cff has no version"
+            exit 1
+          fi
+          if [ "$EVENT" = "release" ]; then
+            version="${TAG#v}"
+            pixi run -e ci python .github/scripts/skill_trust.py check-version "$version"
+            if [ "$version" != "$cff_version" ]; then
+              echo "::error::Tag $TAG does not match CITATION.cff version $cff_version"
+              exit 1
+            fi
+          else
+            version="${cff_version}+g${SHA:0:7}"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build metadata and archive
+        id: build
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          pixi exec -s cffconvert==2.0.0 cffconvert -i CITATION.cff -f zenodo -o "$RUNNER_TEMP/zenodo.json"
+          archive="$RUNNER_TEMP/savvy-${VERSION}.zip"
+          git archive --format=zip --prefix="savvy-${VERSION}/" -o "$archive" HEAD
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to Zenodo
+        id: zenodo
+        uses: ./.github/actions/zenodo-publish
+        with:
+          token: ${{ github.event_name == 'release' && secrets.ZENODO_TOKEN || secrets.ZENODO_SANDBOX_TOKEN }}
+          sandbox: ${{ github.event_name == 'release' && 'false' || 'true' }}
+          metadata: ${{ runner.temp }}/zenodo.json
+          files: ${{ steps.build.outputs.archive }}
+          record-keyword: uw-ssec-software:savvy
+          version: ${{ steps.version.outputs.version }}

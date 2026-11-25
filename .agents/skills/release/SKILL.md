@@ -2,15 +2,17 @@
 name: release
 description:
   Use when a new version needs cutting — a calendar version, changelog entry,
-  git tag, GitHub release, plugin zip assets, and signed pilot skill archives.
+  git tag, GitHub release, plugin zip assets, signed pilot skill archives, and
+  the Zenodo DOI.
 ---
 
 # Release
 
 Create a versioned release with changelog, tag, GitHub release, and plugin zip
 assets. Pilot plugins (`ai-research-workflows`) get no zip: `release-sign.yml`
-attaches signed per-skill archives when the release is published (see
-`docs/releasing.md`).
+attaches signed per-skill archives when the release is published. Publishing
+also triggers `zenodo-publish.yml`, which archives the release on zenodo.org and
+mints its DOI (see `docs/releasing.md`).
 
 ## Arguments
 
@@ -35,6 +37,10 @@ None. The version is the current date (see `docs/versioning.md`).
    - `git status` — must be on `main` with no uncommitted changes
    - `git pull origin main` — must be up to date
    - Warn and stop if not on `main` or if there are uncommitted changes
+   - `gh run list --workflow zenodo-publish.yml --branch main --limit 1` — the
+     latest sandbox publish from `main` must have succeeded. It rehearses the
+     production publish with the same metadata. If it failed, stop and report
+     the error from its log
 
 4. Compute the set of changed plugins. This only reads; edit nothing yet:
 
@@ -85,10 +91,17 @@ None. The version is the current date (see `docs/versioning.md`).
    - Rename `[Unreleased]` to `[YY.M.MICRO] -- YYYY-MM-DD` (today's date)
    - Add a new empty `[Unreleased]` section above it
 
-9. Commit the changelog update:
+   Update `CITATION.cff`:
+
+   - Set `version` to the new version without the `v` (`26.11.0`).
+     `zenodo-publish.yml` fails the release if they differ
+   - Set `date-released` to today's date (`YYYY-MM-DD`)
+   - Validate it: `pixi exec cffconvert --validate -i CITATION.cff`
+
+9. Commit the changelog and citation updates:
 
    ```bash
-   git add CHANGELOG.md
+   git add CHANGELOG.md CITATION.cff
    git commit -m "chore(release): prepare vYY.M.MICRO" -m "Assisted-by: <harness>:<model>"
    ```
 
@@ -172,7 +185,20 @@ None. The version is the current date (see `docs/versioning.md`).
     failed, read the run log, fix the cause, and re-run it with
     `gh run rerun <run-id>`; re-running replaces the assets.
 
-16. Confirm: "Released vYY.M.MICRO — <release URL>"
+16. Confirm the Zenodo DOI. Publishing also triggers `zenodo-publish.yml`:
+
+    ```bash
+    gh run list --workflow zenodo-publish.yml --event release --limit 1
+    gh run view <run-id> --log | grep -E '(published|DOI|concept DOI): '
+    ```
+
+    The run must have succeeded. If it failed before `published:`, nothing
+    reached Zenodo, so fix the cause and re-run it with `gh run rerun <run-id>`.
+    The run reuses a draft that an earlier failed run left behind. Never
+    re-run a run that already printed `published:`, because that would mint a
+    second DOI.
+
+17. Confirm: "Released vYY.M.MICRO — <release URL>, DOI <doi>"
 
 ## Zip Naming Rules
 
@@ -194,6 +220,10 @@ None. The version is the current date (see `docs/versioning.md`).
 - Benchmarks never gate a release, but a pilot skill's verdict (or "no
   benchmark yet") must appear in the release notes
 - Never build an unsigned archive for a pilot skill
+- Never publish a pre-release: `zenodo-publish.yml` skips it, and it would
+  leave the release without a DOI
+- Never switch on the Zenodo GitHub integration for this repository: with it on,
+  every release gets a second Zenodo record
 - Never commit generated zip files — they are upload artifacts only
 - NEVER add "Generated with" or similar marketing lines to the release notes
 - NEVER include sensitive information in the release notes or changelog

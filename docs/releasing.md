@@ -4,18 +4,25 @@ The full release checklist is tracked in [#132](https://github.com/uw-ssec/savvy
 
 ## Citation and DOI
 
-Zenodo archives each published GitHub Release and mints a DOI for it. It takes the title, authors, abstract, keywords, and license from [`CITATION.cff`](../CITATION.cff) at the release tag, and the version and date from the release itself.
+[`zenodo-publish.yml`](../.github/workflows/zenodo-publish.yml) archives savvy on Zenodo through the API, using the [`zenodo-publish`](../.github/actions/zenodo-publish/action.yml) action. It uploads a zip of the source at the commit and takes the title, authors, abstract, keywords, and license from [`CITATION.cff`](../CITATION.cff). Records belong to SSEC's shared Zenodo account, through the org secrets `ZENODO_TOKEN` and `ZENODO_SANDBOX_TOKEN`.
 
-1. **Before every release:** confirm `uw-ssec/savvy` is switched on at zenodo.org → Account → GitHub. A release published while it is off gets no DOI.
-2. **Before tagging:** in `CITATION.cff`, set `version` to the tag without the `v` (tag `v26.11.0` → `version: 26.11.0`) and `date-released` to the release date (`YYYY-MM-DD`). Zenodo ignores these two fields; they are for GitHub's **Cite this repository**. Validate and commit:
+| Event | Zenodo | Version |
+|---|---|---|
+| GitHub Release published | zenodo.org: a new version of the savvy record, with a permanent DOI | The tag without the `v`, e.g. `26.11.0` |
+| Push to `main` | sandbox.zenodo.org: a rehearsal of the same steps; sandbox DOIs are never registered | `CITATION.cff`'s version plus `g` and the commit, e.g. `26.11.0+g1ad2911` |
+
+The workflow finds the savvy record by its keyword `uw-ssec-software:savvy`. The first run on each host creates the record, and every later run adds a version to it, so the concept DOI stays the same.
+
+1. **Keep the Zenodo GitHub integration off** for `uw-ssec/savvy` (zenodo.org → Account → GitHub). With both on, every release gets two records.
+2. **Before tagging:** in `CITATION.cff`, set `version` to the tag without the `v` (tag `v26.11.0` → `version: 26.11.0`) and `date-released` to the release date (`YYYY-MM-DD`). The workflow fails before uploading anything if the tag and `version` differ. Validate and commit:
 
    ```bash
    pixi exec cffconvert --validate -i CITATION.cff
    ```
 
-   An invalid `CITATION.cff` makes the Zenodo archive fail, so no DOI is minted.
-3. **Publish the GitHub Release.** A draft does not trigger Zenodo, but a pre-release does: it is archived like any other release and gets a permanent DOI. Don't publish test or release-candidate releases on `uw-ssec/savvy`.
-4. **After publishing:** within a few minutes the release should appear at zenodo.org → Account → GitHub. Check the record's title and authors. Its version is `v26.11.0`, taken from the tag, not `26.11.0` from `CITATION.cff`; that difference is expected. If the archive failed, the error is shown there.
+   Check that the latest `Zenodo publish` run on `main` succeeded: it publishes the same metadata to the sandbox.
+3. **Publish the GitHub Release.** A draft does not trigger the workflow, and the workflow skips a pre-release. Don't publish test or release-candidate releases on `uw-ssec/savvy` anyway.
+4. **After publishing:** the `Zenodo publish` run's summary links the record and gives its DOI and concept DOI. Check the record's title and authors on zenodo.org.
 
 ## Signed skill archives
 

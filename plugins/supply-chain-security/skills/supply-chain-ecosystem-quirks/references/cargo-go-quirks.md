@@ -40,8 +40,21 @@ Cargo provides no built-in attestation that a `build.rs` is the same one publish
 Audit:
 
 ```bash
-grep -A 2 '\[registries\.' .cargo/config.toml ~/.cargo/config.toml 2>/dev/null
-grep -A 2 '\[source\.' .cargo/config.toml ~/.cargo/config.toml 2>/dev/null
+# Every [registries.*] and [source.*] table, parsed as TOML (Python 3.11+).
+# Prints a token only as <set> and hides user:password@ in URLs.
+python3 -I -c '
+import re, sys, tomllib
+for f in sys.argv[1:]:
+    try:
+        c = tomllib.load(open(f, "rb"))
+    except (OSError, tomllib.TOMLDecodeError) as e:
+        print(f, "skipped:", type(e).__name__)
+        continue
+    for sect in ("registries", "source"):
+        for name, t in c.get(sect, {}).items():
+            t = {k: "<set>" if k == "token" else re.sub(r"://[^/?#\s]*@", "://<redacted>@", str(v)) for k, v in t.items()}
+            print(f"{f}: [{sect}.{name}] {t}")
+' .cargo/config.toml ~/.cargo/config.toml
 ```
 
 `[source]` blocks can redirect crates.io to a mirror. A legitimate use is an air-gapped corporate proxy; an illegitimate use is dependency confusion via a typo-mirror. Verify the URL and document the choice.
@@ -86,7 +99,8 @@ Go's module integrity rests on two settings:
 Disabling either weakens the chain. Check:
 
 ```bash
-go env GOPROXY GOSUMDB GOFLAGS GONOSUMDB GOPRIVATE
+# The sed hides user:password@ in proxy URLs
+go env GOPROXY GOSUMDB GOFLAGS GONOSUMDB GOPRIVATE | sed -E 's|://[^/?#[:space:]]*@|://<redacted>@|g'
 ```
 
 Flag and investigate:

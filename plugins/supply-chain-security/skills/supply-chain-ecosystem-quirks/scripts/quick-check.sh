@@ -130,7 +130,7 @@ scan() {
   commands "$@" | RE=$re awk '{ c = $0; sub(/^[^:]*:[0-9]+:/, "", c)
     if (c !~ /^(-[ \t]+)?name:/ && c ~ ENVIRON["RE"]) print }'
 }
-loc() { printf '%s' "${1%%:*}:$(printf '%s' "$1" | cut -d: -f2)"; } # file:line from scan
+loc() { local t=${1#*:}; printf '%s' "${1%%:*}:${t%%:*}"; }           # file:line from scan
 text() { local t=${1#*:}; printf '%s' "${t#*:}"; }                   # command text from scan
 # One npm install command's own ignore-scripts settings, as "FLAG|PREFIX", each
 # true, false or empty (any case, quotes ignored).

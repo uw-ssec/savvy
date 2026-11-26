@@ -110,7 +110,7 @@ def main():
 
     # Step 4: Combine results and validate dimensions
     ds = xr.open_mfdataset(results, combine="by_coords") if results else None
-    assert ds is not None and ds.dims.get("time", 0) > 0, "Combined dataset has no time steps"
+    assert ds is not None and ds.sizes.get("time", 0) > 0, "Combined dataset has no time steps"
 
     # Step 5: Reproject AOI if needed, spatial subset, validate bounds
     if aoi.crs != ds.rio.crs:
@@ -132,7 +132,7 @@ def main():
     log.info(f"Saved to {out}")
 
     # Step 8: QC summary
-    log.info(f"QC | time={ds_sub.dims.get('time')} | "
+    log.info(f"QC | time={ds_sub.sizes.get('time')} | "
              f"bounds={ds_sub.rio.bounds()} | failed={len(failed)}")
 
 
@@ -196,7 +196,7 @@ import s3fs, xarray as xr
 
 # CONUS404 — anonymous public bucket
 fs = s3fs.S3FileSystem(anon=True, client_kwargs={"endpoint_url": "https://usgs.osn.mghpcc.org"})
-store = s3fs.S3Map("s3://mdmf/gdp/CONUS404/hourly.zarr", s3=fs)
+store = s3fs.S3Map("s3://hytest/conus404/conus404_hourly.zarr", s3=fs)  # or conus404_daily.zarr
 ds = xr.open_zarr(store, consolidated=True)
 
 # WRF-CMIP6 — boto3 with unsigned config
@@ -216,8 +216,8 @@ ds = H.xarray("TMP:2 m")  # 2-metre temperature
 
 # IRIS via obspy
 from obspy.clients.fdsn import Client
-client = Client("IRIS")
-inv = client.get_stations(network="UW", station="*", channel="BHZ",
+client = Client("IRIS")  # ObsPy >= 1.5 suggests "EARTHSCOPE" (same service)
+inv = client.get_stations(network="UW", station="*", channel="HHZ",
                           starttime="2024-01-01", endtime="2024-02-01")
 ```
 
@@ -273,9 +273,44 @@ session.mount("https://", HTTPAdapter(max_retries=Retry(total=3, backoff_factor=
 ```
 
 ### USGS RDB Parsing
+A multi-site response is one table per site: every site repeats the
+`agency_cd` header and the data-type row (`5s 15s 20d ...`), and the value
+columns carry a per-site time-series ID (`151445_00060`). Parsing it as one
+table turns the repeated headers into data rows. Split at each header:
 ```python
-lines = [l for l in response.text.splitlines() if not l.startswith("#")]
-df = pd.read_csv(io.StringIO("\n".join([lines[0]] + lines[2:])), sep="\t")
+import io, re
+import pandas as pd
+
+def parse_rdb(text):
+    """Parse an NWIS RDB response into one DataFrame.
+
+    A multi-site response holds one table per site: each has its own
+    `agency_cd ...` header and data-type row (5s 15s 20d ...), and the value
+    columns carry a per-site time-series ID (e.g. 151445_00060).
+    """
+    blocks, skip_type_row = [], False
+    for line in text.splitlines():
+        if line.startswith("#") or not line.strip():
+            continue
+        if line.startswith("agency_cd"):
+            blocks.append([line])           # header of a new site table
+            skip_type_row = True
+        elif skip_type_row:
+            skip_type_row = False           # data-type row under each header
+        elif blocks:
+            blocks[-1].append(line)
+    frames = []
+    for block in blocks:
+        df = pd.read_csv(io.StringIO("\n".join(block)), sep="\t", dtype={"site_no": str})
+        # Drop the time-series ID prefix: 151445_00060 -> 00060, 151445_00060_cd -> 00060_cd,
+        # unless a site has two series for one parameter (then keep the IDs)
+        names = [re.sub(r"^\d+_(\d{5})", r"\1", c) for c in df.columns]
+        if len(set(names)) == len(names):
+            df.columns = names
+        frames.append(df)
+    return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+
+df = parse_rdb(response.text)   # columns: agency_cd, site_no, datetime, tz_cd, 00060, 00060_cd, ...
 # Note: USGS returns local time — convert to UTC using station timezone metadata
 ```
 

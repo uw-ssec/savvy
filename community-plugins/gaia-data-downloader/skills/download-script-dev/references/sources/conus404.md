@@ -1,6 +1,6 @@
 # CONUS404
 
-**Description:** High-resolution (4 km) historical weather dataset covering the contiguous US from 1979-present. Produced by USGS using WRF forced by ERA5.
+**Description:** High-resolution (4 km) historical weather dataset covering the contiguous US from water year 1980 on (the daily store runs 1979-10-01 to 2024-09-30 as of 2026-11). Produced by USGS using WRF forced by ERA5.
 
 **Access Pattern:** S3 Zarr store via `xarray` and `s3fs`
 
@@ -13,7 +13,7 @@
 
 **Key Libraries:** `xarray`, `s3fs`, `rioxarray`, `geopandas`
 
-**Available Variables:** T2 (temperature), Q2 (humidity), U10/V10 (wind), PSFC (pressure), RAINC/RAINNC (precipitation), SNOW, SNOWH, and many more.
+**Available Variables:** T2 (temperature), Q2 (humidity), U10/V10 (wind), PSFC (pressure), PREC_ACC_NC (precipitation; the stores have no RAINC/RAINNC), SNOW, SNOWH, and many more — list them with `list(ds.data_vars)`.
 
 **Access Example:**
 ```python

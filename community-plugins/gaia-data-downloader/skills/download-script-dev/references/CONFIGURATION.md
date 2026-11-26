@@ -22,10 +22,10 @@ Per-source parameter tables, validation rules, and size estimation formulas.
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `dataset_kind` | str | Yes | — | `"daily"` or `"hourly"` |
-| `variables` | list[str] | Yes | — | Variable names (e.g., `["T2", "Q2", "RAINC"]`) |
+| `variables` | list[str] | Yes | — | Variable names (e.g., `["T2", "Q2", "PREC_ACC_NC"]`) |
 | `aoi_path` | str | No | — | Boundary file for spatial subsetting |
 
-**Available Variables:** T2, Q2, U10, V10, PSFC, RAINC, RAINNC, SNOW, SNOWH, SWDOWN, GLW, TSK, HFX, LH
+**Available Variables (selection):** T2, Q2, U10, V10, PSFC, PREC_ACC_NC, SNOW, SNOWH, TSK — check `list(ds.data_vars)`; the daily and hourly stores have no RAINC, RAINNC, SWDOWN, GLW, HFX, or LH
 
 **Validation Rules:**
 - `dataset_kind` must be `"daily"` or `"hourly"`

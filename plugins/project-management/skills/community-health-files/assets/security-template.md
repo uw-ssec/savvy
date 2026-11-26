@@ -27,6 +27,9 @@ Instead, use one of the following methods:
 1. **GitHub Private Vulnerability Reporting** (preferred):
    Go to the [Security Advisories page](https://github.com/ORG/REPO/security/advisories/new)
    and create a new private security advisory.
+   <!-- Maintainers: this link only works for reporters after you enable it in
+   Settings > Advanced Security > Private vulnerability reporting. Delete this
+   option if you leave it disabled. -->
 
 2. **Email**: Send a detailed report to **[security@example.com]**
 

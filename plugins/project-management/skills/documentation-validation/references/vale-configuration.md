@@ -142,9 +142,11 @@ Override levels: `YES` (enable at default level), `NO` (disable),
 # Ignore code blocks in Markdown
 # (Vale does this automatically for fenced code blocks)
 
-# Ignore specific file patterns
-[!docs/generated/**]
-# Files in docs/generated/ are not checked
+# Ignore specific file patterns: an empty BasedOnStyles turns all styles off
+# (BasedOnStyles = NO is an error in Vale 3; [!docs/generated/**] would
+# instead match every file outside docs/generated/)
+[docs/generated/**]
+BasedOnStyles =
 ```
 
 ### Transform Options
@@ -342,16 +344,18 @@ tokens:
 
 #### occurrence
 
-Flag words that appear too many times.
+Flag words that appear too many times. `occurrence` counts every match of
+`token` together (not each word separately), and `%s` in the message is that
+count.
 
 ```yaml
 # .vale/styles/MyProject/Repetition.yml
 extends: occurrence
-message: "'%s' appears %d times in this section. Consider varying your language."
+message: "%s hedge words in this paragraph; use at most 2."
 level: suggestion
 scope: paragraph
-max: 3
-token: '\b(\w+)\b'
+max: 2
+token: '\b(?:very|really|quite)\b'
 ```
 
 #### conditional
@@ -374,7 +378,7 @@ Enforce consistent usage of one form over another.
 ```yaml
 # .vale/styles/MyProject/Consistency.yml
 extends: consistency
-message: "Use '%s' consistently. You've used both '%s' and '%s'."
+message: "Inconsistent spelling of '%s'."
 level: error
 either:
   dataset: data set
@@ -393,10 +397,11 @@ either:
 │   │   ├── Jargon.yml
 │   │   ├── Consistency.yml
 │   │   └── AcronymDefinition.yml
-│   └── Vocab/
-│       └── MyProject/
-│           ├── accept.txt
-│           └── reject.txt
+│   └── config/
+│       └── vocabularies/       # Vale 3.x; Vale 2.x used styles/Vocab/
+│           └── MyProject/
+│               ├── accept.txt
+│               └── reject.txt
 └── .gitkeep
 ```
 
@@ -410,7 +415,7 @@ or reject, regardless of style rules.
 Words that Vale should always accept (not flag as misspellings or jargon):
 
 ```
-# .vale/styles/Vocab/MyProject/accept.txt
+# .vale/styles/config/vocabularies/MyProject/accept.txt
 # Domain-specific terms
 NetCDF
 HDF5
@@ -436,7 +441,7 @@ CI/CD
 Words that Vale should always flag:
 
 ```
-# .vale/styles/Vocab/MyProject/reject.txt
+# .vale/styles/config/vocabularies/MyProject/reject.txt
 # Deprecated terms
 master branch
 whitelist
@@ -449,7 +454,7 @@ sanity check
 ```ini
 # .vale.ini
 Vocab = MyProject
-# This tells Vale to look in .vale/styles/Vocab/MyProject/
+# This tells Vale to look in .vale/styles/config/vocabularies/MyProject/
 ```
 
 ## Scoping and File Types
@@ -579,7 +584,7 @@ BasedOnStyles = Vale
 StylesPath = .vale/styles
 MinAlertLevel = warning
 Vocab = MyProject
-Packages = proselint, write-good, Google
+Packages = proselint, write-good, Google, alex
 
 [*.md]
 BasedOnStyles = Vale, proselint, write-good, Google

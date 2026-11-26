@@ -161,11 +161,15 @@ htmlproofer _build/html/ \
   --allow-hash-href \
   --check-external-hash
 
-# Common options
+# Common options (a comment after a trailing backslash ends the command,
+# so the notes go here):
+#   --ignore-urls       DOI links sometimes reject crawlers
+#   --no-enforce-https  don't require HTTPS for all links
+#   --swap-urls         fix base URL issues
 htmlproofer _build/html/ \
-  --ignore-urls "/doi.org/"        # DOI links sometimes reject crawlers \
-  --no-enforce-https               # Don't require HTTPS for all links \
-  --swap-urls "^/project/:/"       # Fix base URL issues
+  --ignore-urls "/doi.org/" \
+  --no-enforce-https \
+  --swap-urls "^/project/:/"
 ```
 
 ### Configuration

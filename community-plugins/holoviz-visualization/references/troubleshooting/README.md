@@ -404,7 +404,7 @@ pip install pyviz_comms
 3. Ensure cell executed (Jupyter)
 4. Check `.servable()` or `.show()` called
 
-**See**: [Panel Troubleshooting](./panel-troubleshooting.md#displays)
+**See**: [Panel Troubleshooting](./panel-troubleshooting.md#nothing-displays)
 
 ### Slow Performance
 

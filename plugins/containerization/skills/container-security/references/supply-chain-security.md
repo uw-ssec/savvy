@@ -25,7 +25,20 @@ syft from Anchore is a purpose-built SBOM generator that supports multiple outpu
 ```bash
 # Install syft
 brew install syft                    # macOS
-curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin  # Linux
+
+# Linux amd64: pinned release; check the signed checksums, then the tarball
+SYFT_VERSION=1.57.1
+BASE="https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}"
+curl -fsSLO "${BASE}/syft_${SYFT_VERSION}_linux_amd64.tar.gz"
+curl -fsSLO "${BASE}/syft_${SYFT_VERSION}_checksums.txt"
+curl -fsSLO "${BASE}/syft_${SYFT_VERSION}_checksums.txt.sigstore.json"
+cosign verify-blob "syft_${SYFT_VERSION}_checksums.txt" \
+  --bundle "syft_${SYFT_VERSION}_checksums.txt.sigstore.json" \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity https://github.com/anchore/syft/.github/workflows/release.yaml@refs/heads/main &&
+  sha256sum --ignore-missing -c "syft_${SYFT_VERSION}_checksums.txt" &&
+  tar -xzf "syft_${SYFT_VERSION}_linux_amd64.tar.gz" syft &&
+  install -D -m 0755 syft "$HOME/.local/bin/syft"
 
 # Generate SPDX SBOM from container image
 syft myapp:latest -o spdx-json > sbom.spdx.json
@@ -74,8 +87,10 @@ docker sbom myapp:latest --format cyclonedx-json > sbom.cdx.json
 Store SBOMs alongside your container images for consumers to retrieve:
 
 ```bash
-# Attach SBOM as an OCI artifact (using cosign)
-cosign attach sbom --sbom sbom.spdx.json myregistry/myapp:latest
+# Attach the SBOM as a signed attestation (`cosign attach sbom` is deprecated);
+# use --type cyclonedx for a CycloneDX SBOM
+cosign attest --yes --type spdxjson --predicate sbom.spdx.json \
+  myregistry/myapp@sha256:abc123...
 
 # Attach SBOM using ORAS (OCI Registry As Storage)
 oras attach myregistry/myapp:latest sbom.spdx.json:application/spdx+json
@@ -108,7 +123,7 @@ Keyless signing uses your OIDC identity (GitHub, Google, Microsoft) to sign imag
 ```bash
 # Install cosign
 brew install cosign                   # macOS
-go install github.com/sigstore/cosign/v2/cmd/cosign@latest  # Go
+go install github.com/sigstore/cosign/v3/cmd/cosign@v3.1.4  # Go (pin a release)
 
 # Sign an image (interactive OIDC flow)
 cosign sign myregistry/myapp@sha256:abc123...
@@ -144,8 +159,9 @@ cosign verify --key cosign.pub myregistry/myapp:latest
 ### Verification
 
 ```bash
-# Verify keyless signature (checks Fulcio + Rekor)
-cosign verify myregistry/myapp:latest
+# Keyless verification (checks Fulcio + Rekor) must name the expected signer.
+# cosign v3 refuses to run without --certificate-identity (or
+# --certificate-identity-regexp) and --certificate-oidc-issuer.
 
 # Verify with identity constraints
 cosign verify \
@@ -167,11 +183,9 @@ cosign verify --key cosign.pub myregistry/myapp:latest
 
 ```yaml
 - name: Sign image with cosign
-  uses: sigstore/cosign-installer@v3
+  uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3 (cosign v3.1.4)
 
 - name: Sign the image
-  env:
-    COSIGN_EXPERIMENTAL: "true"
   run: |
     cosign sign --yes myregistry/myapp@${{ steps.build.outputs.digest }}
 ```
@@ -185,7 +199,10 @@ For multi-architecture images, sign the manifest list (index):
 cosign sign myregistry/myapp@sha256:manifestlist-digest...
 
 # Verify works for any platform
-cosign verify myregistry/myapp:latest
+cosign verify \
+  --certificate-identity "https://github.com/org/repo/.github/workflows/build.yml@refs/heads/main" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  myregistry/myapp:latest
 ```
 
 ## SLSA Provenance and Attestation
@@ -203,12 +220,25 @@ SLSA (Supply-chain Levels for Software Artifacts) is a framework for describing 
 
 ### Generating Provenance with GitHub Actions
 
+The SLSA GitHub generator is no longer actively maintained; its README points new projects to [GitHub artifact attestations](https://docs.github.com/en/actions/concepts/security/artifact-attestations) (`actions/attest-build-provenance`, verified with `gh attestation verify`). Existing workflows keep working:
+
 ```yaml
-- name: Generate SLSA provenance
+# Called as a job (not a step) after a `build` job that outputs the digest
+provenance:
+  needs: [build]
+  permissions:
+    actions: read      # detect the GitHub Actions environment
+    id-token: write    # OIDC token for keyless signing
+    packages: write    # upload the attestation to ghcr.io
+  # A reusable workflow runs as its own job, and must stay on a vX.Y.Z tag:
+  # slsa-verifier checks the ref, so it can't be SHA-pinned.
   uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0
   with:
-    image: myregistry/myapp
-    digest: ${{ steps.build.outputs.digest }}
+    image: ghcr.io/myorg/myapp   # GITHUB_TOKEN below only authenticates to ghcr.io
+    digest: ${{ needs.build.outputs.digest }}
+    registry-username: ${{ github.actor }}
+  secrets:
+    registry-password: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ### Attestation with cosign
@@ -220,8 +250,10 @@ Attestations are signed statements about an artifact. Provenance is one type of 
 cosign attest --predicate provenance.json --type slsaprovenance \
   myregistry/myapp@sha256:abc123...
 
-# Verify an attestation
+# Verify an attestation (same identity rules as cosign verify)
 cosign verify-attestation --type slsaprovenance \
+  --certificate-identity "https://github.com/org/repo/.github/workflows/build.yml@refs/heads/main" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   myregistry/myapp:latest
 
 # Custom attestation (e.g., vulnerability scan results)
@@ -283,13 +315,16 @@ Use base images from verified, trusted sources:
 # Verify Docker Official Image signatures
 docker trust inspect python:3.12-slim
 
-# Verify Chainguard image signatures
+# Verify Chainguard image signatures (exact identity; a loose regexp such as
+# ".*chainguard.*" would also accept any repository with "chainguard" in its name)
 cosign verify cgr.dev/chainguard/python:latest \
   --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
-  --certificate-identity-regexp=".*chainguard.*"
+  --certificate-identity="https://github.com/chainguard-images/images/.github/workflows/release.yaml@refs/heads/main"
 
-# Check image provenance
-cosign verify-attestation --type slsaprovenance \
+# Check image provenance (Chainguard publishes SLSA v1 provenance)
+cosign verify-attestation --type slsaprovenance1 \
+  --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+  --certificate-identity="https://github.com/chainguard-images/images/.github/workflows/release.yaml@refs/heads/main" \
   cgr.dev/chainguard/python:latest
 ```
 
@@ -411,7 +446,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install cosign
-        uses: sigstore/cosign-installer@v3
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3 (cosign v3.1.4)
 
       - name: Verify image signature
         run: |
@@ -486,16 +521,28 @@ spec:
 ```yaml
 name: Full Supply Chain Verification
 
+# Runs on pushes to main: it pushes and signs, and pull requests from forks
+# get neither registry secrets nor an OIDC token.
 on:
-  pull_request:
+  push:
     branches: [main]
+
+permissions: {}
 
 jobs:
   verify:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write    # keyless signing
     steps:
-      - uses: actions/checkout@v4
-      - uses: sigstore/cosign-installer@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3 (cosign v3.1.4)
+      # Also needed before the steps below: a docker/login-action step for
+      # myregistry, and syft, grype and crane installed (pinned and verified,
+      # as in the install examples above).
 
       - name: Build image
         run: docker build -t myapp:${{ github.sha }} .
@@ -512,10 +559,10 @@ jobs:
           docker push myregistry/myapp:${{ github.sha }}
 
       - name: Sign image
-        run: cosign sign --yes myregistry/myapp@$(crane digest myregistry/myapp:${{ github.sha }})
+        run: cosign sign --yes "myregistry/myapp@$(crane digest myregistry/myapp:${{ github.sha }})"
 
-      - name: Attach SBOM
-        run: cosign attach sbom --sbom sbom.spdx.json myregistry/myapp@$(crane digest myregistry/myapp:${{ github.sha }})
+      - name: Attest SBOM
+        run: cosign attest --yes --type spdxjson --predicate sbom.spdx.json "myregistry/myapp@$(crane digest myregistry/myapp:${{ github.sha }})"
 ```
 
 ## Software Bill of Materials Formats

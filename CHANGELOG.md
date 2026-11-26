@@ -20,6 +20,31 @@ Changes that touch no plugin — CI, repository documentation, tooling — go un
 
 - Initial tagged release.
 
+#### Fixed
+
+- `podman`: Quadlet examples no longer run `systemctl --user enable` on the generated unit, which systemctl refuses ("transient or generated"); the `[Install]` section handles auto-start, and the examples now use `start`.
+- `dockerfile-patterns`: "Mistake 4" no longer claims stage names are case-sensitive. BuildKit lowercases them; the real trap is a misspelled `--from`, which is pulled as an image.
+- `compose-orchestration`: merge rules say volumes merge by container path instead of concatenating, and that identical ports appear once (use `!override` to replace the list). Interpolation priority drops `env_file:`, which never feeds interpolation, and says `--env-file` replaces the project `.env`. An unset `${VAR}` warns and becomes empty instead of failing, and `.env` files do support inline comments and quoted multi-line values.
+- `devcontainers`: the Codespaces prebuild lifecycle no longer runs `postCreateCommand` during the prebuild; it runs when the codespace is created. The multi-file Compose example adds the required `workspaceFolder`.
+- `gpu-containers`: the driver/CUDA rules no longer say a 535 driver tops out at CUDA 12.2. They explain minor version compatibility (CUDA 12.x on 525+, without PTX JIT) and that each `nvidia/cuda` tag lists the extra driver branches it starts on, and the GPU brands each applies to, in `NVIDIA_REQUIRE_CUDA`, with a command to check. The forward/backward compatibility terms now match NVIDIA's, and the compat package is limited to data center and select GPUs.
+- `singularity-apptainer`: the MPI hybrid model now matches the Apptainer docs: the host's launcher starts the containers and the container's MPI must be compatible with the host's. Running `mpirun` inside one container is labeled a single-node test. The three definition-file assets no longer fail to build: comment lines inside `\`-continued `apt-get install` lists ended the command in `%post`, the MPI asset deleted its own working directory before `pip` ran, and the GPU asset's base image `nvidia/cuda:12.4.1-devel-ubuntu24.04` (and the ROCm alternative `rocm/dev-ubuntu-24.04:6.1`) don't exist, so they now use the Ubuntu 22.04 tags.
+- `container-security` and `container-registries`: keyless `cosign verify` and `verify-attestation` examples name the signer identity and OIDC issuer, which cosign v3 requires. The Chainguard example uses its exact identity and the SLSA v1 predicate type.
+- `container-security` and `container-registries`: SBOMs are attached as signed attestations (`cosign attest --type spdxjson`) instead of the deprecated `cosign attach sbom`, and the SBOM verification uses the matching `spdxjson` type. The obsolete `COSIGN_EXPERIMENTAL` setting is gone.
+- `container-security` and `container-registries`: the SLSA generator examples call `generator_container_slsa3.yml` as a job, as reusable workflows must be, with the permissions and inputs its docs list, a GHCR image that matches the `GITHUB_TOKEN` it passes, and a note that the generator is no longer maintained and GitHub artifact attestations are the suggested replacement.
+- `container-registries`: the Azure ACR example runs `az acr login` after the OIDC login instead of `azure/docker-login`, which is unmaintained and needs a username and password. The multi-platform matrix names its digest artifacts by runner, since artifact names can't contain `/`.
+- `container-security`: the nightly scans log in to GHCR before reading the image, the SARIF jobs grant `actions: read` for private repositories, and the complete verification pipeline runs on pushes to `main` with `id-token: write` (a pull request from a fork can't sign) and lists its tool prerequisites.
+- `container-security`: the PR scan examples lowercase the image name (`${GITHUB_REPOSITORY,,}`), so `docker build -t` no longer fails for owners with capital letters.
+
+#### Security
+
+- `container-security`: Trivy, Grype and Syft installs no longer pipe `install.sh` from the `main` branch into `sh`. They download a pinned release, check it with `sha256sum` against the release checksums (with an optional `cosign verify-blob` of the checksums file), and pin the Docker image tags. The Trivy apt setup drops the deprecated `apt-key add` for a dearmored keyring with `signed-by`.
+- `devcontainers`: the example Feature `install.sh`, which runs as root, downloads a versioned artifact and checks a pinned SHA-256 instead of piping a script into `bash`.
+- `container-security`: the nightly CI scans resolve the published tag to a digest once and scan that, instead of pulling `:latest`.
+- `container-security`, `container-registries` and `dockerfile-patterns`: every `uses:` in the workflow assets and Markdown examples is pinned to a commit SHA with a version comment, keeping each example's major version (except `sigstore/cosign-installer`, moved from v3.10.1 to v4.1.3 because v3 installs cosign v2.6.1, affected by CVE-2026-22703), replacing mutable refs such as `aquasecurity/trivy-action@master` and `@0.28.0` (the TeamPCP tag hijack moved 76 `trivy-action` tags). The Grype example moves to `anchore/scan-action` v7.4.2 with Grype pinned to v0.121.3, since v4.1.2 ran a Grype too old to get database updates. Checkout no longer persists credentials in these assets. The SLSA generator stays on its `v2.0.0` tag, which slsa-verifier requires, with a comment saying why.
+- `container-security` and `container-registries`: the workflow assets deny permissions at the top level and grant each job only what it needs (the GHCR publish job drops unused `attestations: write` and `id-token: write`), and pass step outputs to `run:` through `env`.
+- `singularity-apptainer`: the MPI definition asset and the Open MPI, MPICH and PMIx builds in `references/mpi-containers.md` verify each source tarball's SHA-256 before building. MPICH downloads from the project's GitHub release. The PMIx example notes that 4.2.9 ends its series.
+- `compose-orchestration`: the pgAdmin default email uses the reserved `example.com` instead of the registrable `localhost.com`.
+
 ### gaia-data-downloader
 
 #### Added

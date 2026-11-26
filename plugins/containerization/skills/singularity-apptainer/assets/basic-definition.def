@@ -55,21 +55,23 @@ From: ubuntu:24.04
     # Always clean up apt caches in the same RUN/post section to reduce image size.
     export DEBIAN_FRONTEND=noninteractive
 
+    # Packages, by purpose (comments can't go inside the \-continued list:
+    # in %post a comment line ends the command):
+    #   python3, python3-pip, python3-venv: Python runtime and package management
+    #   build-essential, gfortran, pkg-config: build deps for compiled Python packages
+    #   libopenblas-dev, liblapack-dev: numerical libraries (used by NumPy, SciPy)
+    #   libhdf5-dev: HDF5 library (used by h5py)
+    #   wget, curl, git, vim-tiny, less: miscellaneous utilities
     apt-get update && apt-get install -y --no-install-recommends \
-        # Python runtime and package management
         python3 \
         python3-pip \
         python3-venv \
-        # Common build dependencies for compiled Python packages
         build-essential \
         gfortran \
         pkg-config \
-        # Numerical libraries (used by NumPy, SciPy)
         libopenblas-dev \
         liblapack-dev \
-        # HDF5 library (used by h5py)
         libhdf5-dev \
-        # Miscellaneous utilities
         wget \
         curl \
         git \

@@ -7,11 +7,14 @@
 #   sudo apptainer build mpi_app.sif mpi-definition.def
 #   apptainer build --fakeroot mpi_app.sif mpi-definition.def
 #
-# Run (Bind Model -- recommended for HPC):
-#   srun --mpi=pmix -n 128 apptainer exec mpi_app.sif /opt/app/my_mpi_app
+# Run (Bind Model -- recommended for HPC, uses the host's MPI):
 #   mpirun -np 64 apptainer exec --bind /opt/openmpi:/opt/openmpi mpi_app.sif /opt/app/my_mpi_app
 #
-# Run (Hybrid Model -- portable, uses container's MPI):
+# Run (Hybrid Model -- host launcher, container's own MPI):
+#   srun --mpi=pmix -n 128 apptainer exec mpi_app.sif /opt/app/my_mpi_app
+#   mpirun -np 64 apptainer exec mpi_app.sif /opt/app/my_mpi_app
+#
+# Single-node test (container's own mpirun; not for multi-node jobs):
 #   apptainer exec mpi_app.sif mpirun -np 4 /opt/app/my_mpi_app
 #
 # ==============================================================================
@@ -28,12 +31,13 @@
 #    - Cons: Container MPI must be ABI-compatible with host MPI
 #    - Usage: mpirun -np N apptainer exec --bind /opt/openmpi:/opt/openmpi image.sif ./app
 #
-# 2. HYBRID MODEL (portable, self-contained):
+# 2. HYBRID MODEL (container brings its own MPI):
 #    - The container ships its own complete MPI installation
-#    - All MPI libraries and tools are inside the container
-#    - Pros: Works on any system, no host MPI dependency
-#    - Cons: May not use high-speed interconnects without driver binding
-#    - Usage: apptainer exec image.sif mpirun -np N ./app
+#    - The HOST's mpirun/srun launches the ranks; the app uses the container's MPI
+#    - Pros: No host MPI paths to bind; image carries its tested MPI build
+#    - Cons: Container MPI must be compatible with the host MPI/PMIx version;
+#      fast interconnects need fabric support built into the container's MPI
+#    - Usage: mpirun -np N apptainer exec image.sif ./app
 #
 # This definition file builds an MPI environment suitable for BOTH models.
 # The choice of model is made at RUNTIME, not at build time.
@@ -56,10 +60,12 @@ From: ubuntu:24.04
     This container provides OpenMPI 4.1.6 for parallel computing.
 
     Bind Model (HPC clusters with host MPI):
-        srun --mpi=pmix -n 128 apptainer exec mpi_app.sif /opt/app/my_mpi_app
         mpirun -np 64 apptainer exec --bind /opt/openmpi:/opt/openmpi mpi_app.sif /opt/app/my_mpi_app
 
-    Hybrid Model (portable, uses container MPI):
+    Hybrid Model (host launcher, container MPI compatible with the host's):
+        srun --mpi=pmix -n 128 apptainer exec mpi_app.sif /opt/app/my_mpi_app
+
+    Single-node test (container's own mpirun):
         apptainer exec mpi_app.sif mpirun -np 4 /opt/app/my_mpi_app
 
     Required bind mounts for bind model:
@@ -75,24 +81,26 @@ From: ubuntu:24.04
     # --------------------------------------------------------------------------
     # System dependencies
     # --------------------------------------------------------------------------
+    # Packages, by purpose (comments can't go inside the \-continued list:
+    # in %post a comment line ends the command):
+    #   build-essential, gfortran, cmake, pkg-config: compile MPI applications
+    #   openssh-client, openssh-server: networking and fabric support
+    #   libibverbs-dev, librdmacm-dev: InfiniBand user-space libraries. Needed
+    #     even for the bind model: the container's linker must find the verbs
+    #     libraries at compile time.
+    #   wget, ca-certificates: utilities
+    #   python3, python3-pip, python3-venv: scripting and mpi4py
     apt-get update && apt-get install -y --no-install-recommends \
-        # Build tools for compiling MPI applications
         build-essential \
         gfortran \
         cmake \
         pkg-config \
-        # Networking and fabric support
         openssh-client \
         openssh-server \
-        # InfiniBand user-space libraries (needed for high-speed interconnects)
-        # These are needed even for the bind model -- the container's linker
-        # must be able to find verbs libraries at compile time.
         libibverbs-dev \
         librdmacm-dev \
-        # Utilities
         wget \
         ca-certificates \
-        # Python for scripting and mpi4py
         python3 \
         python3-pip \
         python3-venv && \
@@ -113,9 +121,12 @@ From: ubuntu:24.04
     #
     OPENMPI_MAJOR=4.1
     OPENMPI_VERSION=4.1.6
+    # SHA-256 from https://www.open-mpi.org/software/ompi/v4.1/ (update with the version)
+    OPENMPI_SHA256=44da277b8cdc234e71c62473305a09d63f4dcca292ca40335aab7c4bf0e6a566
 
     cd /tmp
     wget -q https://download.open-mpi.org/release/open-mpi/v${OPENMPI_MAJOR}/openmpi-${OPENMPI_VERSION}.tar.gz
+    echo "${OPENMPI_SHA256}  openmpi-${OPENMPI_VERSION}.tar.gz" | sha256sum -c -
     tar xzf openmpi-${OPENMPI_VERSION}.tar.gz
     cd openmpi-${OPENMPI_VERSION}
 
@@ -130,7 +141,9 @@ From: ubuntu:24.04
     make -j "$(nproc)"
     make install
 
-    # Clean up source to reduce image size
+    # Clean up source to reduce image size (leave the directory first: later
+    # steps such as pip fail if the working directory no longer exists)
+    cd /
     rm -rf /tmp/openmpi*
 
     # --------------------------------------------------------------------------

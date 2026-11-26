@@ -11,7 +11,9 @@
 #   1. Copy this file to ~/.config/containers/systemd/research-api.container
 #   2. Reload systemd:   systemctl --user daemon-reload
 #   3. Start the service: systemctl --user start research-api
-#   4. Enable auto-start: systemctl --user enable research-api
+#   4. Auto-start comes from the [Install] section below. Don't run
+#      `systemctl --user enable research-api`: the unit is generated, and
+#      systemctl refuses to enable generated units ("is transient or generated").
 #   5. Enable linger so the service survives logout:
 #      loginctl enable-linger $USER
 #

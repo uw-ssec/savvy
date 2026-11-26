@@ -5,7 +5,7 @@
 | Section | Lines | Description |
 |---------|-------|-------------|
 | nvidia-container-toolkit Installation | 17-100 | Installation for Ubuntu, RHEL, SUSE, and verification steps |
-| CUDA Version Matrix | 102-159 | CUDA to driver version mapping, forward compatibility rules |
+| CUDA Version Matrix | 102-159 | CUDA to driver version mapping, backward compatibility rules |
 | Base Image Variants | 161-238 | base, runtime, devel variants with size and use case comparisons |
 | cuDNN and NCCL | 240-308 | cuDNN installation, NCCL for multi-GPU, version selection |
 | Multi-GPU with CUDA_VISIBLE_DEVICES | 310-385 | GPU selection, isolation, per-container assignment |
@@ -115,13 +115,22 @@ docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
 | CUDA 11.8 | 520.61+ | 522.06+ |
 | CUDA 11.7 | 515.43+ | 516.01+ |
 
-### Forward Compatibility
+### Backward Compatibility
 
-The NVIDIA Container Toolkit supports **forward compatibility**: a newer host driver can run containers with older CUDA versions. This means:
+The CUDA driver is **backward compatible**: a newer host driver can run containers with older CUDA versions. (NVIDIA calls the reverse, an older driver running a newer CUDA, forward compatibility.) This means:
 
 - Host driver 550.x can run CUDA 12.4, 12.3, 12.2, ..., 11.x containers
-- Host driver 535.x can run CUDA 12.2 and older containers
-- A container with CUDA 12.4 **cannot** run on a host with driver 530.x
+- Host driver 535.x fully supports CUDA 12.2 and older. Newer 12.x images can still start on it when their `NVIDIA_REQUIRE_CUDA` lists the 535 branch for your GPU's brand, as the 12.3.2, 12.4.1, 12.6.3, 12.8.1 and 12.9.1 base tags do, and the code then runs through minor version compatibility (see Driver Compatibility)
+- The accepted branches, and the GPU brands each applies to, differ per tag: `12.4.1` lists 470, 525 and 535 for every brand including GeForce; `12.9.1` lists 535, 550, 560, 565 and 570 for data center and professional brands only (no GeForce). Each `brand=...,driver>=...` entry needs both to match
+- A CUDA 12.4 image is refused on driver 530.x, because 530 is neither new enough nor a listed branch
+
+A listed branch only lets the container start. Check what an image accepts before choosing a driver:
+
+```bash
+docker buildx imagetools inspect nvidia/cuda:12.4.1-base-ubuntu22.04 \
+  --format '{{range (index .Image "linux/amd64").Config.Env}}{{println .}}{{end}}' |
+  grep NVIDIA_REQUIRE_CUDA
+```
 
 **Best practice:** Keep host drivers on the latest stable release to maximize container compatibility.
 
@@ -456,15 +465,15 @@ docker run --gpus all -v ./profiles:/app/profiles myapp
 
 ## Driver Compatibility
 
-### Forward Compatibility (Newer Driver, Older CUDA)
+### Backward Compatibility (Newer Driver, Older CUDA)
 
 This always works. A host with driver 550.x can run containers using CUDA 12.4, 12.3, 12.0, 11.8, and earlier. The NVIDIA Container Toolkit handles library version negotiation.
 
-### Backward Compatibility (Older Driver, Newer CUDA)
+### Forward Compatibility (Older Driver, Newer CUDA)
 
-This does **not** work by default. A container with CUDA 12.4 cannot run on a host with driver 525.x (which only supports up to CUDA 12.0).
+Within CUDA 12.x this works with limits, through minor version compatibility (next section): a CUDA 12.4 image starts on a 525.x driver, which natively supports only CUDA 12.0. Across major versions it does not work: a CUDA 12.x image will not run on an 11.x-era driver (below 525) without the forward compatibility package.
 
-**CUDA Forward Compatibility Package:** NVIDIA provides a forward compat package that allows newer CUDA toolkit versions to run on older drivers within certain bounds. This is pre-installed in NGC containers.
+**CUDA Forward Compatibility Package:** the `cuda-compat-<major>-<minor>` package lets applications built with a newer toolkit run on an older driver, including across major versions. It is supported only on NVIDIA data center GPUs, select NGC Server Ready RTX SKUs and Jetson boards, not on GeForce cards. NGC containers ship it.
 
 ```bash
 # Check if forward compat is available
@@ -473,7 +482,12 @@ ls /usr/local/cuda/compat/
 
 ### Minor Version Compatibility
 
-Within a CUDA major version (e.g., 12.x), minor version compatibility is guaranteed. A binary compiled with CUDA 12.1 runs on a system with CUDA 12.4 drivers.
+Within a CUDA major version, an application built with any 12.x toolkit runs on any driver from 525 up, even one older than that toolkit release. A binary built with CUDA 12.4 runs on a 525.x driver, with two limits:
+
+- Code that relies on PTX JIT compilation fails on the older driver; ship SASS for the target GPUs or upgrade the driver.
+- APIs that need newer driver support return `cudaErrorCallRequiresNewerDriver`.
+
+(Running an older build on a newer driver, such as CUDA 12.1 code on a 550 driver, is ordinary backward compatibility and always works.)
 
 ### Diagnosing Driver Issues
 

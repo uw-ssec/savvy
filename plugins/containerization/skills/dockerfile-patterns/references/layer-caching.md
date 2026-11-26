@@ -261,10 +261,10 @@ Use the `actions/cache` action to persist Docker layer cache between CI runs:
 
 ```yaml
 - name: Set up Docker Buildx
-  uses: docker/setup-buildx-action@v3
+  uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
 - name: Cache Docker layers
-  uses: actions/cache@v4
+  uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
   with:
     path: /tmp/.buildx-cache
     key: ${{ runner.os }}-buildx-${{ hashFiles('**/Dockerfile') }}-${{ hashFiles('**/requirements.txt', '**/package-lock.json', '**/Cargo.lock') }}
@@ -273,7 +273,7 @@ Use the `actions/cache` action to persist Docker layer cache between CI runs:
       ${{ runner.os }}-buildx-
 
 - name: Build
-  uses: docker/build-push-action@v6
+  uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
   with:
     context: .
     push: false
@@ -293,7 +293,7 @@ Push cache layers to a container registry so all CI runners and developers can s
 
 ```yaml
 - name: Build with registry cache
-  uses: docker/build-push-action@v6
+  uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
   with:
     context: .
     push: true
@@ -318,7 +318,7 @@ Inline cache embeds cache metadata in the image itself. Simpler than registry ca
 
 ```yaml
 - name: Build with inline cache
-  uses: docker/build-push-action@v6
+  uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
   with:
     context: .
     push: true
@@ -333,7 +333,7 @@ The most integrated option for GitHub Actions -- uses the GitHub Actions cache d
 
 ```yaml
 - name: Build
-  uses: docker/build-push-action@v6
+  uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
   with:
     context: .
     push: false

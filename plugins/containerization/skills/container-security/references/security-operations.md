@@ -48,15 +48,23 @@ ignore:
 ## Minimal CI Sequence
 
 ```yaml
+# Assumes an earlier build-and-push step with `id: build` (its `digest` output
+# names the pushed image) and `permissions: id-token: write` for keyless signing.
+# Scan, SBOM and sign the same immutable digest.
 - name: Scan image
-  run: trivy image --severity HIGH,CRITICAL --exit-code 1 myapp:latest
+  run: trivy image --severity HIGH,CRITICAL --exit-code 1 myregistry/myapp@${{ steps.build.outputs.digest }}
 
 - name: Generate SBOM
-  run: syft myapp:latest -o spdx-json > sbom.spdx.json
+  run: syft myregistry/myapp@${{ steps.build.outputs.digest }} -o spdx-json > sbom.spdx.json
 
 - name: Sign image
-  run: cosign sign myregistry/myapp:latest
+  run: cosign sign --yes myregistry/myapp@${{ steps.build.outputs.digest }}
 
+# Keyless verify must name the signer; here, this workflow run
 - name: Verify signature
-  run: cosign verify myregistry/myapp:latest
+  run: |
+    cosign verify \
+      --certificate-identity "https://github.com/${{ github.workflow_ref }}" \
+      --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+      myregistry/myapp@${{ steps.build.outputs.digest }}
 ```

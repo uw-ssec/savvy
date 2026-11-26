@@ -169,8 +169,8 @@ my-feature/
   "options": {
     "version": {
       "type": "string",
-      "default": "latest",
-      "description": "Version of my-tool to install"
+      "default": "1.2.3",
+      "description": "Version of my-tool to install (must have a pinned checksum in install.sh)"
     },
     "installExtras": {
       "type": "boolean",
@@ -189,7 +189,7 @@ my-feature/
 
 ### install.sh
 
-The installation script runs as root during container build:
+The installation script runs as root during container build, so never pipe a downloaded script into a shell here. Download a versioned release artifact and check it against a SHA-256 you pinned in the Feature:
 
 ```bash
 #!/bin/bash
@@ -197,8 +197,14 @@ set -e
 
 # Options from devcontainer-feature.json are available as environment variables
 # prefixed with the option name in uppercase
-VERSION="${VERSION:-latest}"
+VERSION="${VERSION:-1.2.3}"
 INSTALL_EXTRAS="${INSTALLEXTRAS:-false}"
+
+# Pin the SHA-256 of every version you support (copy it from the release page)
+case "${VERSION}" in
+    1.2.3) SHA256="<sha256-of-my-tool-1.2.3-linux-amd64.tar.gz>" ;;
+    *) echo "No pinned checksum for my-tool ${VERSION}; add one first" >&2; exit 1 ;;
+esac
 
 echo "Installing my-tool version ${VERSION}..."
 
@@ -206,12 +212,12 @@ echo "Installing my-tool version ${VERSION}..."
 apt-get update
 apt-get install -y --no-install-recommends curl ca-certificates
 
-# Download and install
-if [ "$VERSION" = "latest" ]; then
-    curl -fsSL https://example.com/install.sh | bash
-else
-    curl -fsSL "https://example.com/releases/v${VERSION}/install.sh" | bash
-fi
+# Download, verify, then install
+curl -fsSLo /tmp/my-tool.tar.gz \
+    "https://example.com/releases/v${VERSION}/my-tool-linux-amd64.tar.gz"
+echo "${SHA256}  /tmp/my-tool.tar.gz" | sha256sum -c -
+tar -xzf /tmp/my-tool.tar.gz -C /usr/local/bin my-tool
+rm /tmp/my-tool.tar.gz
 
 # Optional extras
 if [ "$INSTALL_EXTRAS" = "true" ]; then
@@ -244,7 +250,7 @@ After publishing, the feature is available as:
 {
   "features": {
     "ghcr.io/myorg/features/my-tool:1": {
-      "version": "2.0"
+      "version": "1.2.3"
     }
   }
 }
@@ -342,7 +348,7 @@ esac
 {
   "features": {
     "ghcr.io/myorg/features/my-tool:1": {
-      "version": "2.0",
+      "version": "1.2.3",
       "variant": "slim",
       "installDocs": true
     }
@@ -503,13 +509,15 @@ Prebuilds create a pre-configured dev container image in advance, so starting a 
 During a prebuild, the following lifecycle steps run:
 1. Container is built (Dockerfile + features)
 2. `onCreateCommand` runs
-3. `updateContentCommand` runs
-4. `postCreateCommand` runs
+3. `updateContentCommand` runs (and again whenever the prebuild is refreshed)
+
+`postCreateCommand` does not run during a prebuild. Put slow, user-independent setup in `onCreateCommand` or `updateContentCommand` so it is captured in the prebuild; keep steps that need the user's secrets in `postCreateCommand`.
 
 When a user creates a Codespace from a prebuild:
-1. Pre-built image is loaded (fast)
-2. `postStartCommand` runs
-3. `postAttachCommand` runs
+1. Pre-built container is loaded (fast)
+2. `postCreateCommand` runs
+3. `postStartCommand` runs
+4. `postAttachCommand` runs
 
 ### Costs
 

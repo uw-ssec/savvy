@@ -42,13 +42,11 @@ on:
   workflow_dispatch:
 
 # ── Permissions ───────────────────────────────────────────────────────────────
+# Deny by default; each job grants only what it needs:
 # security-events: write  — required to upload SARIF to the Security tab
 # contents: read          — required to checkout the repository
-# packages: read          — required to pull images from ghcr.io (nightly)
-permissions:
-  security-events: write
-  contents: read
-  packages: read
+# packages: read          — required to pull images from ghcr.io (nightly only)
+permissions: {}
 
 jobs:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -58,26 +56,33 @@ jobs:
     name: Scan PR Image
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    permissions:
+      actions: read          # SARIF upload in private repositories
+      contents: read
+      security-events: write
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       # Build the image locally for scanning. We tag with the commit SHA
-      # so each PR build is unique and traceable.
+      # so each PR build is unique and traceable. Image names must be
+      # lowercase, and github.repository keeps the owner's capitals.
       - name: Build container image
         run: |
-          docker build \
-            -t ${{ github.repository }}:${{ github.sha }} \
-            .
+          IMAGE="${GITHUB_REPOSITORY,,}:${GITHUB_SHA}"
+          echo "IMAGE=${IMAGE}" >> "$GITHUB_ENV"
+          docker build -t "${IMAGE}" .
 
       # ── Trivy Vulnerability Scan ───────────────────────────────────────────
       # Scan the built image for CRITICAL and HIGH vulnerabilities.
       # exit-code: 1 causes the job to fail if matching vulns are found.
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: '${{ github.repository }}:${{ github.sha }}'
+          image-ref: '${{ env.IMAGE }}'
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
@@ -89,7 +94,7 @@ jobs:
       # Always upload results even if the scan step fails, so findings
       # are visible in the Security tab regardless of pass/fail.
       - name: Upload Trivy SARIF to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@9418214df1f2c4b8128c770156c409013b07d6b9 # v3.39.3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
@@ -98,7 +103,7 @@ jobs:
       # Check the Dockerfile for security misconfigurations (running as root,
       # using ADD instead of COPY, hardcoded secrets, etc.).
       - name: Scan Dockerfile for misconfigurations
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: 'config'
           scan-ref: '.'
@@ -113,25 +118,54 @@ jobs:
     name: Nightly Security Scan
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    permissions:
+      actions: read          # SARIF upload in private repositories
+      contents: read
+      packages: read
+      security-events: write
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
-      # Pull the latest published image from the container registry.
-      # Adjust the image reference to match your registry and naming.
-      - name: Pull latest image
+      # packages: read only scopes the token; Docker still needs a login
+      # to read a private image.
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Resolve the published tag to a digest once, then pull and scan that
+      # immutable reference, so the report names exactly what was scanned.
+      # Adjust IMAGE and TAG to match your registry and the tag you deploy.
+      - name: Resolve image digest
+        id: image
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}
+          TAG: latest
         run: |
-          docker pull ghcr.io/${{ github.repository }}:latest
+          IMAGE="${IMAGE,,}"   # registry paths must be lowercase
+          DIGEST=$(docker buildx imagetools inspect "${IMAGE}:${TAG}" --format '{{printf "%s" .Manifest.Digest}}')
+          echo "Scanning ${IMAGE}:${TAG} = ${IMAGE}@${DIGEST}"
+          echo "ref=${IMAGE}@${DIGEST}" >> "$GITHUB_OUTPUT"
+
+      - name: Pull image by digest
+        env:
+          REF: ${{ steps.image.outputs.ref }}
+        run: docker pull "$REF"
 
       # ── Trivy Vulnerability Scan ───────────────────────────────────────────
       # Scan for all severity levels on nightly to get full visibility.
       # exit-code is 0 so the workflow does not fail — results go to
       # the Security tab for triage.
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: 'ghcr.io/${{ github.repository }}:latest'
+          image-ref: '${{ steps.image.outputs.ref }}'
           format: 'sarif'
           output: 'trivy-nightly.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
@@ -140,7 +174,7 @@ jobs:
 
       # ── Upload to GitHub Security Tab ──────────────────────────────────────
       - name: Upload nightly SARIF to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@9418214df1f2c4b8128c770156c409013b07d6b9 # v3.39.3
         if: always()
         with:
           sarif_file: 'trivy-nightly.sarif'

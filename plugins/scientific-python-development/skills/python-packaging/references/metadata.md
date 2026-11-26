@@ -7,9 +7,9 @@
 | License (Modern SPDX Format) | 16–33 | Using SPDX license identifiers with hatchling |
 | Python Version Requirements | 34–43 | Best practices for requires-python without upper caps |
 | Dependencies | 44–58 | Appropriate version constraints for dependencies |
-| Classifiers | 59–81 | Important PyPI classifiers for scientific packages |
-| Optional Dependencies (Extras) | 82–111 | Defining and installing optional scientific features |
-| Development Dependencies (Dependency Groups) | 112–153 | Using PEP 735 dependency groups for dev tools |
+| Classifiers | 59–78 | Important PyPI classifiers for scientific packages |
+| Optional Dependencies (Extras) | 79–108 | Defining and installing optional scientific features |
+| Development Dependencies (Dependency Groups) | 109–150 | Using PEP 735 dependency groups for dev tools |
 
 ---
 
@@ -36,7 +36,7 @@ Common scientific licenses:
 **Best practice**: Specify minimum version only, no upper cap:
 
 ```toml
-requires-python = ">=3.9"
+requires-python = ">=3.13"
 ```
 
 This allows pip to back-solve for old package versions when needed.
@@ -64,13 +64,10 @@ Important classifiers for scientific packages:
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Physics",
     "Typing :: Typed",

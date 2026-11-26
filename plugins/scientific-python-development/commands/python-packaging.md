@@ -12,6 +12,8 @@ allowed-tools:
 
 # Python Packaging
 
+> *Deprecated 2026-11-20. Removable no earlier than 2027-02-18, and not before the first release on or after that date. Use the `scientific-python-development:python-packaging` skill instead.*
+
 Set up or improve a Python package following Scientific Python community standards.
 
 ## Arguments

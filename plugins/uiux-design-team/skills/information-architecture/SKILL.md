@@ -13,7 +13,7 @@ metadata:
 2. **Identify user goals** — top 10 tasks users come to do.
 3. **Run open card sort** (15-20 participants via Optimal Workshop / Maze).
 4. **Draft sitemap** — depth ≤ 4 levels, ≤ 7 siblings per node.
-5. **Tree test** — 10+ tasks, 30+ participants.
+5. **Tree test** — 10+ tasks, 50+ participants.
    - **Pass:** ≥ 70% direct success (target found within 3 clicks, no backtrack) per task.
    - **Fail:** restructure the failing branch and re-test before shipping.
 6. **Lock labels** — first-click test the top 10 labels (≥ 80% clicking expected option).

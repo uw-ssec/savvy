@@ -49,9 +49,9 @@ The contrast ratio is calculated as `(L1 + 0.05) / (L2 + 0.05)` where L1 is the 
 | `#333333` (dark gray) | `#ffffff` (white) | 12.6:1 | AAA |
 | `#595959` (medium gray) | `#ffffff` (white) | 7:1 | AAA |
 | `#767676` (gray) | `#ffffff` (white) | 4.5:1 | AA |
-| `#949494` (light gray) | `#ffffff` (white) | 2.8:1 | Fails AA |
-| `#ffffff` (white) | `#3b82f6` (blue-500) | 4.6:1 | AA |
-| `#ffffff` (white) | `#2563eb` (blue-600) | 5.7:1 | AA |
+| `#949494` (light gray) | `#ffffff` (white) | 3.0:1 | Fails AA for normal text (passes large text) |
+| `#ffffff` (white) | `#3b82f6` (blue-500) | 3.7:1 | Fails AA for normal text (passes large text) |
+| `#ffffff` (white) | `#2563eb` (blue-600) | 5.2:1 | AA |
 
 ## Testing Tools
 
@@ -61,7 +61,7 @@ The contrast ratio is calculated as `(L1 + 0.05) / (L2 + 0.05)` where L1 is the 
 
 **WAVE** -- Visual overlay that highlights contrast issues directly on the page. Shows the exact contrast ratio for each text element.
 
-**Lighthouse** -- Built into Chrome DevTools (Audits tab). Includes contrast checking as part of the accessibility score.
+**Lighthouse** -- Built into Chrome DevTools (Lighthouse panel). Includes contrast checking as part of the accessibility score.
 
 ### Browser DevTools
 
@@ -133,7 +133,7 @@ Brand accent colors (especially yellows, light greens, and light blues) often fa
 
 ### 5. Links Within Text
 
-Links that are the same color as surrounding text but distinguished only by underline still need 3:1 contrast against the surrounding text color (not just against the background).
+Links distinguished from surrounding text by color alone (no underline) need 3:1 contrast against the surrounding text color, in addition to 4.5:1 against the background, plus a non-color cue such as an underline on hover and focus (WCAG technique G183).
 
 **Fix**: Ensure links have either an underline or 3:1 contrast difference from surrounding text.
 
@@ -167,7 +167,7 @@ WCAG 1.4.11 requires a 3:1 contrast ratio for UI components and graphical object
 | Element | Failure | Fix |
 |---------|---------|-----|
 | Input borders | Light gray (`#d1d5db`) on white | Use `#6b7280` or darker for 3:1 |
-| Checkbox borders | `#9ca3af` on white (2.7:1) | Darken to `#6b7280` (4.6:1) |
+| Checkbox borders | `#9ca3af` on white (2.5:1) | Darken to `#6b7280` (4.8:1) |
 | Icon buttons | `#9ca3af` icon on white | Use `#4b5563` or darker |
 | Chart segments | Light colors adjacent to each other | Ensure each segment borders contrast with adjacent segments |
 | Toggle switches | Gray track on white | Add border or darken the track |
@@ -184,9 +184,9 @@ The simplest fix. Shift the text or element color to a darker shade in the same 
 
 | Original | Fixed | Ratio Change |
 |----------|-------|-------------|
-| `#9ca3af` on white (2.9:1) | `#6b7280` on white (4.6:1) | +1.7 |
-| `#3b82f6` on white (3.1:1) | `#2563eb` on white (4.6:1) | +1.5 |
-| `#10b981` on white (2.8:1) | `#047857` on white (5.9:1) | +3.1 |
+| `#9ca3af` on white (2.5:1) | `#6b7280` on white (4.8:1) | +2.3 |
+| `#3b82f6` on white (3.7:1) | `#2563eb` on white (5.2:1) | +1.5 |
+| `#10b981` on white (2.5:1) | `#047857` on white (5.5:1) | +3.0 |
 
 ### Strategy 2: Add a Background
 
@@ -194,11 +194,11 @@ When you cannot change the foreground color (brand requirements), add a backgrou
 
 ```css
 .tag-success {
-  /* Green text on white fails at 2.8:1 */
-  /* Solution: green text on light green background */
-  color: #047857;        /* green-700 */
-  background: #d1fae5;   /* green-100 */
-  /* Ratio: 4.9:1 -- passes AA */
+  /* Brand green-500 text on white fails at 2.5:1 */
+  /* Solution: keep the brand green, put it on a dark background */
+  color: #10b981;        /* green-500 */
+  background: #111827;   /* gray-900 */
+  /* Ratio: 6.99:1 -- passes AA */
 }
 ```
 
@@ -223,8 +223,8 @@ When color alone carries meaning (error states, status indicators), add text lab
 ### Light Mode Considerations
 
 - Text colors should be `gray-900` to `gray-700` for maximum readability
-- Secondary text can go as light as `gray-600` on white (4.5:1)
-- Link colors need 4.5:1 on white AND 3:1 against surrounding body text
+- Secondary text can go as light as `gray-500` (`#6b7280`) on white (4.8:1)
+- Link colors need 4.5:1 on white AND, when links are not underlined, 3:1 against surrounding body text
 - Background surfaces (`gray-50`, `gray-100`) reduce available contrast for text
 
 ### Dark Mode Considerations

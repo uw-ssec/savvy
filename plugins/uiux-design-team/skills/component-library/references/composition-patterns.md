@@ -64,7 +64,7 @@ function Accordion({ type = "single", defaultValue, children }) {
   );
 }
 
-function AccordionItem({ value, children }) {
+function AccordionItem({ value, title, children }) {
   const { openItems, toggle } = useContext(AccordionContext);
   const isOpen = openItems.includes(value);
 
@@ -75,7 +75,7 @@ function AccordionItem({ value, children }) {
         aria-expanded={isOpen}
         onClick={() => toggle(value)}
       >
-        {children}
+        {title}
       </button>
       {isOpen && <div role="region">{children}</div>}
     </div>
@@ -226,16 +226,20 @@ function useSelect({ items, defaultValue, onChange }) {
   const [selectedValue, setSelectedValue] = useState(defaultValue);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
 
+  // Focus stays on the combobox, so aria-activedescendant belongs on it
+  // (not on the listbox), pointing at the highlighted option while open.
   const getToggleProps = () => ({
     role: 'combobox',
     'aria-expanded': isOpen,
     'aria-haspopup': 'listbox',
+    'aria-controls': 'select-listbox',
+    'aria-activedescendant': isOpen ? `option-${highlightedIndex}` : undefined,
     onClick: () => setIsOpen(!isOpen),
   });
 
   const getListProps = () => ({
     role: 'listbox',
-    'aria-activedescendant': `option-${highlightedIndex}`,
+    id: 'select-listbox',
   });
 
   const getOptionProps = (index) => ({
@@ -287,11 +291,15 @@ The provider pattern uses framework context to share configuration, state, or se
 ### Design System Provider
 
 ```tsx
-const DSContext = createContext({
-  theme: 'light',
-  locale: 'en',
-  colorMode: 'light',
-});
+type DSContextValue = {
+  theme: string;
+  locale: string;
+  colorMode: string;
+  setColorMode: (mode: string) => void;
+};
+
+// null default, so useDS() below can detect a missing provider
+const DSContext = createContext<DSContextValue | null>(null);
 
 function DSProvider({ theme = 'light', locale = 'en', children }) {
   const [colorMode, setColorMode] = useState(theme);

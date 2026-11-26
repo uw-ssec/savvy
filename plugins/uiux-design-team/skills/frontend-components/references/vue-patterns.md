@@ -101,11 +101,15 @@ watchEffect(() => {
   document.title = query.value ? `Search: ${query.value}` : 'Search'
 })
 
-// watch: explicit source, access to old and new values, supports debounce
-watch(query, async (newQuery, oldQuery) => {
+// watch: explicit source, access to old and new values.
+// watch has no debounce option, so debounce with a timer and onCleanup.
+watch(query, (newQuery, oldQuery, onCleanup) => {
   if (newQuery.length < 2) return
-  results.value = await fetchResults(newQuery)
-}, { debounce: 300 })
+  const timer = setTimeout(async () => {
+    results.value = await fetchResults(newQuery)
+  }, 300)
+  onCleanup(() => clearTimeout(timer))
+})
 </script>
 ```
 
@@ -227,6 +231,7 @@ const { theme, toggleTheme } = inject('theme')
 <script setup>
 import { provide, ref } from 'vue'
 
+const props = defineProps(['defaultValue'])
 const activeTab = ref(props.defaultValue)
 provide('tabs', { activeTab, setActiveTab: (val) => activeTab.value = val })
 </script>
@@ -489,7 +494,7 @@ Nuxt auto-imports Vue APIs (`ref`, `computed`, `watch`) and composables from the
   </ClientOnly>
   ```
 - Use `onMounted` for browser-only setup (DOM measurements, event listeners, localStorage)
-- Teleport targets must exist in the SSR HTML; use `<Teleport to="body">` which is always available
+- Teleport targets must exist in the SSR HTML. Avoid `to="body"` with SSR: other server-rendered content in `<body>` breaks hydration of the teleported markup, so Vue recommends a dedicated container such as `<div id="teleported"></div>`
 
 ### Nuxt Layouts and Pages
 

@@ -221,7 +221,7 @@ function Tabs({ defaultValue, children }) {
 
   return (
     <TabsContext.Provider value={{ activeTab, setActiveTab }}>
-      <div role="tablist">{children}</div>
+      <div className="tabs">{children}</div>
     </TabsContext.Provider>
   );
 }
@@ -251,8 +251,10 @@ function TabPanel({ value, children }) {
 
 // Usage:
 // <Tabs defaultValue="tab1">
-//   <Tab value="tab1">First</Tab>
-//   <Tab value="tab2">Second</Tab>
+//   <div role="tablist">   (a tablist may contain only tabs)
+//     <Tab value="tab1">First</Tab>
+//     <Tab value="tab2">Second</Tab>
+//   </div>
 //   <TabPanel value="tab1">Content 1</TabPanel>
 //   <TabPanel value="tab2">Content 2</TabPanel>
 // </Tabs>
@@ -262,7 +264,7 @@ The compound pattern is preferable to a monolithic props-based API because it gi
 
 ## Server Components vs Client Components
 
-React Server Components (RSC) render on the server and send HTML to the client. They cannot use state, effects, or browser APIs. Client Components render on the client and support full interactivity.
+React Server Components (RSC) render on the server (or at build time) and send their rendered output, not their code, to the client. They cannot use state, effects, or browser APIs. Client Components render on the client and support full interactivity.
 
 ### When to Use Server Components
 
@@ -296,7 +298,7 @@ async function ProductPage({ id }) {
   );
 }
 
-// Client Component
+// AddToCartButton.tsx -- a separate file; "use client" must be its first line
 "use client";
 function AddToCartButton({ productId }) {
   const [loading, setLoading] = useState(false);
@@ -304,7 +306,7 @@ function AddToCartButton({ productId }) {
 }
 ```
 
-Server Components cannot import Client Components as children via `import` inside the server file and then pass them JSX that uses client hooks. Instead, pass Client Components as `children` or props from a parent Server Component. This is the "donut pattern": server shell, client hole, server filling.
+Server Components can import and render Client Components, as above. The reverse does not work: every module a `"use client"` file imports becomes client code, so a Client Component cannot import a Server Component. To put server-rendered content inside a Client Component, have a Server Component parent pass it in as `children` or another prop. This is the "donut pattern": client shell, server filling.
 
 ## Suspense Boundaries
 
@@ -464,7 +466,7 @@ function TabContainer() {
 
 ### ARIA Attributes in JSX
 
-React uses camelCase for ARIA attributes: `aria-label` becomes `aria-label` (exception: ARIA attributes keep their hyphens in JSX). Always prefer semantic HTML over ARIA.
+Most DOM props are camelCase in JSX, but ARIA attributes keep their hyphens exactly as in HTML (`aria-label`, `aria-describedby`). Always prefer semantic HTML over ARIA.
 
 ```tsx
 // Prefer semantic HTML
@@ -563,8 +565,8 @@ Do not use context for frequently-changing values (cursor, scroll) — every con
 ### Error Boundaries
 
 - React: `ErrorBoundary` class or `react-error-boundary`
-- Vue: `onErrorCaptured` or `<Suspense>` with error slot
-- Svelte: `{#await}` catch clause or SvelteKit `+error.svelte`
+- Vue: `onErrorCaptured` (`<Suspense>` has no error slot; pair it with `onErrorCaptured`)
+- Svelte: `<svelte:boundary>` with a `failed` snippet (Svelte 5.3+), `{#await}` catch clause, or SvelteKit `+error.svelte`
 - Web Components: try/catch in lifecycle callbacks
 
 ### Loading States

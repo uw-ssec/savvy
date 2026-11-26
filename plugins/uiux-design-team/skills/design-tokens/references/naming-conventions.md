@@ -143,12 +143,12 @@ Use camelCase. Export from a module.
 Style Dictionary can transform names automatically:
 
 ```js
-// Built-in transforms
-'name/cti/kebab'    // color-text-primary
-'name/cti/camel'    // colorTextPrimary
-'name/cti/pascal'   // ColorTextPrimary
-'name/cti/snake'    // color_text_primary
-'name/cti/constant' // COLOR_TEXT_PRIMARY
+// Built-in transforms (v4+ names; v3 called them name/cti/kebab, etc.)
+'name/kebab'    // color-text-primary
+'name/camel'    // colorTextPrimary
+'name/pascal'   // ColorTextPrimary
+'name/snake'    // color_text_primary
+'name/constant' // COLOR_TEXT_PRIMARY
 ```
 
 ---
@@ -297,7 +297,7 @@ Every token should include:
     "tier": "semantic",
     "references": "color.gray.900",
     "usage": "Default text color for paragraphs, headings, and labels",
-    "a11y": "Meets WCAG AA contrast ratio (7:1) against color-background-default"
+    "a11y": "17.7:1 against color-background-default (#ffffff), above the WCAG AAA 7:1 threshold"
   }
 }
 ```

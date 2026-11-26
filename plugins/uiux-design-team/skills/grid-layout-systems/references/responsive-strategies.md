@@ -217,7 +217,7 @@ A sidebar that appears when there is room and collapses when there is not, using
 ```css
 /* Font size that scales from 14px at 320px viewport to 18px at 1440px */
 body {
-  font-size: clamp(0.875rem, 0.3vw + 0.8rem, 1.125rem);
+  font-size: clamp(0.875rem, 0.357vw + 0.804rem, 1.125rem);
 }
 
 /* Padding that scales proportionally */
@@ -301,8 +301,8 @@ Test at these minimum viewport widths (resize continuously between them, do not 
 
 | Width | Represents | What to Check |
 |-------|-----------|--------------|
-| 320px | iPhone SE, smallest common mobile | Content overflow, touch targets (44x44px min), text legibility |
-| 375px | iPhone 14, standard mobile | Typical mobile experience, no horizontal scroll |
+| 320px | iPhone SE (1st gen), smallest common mobile | Content overflow, touch targets (44x44px min), text legibility |
+| 375px | iPhone SE (2nd/3rd gen), iPhone 13 mini, standard mobile | Typical mobile experience, no horizontal scroll |
 | 480px | Large phones, small tablets | Content reflow between mobile and tablet |
 | 768px | iPad portrait, small laptops | Sidebar appearance, multi-column transitions |
 | 1024px | iPad landscape, small desktops | Full navigation visibility, card grid columns |

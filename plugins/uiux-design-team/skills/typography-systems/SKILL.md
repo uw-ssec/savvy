@@ -76,7 +76,7 @@ Or manually in Chrome DevTools `Cmd+Shift+M` at 320, 375, 768, 1024, 1440, 1920p
 ### Step 5 — Validate accessibility
 
 ```bash
-# Lighthouse will flag font-size < 12px and tap-target conflicts
+# Lighthouse flags target-size (WCAG 2.5.8) failures; it no longer audits font size (removed in Lighthouse 13)
 npx lighthouse https://example.com --only-categories=accessibility --output=json
 
 # axe will flag insufficient text contrast (interacts with type weight)
@@ -86,7 +86,7 @@ npx @axe-core/cli https://example.com --tags wcag2aa
 **Pass criteria:**
 - Body ≥ 16px effective at default zoom.
 - Text reflows at 200% browser zoom without horizontal scroll.
-- Line height ≥ 1.5× font size for body copy (WCAG 1.4.12).
+- Line height ≥ 1.5× font size for body copy (WCAG 1.4.8, AAA; 1.4.12 AA only requires layouts to survive a user override to 1.5×).
 - Letter spacing supports +0.12× font size without breaking layout.
 
 ## Font Pairing (Quick Reference)

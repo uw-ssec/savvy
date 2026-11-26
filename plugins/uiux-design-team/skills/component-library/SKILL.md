@@ -51,11 +51,13 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { Button } from "./Button";
 
 const meta: Meta<typeof Button> = {
+  title: "Button", // fixes the story ids (button--primary) used by the tests below
   component: Button,
   args: { children: "Click me" },
   argTypes: { intent: { control: "select", options: ["primary","outline","ghost"] },
               size:   { control: "select", options: ["sm","md","lg"] } },
-  parameters: { a11y: { config: { rules: [{ id: "color-contrast", enabled: true }] } } }
+  // test: "error" makes axe violations fail the run (the default only warns)
+  parameters: { a11y: { test: "error", config: { rules: [{ id: "color-contrast", enabled: true }] } } }
 };
 export default meta;
 

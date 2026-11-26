@@ -89,7 +89,7 @@ Prefer AVIF, then WebP, then JPEG.
 
 ## Touch Targets
 
-- Minimum 44×44 CSS px (WCAG 2.5.8).
+- Minimum 44×44 CSS px. This meets WCAG 2.5.5 Target Size (Enhanced, AAA); the AA floor, 2.5.8 Target Size (Minimum), is 24×24 CSS px or enough spacing.
 - ≥ 8px gap between adjacent targets.
 - Icon-only buttons: expand tap area with padding.
 - Inline links: increase line-height for vertical hit area.
@@ -103,11 +103,11 @@ Execute in order. If a step fails, fix before proceeding.
 **2. Touch target audit.**
 ```bash
 # Lighthouse mobile audit
-npx lighthouse https://localhost:3000 --preset=mobile --only-categories=accessibility
+npx lighthouse https://localhost:3000 --only-categories=accessibility  # mobile emulation is the default
 ```
-Pass: "Tap targets are sized appropriately" score = 100.
+Pass: the "Touch targets have sufficient size and spacing" audit passes. It checks the 24×24 px AA minimum (2.5.8), so measure the 44×44 px targets in DevTools.
 
-**3. Image loading verification.** Open DevTools Network panel, filter to Img. At 375px viewport, the 400w variant loads (not 1200w). At 1280px viewport, the 1200w variant loads.
+**3. Image loading verification.** Open DevTools Network panel, filter to Img. The browser picks by slot width × device pixel ratio: at a 375px viewport, DPR 1 loads the 400w variant (DPR 2 loads 800w); at a 1280px viewport (33vw ≈ 422px), DPR 1 loads 800w and DPR 2 loads 1200w (as measured in Chrome; other browsers may pick a neighbouring size, so confirm with `img.currentSrc`).
 
 **4. Container query check.** Place the same component in a wide container and a narrow container on one page. Confirm both render appropriately.
 

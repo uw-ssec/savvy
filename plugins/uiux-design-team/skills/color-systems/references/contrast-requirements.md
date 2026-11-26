@@ -46,7 +46,7 @@ Relative luminance for each color is calculated from linear RGB values:
 ```
 1. Convert sRGB to linear RGB:
    For each channel (R, G, B as 0-1):
-   If value <= 0.03928: linear = value / 12.92
+   If value <= 0.04045: linear = value / 12.92
    Else: linear = ((value + 0.055) / 1.055) ^ 2.4
 
 2. Calculate relative luminance:
@@ -117,7 +117,7 @@ Integrate contrast checking into the design process, not just the QA process:
 ```
 #999999 on #ffffff = 2.85:1 (FAIL AA)
 #aaaaaa on #ffffff = 2.32:1 (FAIL AA)
-#bbbbbb on #ffffff = 1.87:1 (FAIL AA)
+#bbbbbb on #ffffff = 1.92:1 (FAIL AA)
 ```
 
 **The fix**: The lightest gray that passes AA normal text on white is **#767676** (4.54:1). For a more comfortable reading experience, use **#595959** (7.0:1, passes AAA).
@@ -138,8 +138,8 @@ Integrate contrast checking into the design process, not just the QA process:
 **The problem**: Using brand colors for both text and background without verifying contrast. Blue text on a light blue background, green text on a green-tinted surface, etc.
 
 ```
-#3b82f6 (blue) on #dbeafe (light blue) = 3.12:1 (FAIL AA normal)
-#22c55e (green) on #dcfce7 (light green) = 2.41:1 (FAIL AA)
+#3b82f6 (blue) on #dbeafe (light blue) = 3.01:1 (FAIL AA normal)
+#22c55e (green) on #dcfce7 (light green) = 2.07:1 (FAIL AA)
 ```
 
 **The fix**: Use darker shades of the text color or lighter shades of the background. Check the specific combination.
@@ -149,7 +149,7 @@ Integrate contrast checking into the design process, not just the QA process:
 .info-text { color: #3b82f6; background: #dbeafe; }
 
 /* After (passes) — darker text */
-.info-text { color: #1d4ed8; background: #dbeafe; } /* 5.96:1 */
+.info-text { color: #1d4ed8; background: #dbeafe; } /* 5.49:1 */
 ```
 
 ### Failure 3: Placeholder Text
@@ -226,10 +226,10 @@ WCAG 2.2 Success Criterion 1.4.11 requires **3:1 minimum contrast** for:
 ### Common Non-Text Failures
 
 ```
-#e5e7eb border on #ffffff = 1.3:1 (FAIL — border invisible)
+#e5e7eb border on #ffffff = 1.2:1 (FAIL — border invisible)
 #d1d5db border on #ffffff = 1.5:1 (FAIL — still too light)
-#9ca3af border on #ffffff = 2.6:1 (FAIL — close but not enough)
-#6b7280 border on #ffffff = 4.6:1 (PASS)
+#9ca3af border on #ffffff = 2.5:1 (FAIL — close but not enough)
+#6b7280 border on #ffffff = 4.8:1 (PASS)
 ```
 
 For input fields, the minimum visible border color on a white background is approximately **#949494** (3.03:1). However, many modern designs use background color change or shadow instead of borders. These alternative visual treatments must also meet 3:1 contrast against the page background.

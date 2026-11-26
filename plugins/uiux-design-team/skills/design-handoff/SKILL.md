@@ -23,18 +23,20 @@ Tick every item before transferring to engineering. Missing items become impleme
 
 ```bash
 # Figma assets via figma-export CLI
-npx figma-export use-config
+npx @figma-export/cli use-config
 
 # Or via REST:
 curl -H "X-Figma-Token: $FIGMA_TOKEN" \
   "https://api.figma.com/v1/images/$FILE_KEY?ids=$NODE_IDS&format=svg&scale=2" \
-  | jq -r '.images[]' | xargs -I{} curl -o "./assets/{}.svg" "{}"
+  | jq -r '.images | to_entries[] | "\(.key) \(.value)"' \
+  | while read -r id url; do curl -s -o "./assets/${id//:/-}.svg" "$url"; done
 
 # Optimize SVGs
 npx svgo --multipass --folder ./assets
 
-# Convert raster to WebP/AVIF
-npx @squoosh/cli --webp '{"quality":85}' --avif '{"cqLevel":30}' ./images/*.png
+# Convert raster to WebP/AVIF (@squoosh/cli no longer runs on current Node)
+npx sharp-cli -i './images/*.png' -o ./images/ -f webp -q 85
+npx sharp-cli -i './images/*.png' -o ./images/ -f avif -q 50
 ```
 
 ## Component Spec Format
@@ -88,7 +90,7 @@ Hover, tab through, submit invalid, trigger loading, empty the data. Each state 
 ### Gate 4 — Accessibility
 
 ```bash
-npx @axe-core/cli https://staging.example.com/page --tags wcag2aa
+npx @axe-core/cli https://staging.example.com/page --tags wcag2a,wcag2aa,wcag21a,wcag21aa,wcag22aa
 npx pa11y https://staging.example.com/page --standard WCAG2AA
 ```
 

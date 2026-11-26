@@ -29,7 +29,7 @@ Clean, quiet, literary. The reading view is almost entirely text on a white back
 | Line height | 1.58 | Generous line spacing for sustained reading comfort |
 | Measure | ~680px max-width | Approximately 75 characters per line, within the optimal 45-75 character range |
 | Heading font | Sohne (sans-serif) | Contrast with serif body creates clear hierarchy without competing |
-| Paragraph spacing | ~29px | Approximately 1.4x the line height, creating clear paragraph breaks |
+| Paragraph spacing | ~29px | Approximately 1.4x the font size, creating clear paragraph breaks |
 
 ### Principle Mapping
 

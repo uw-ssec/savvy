@@ -156,8 +156,8 @@ The most maintainable approach uses CSS custom properties as the bridge between 
 ```css
 /* tokens.css -- generated from your token source */
 :root {
-  --color-primary: #3b82f6;
-  --color-primary-hover: #2563eb;
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
   --color-surface: #ffffff;
   --color-on-surface: #1a1a2e;
   --radius-sm: 0.25rem;
@@ -189,6 +189,8 @@ module.exports = {
 ```
 
 This approach means `bg-primary` automatically respects dark mode, brand switching, and any theme change -- all through CSS custom property overrides without Tailwind recompilation.
+
+Opacity modifiers such as `bg-primary/90` or `hover:bg-primary/10` are not generated in Tailwind v3 for a color defined as a bare `var()`. Either store the token as RGB channels (`--color-primary: 37 99 235;`) and map it as `primary: 'rgb(var(--color-primary) / <alpha-value>)'`, or use Tailwind v4, which applies the modifier with `color-mix()`.
 
 ### Token-to-Utility Mapping
 
@@ -327,7 +329,7 @@ const colorClasses = {
 
 ### Production Build Size
 
-A well-configured Tailwind build is typically 10-30kb gzipped. If your bundle is larger, check:
+A well-configured Tailwind build is usually under 10kB after minification and compression (Tailwind's own production guide). If your bundle is larger, check:
 
 1. **Content paths are correct** -- overly broad globs include files that reference unused classes
 2. **No safelist abuse** -- safelisting classes defeats the purpose of tree-shaking

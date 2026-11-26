@@ -13,7 +13,7 @@ metadata:
 
 Format: **"If we [change], then [metric] will [direction by amount] because [evidence]."**
 
-Example: "If we cut sign-up fields from 6 to 3, completion rate will increase by 15% because reducing form length lowers perceived effort (Baymol 2023)."
+Example: "If we cut sign-up fields from 6 to 3, completion rate will increase by 15% because reducing form length lowers perceived effort (Baymard Institute checkout research)."
 
 **Checkpoint — verify all four before Step 2:**
 - [ ] Specific (names the change and metric)
@@ -49,14 +49,14 @@ def sample_size_per_variant(baseline_rate, mde_absolute, alpha=0.05, power=0.80)
     return ceil(n)
 
 # Example: baseline 5%, detect lift to 6% (MDE = 0.01)
-print(sample_size_per_variant(0.05, 0.01))  # → 7,663 per variant
+print(sample_size_per_variant(0.05, 0.01))  # → 8,158 per variant
 ```
 
 Divide total n by daily traffic to get duration. **Always run a minimum of one full business cycle (7–14 days)** even if n is reached earlier, to absorb day-of-week effects.
 
 ### Step 4 — Launch & wait
 
-Do not peek. Peeking at p < 0.05 ten times inflates false-positive rate to ~40%.
+Do not peek. Peeking at p < 0.05 ten times inflates the false-positive rate to ~19% (about four times the nominal 5%).
 
 **Checkpoint:** Set a calendar alert for the predetermined end date. Do not analyze before.
 
@@ -78,7 +78,7 @@ def analyze_ab(visitors_a, conv_a, visitors_b, conv_b, alpha=0.05):
     return {"p_value": p, "lift_abs": diff, "lift_rel": diff / p1, "ci_95": ci, "significant": p < alpha}
 
 print(analyze_ab(10000, 500, 10000, 580))
-# → {'p_value': 0.0098, 'lift_abs': 0.008, 'lift_rel': 0.16, 'ci_95': (0.0019, 0.0141), 'significant': True}
+# → {'p_value': 0.0123, 'lift_abs': 0.008, 'lift_rel': 0.16, 'ci_95': (0.0017, 0.0143), 'significant': True}  (values rounded)
 ```
 
 **Decision rule:**

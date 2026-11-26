@@ -29,7 +29,7 @@ metadata:
 
 1. Pick approach via matrix above.
 2. Define tokens as CSS custom properties on `:root` (see snippet below).
-3. Declare cascade layers in order: `@layer reset, base, components, utilities, overrides;`.
+3. Declare cascade layers in order, vendor CSS included: `@layer reset, vendor, base, components, utilities, overrides;`. A layer missing from this statement is appended last and beats every layer listed.
 4. Configure stylelint with the linter snippet below.
 5. Run validation commands at the bottom. If any check fails, fix before merging.
 
@@ -55,7 +55,7 @@ metadata:
 ## Cascade Layers
 
 ```css
-@layer reset, base, components, utilities, overrides;
+@layer reset, vendor, base, components, utilities, overrides;
 
 @import url('vendor-library.css') layer(vendor);
 
@@ -64,7 +64,7 @@ metadata:
 }
 
 @layer utilities {
-  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 }
 ```
 
@@ -92,6 +92,7 @@ If you reach for `!important`, fix the layer order or selector instead.
     "selector-max-compound-selectors": 3,
     "declaration-no-important": true,
     "custom-property-pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+    "selector-class-pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*(__[a-z0-9]+(-[a-z0-9]+)*)?(--[a-z0-9]+(-[a-z0-9]+)*)?$",
     "no-descending-specificity": true
   }
 }
@@ -105,11 +106,12 @@ Run these before merging. Each must pass.
 # 1. Lint passes with zero errors
 npx stylelint "**/*.css"
 
-# 2. Specificity audit: report any selector above 0,3,0
+# 2. Specificity audit: step 1's selector-max-specificity already fails any selector above 0,3,0;
+#    specificity-graph draws an interactive graph of the distribution (it does not fail)
 npx specificity-graph src/**/*.css
 
-# 3. Search for !important (should return zero hits outside utilities layer)
-grep -rn "!important" src/ --include="*.css" | grep -v "@layer utilities"
+# 3. Search for !important (should return zero hits; declaration-no-important bans it everywhere)
+grep -rn "!important" src/ --include="*.css"
 
 # 4. Search for ID selectors in stylesheets
 grep -rnE "^#[a-zA-Z]" src/ --include="*.css"

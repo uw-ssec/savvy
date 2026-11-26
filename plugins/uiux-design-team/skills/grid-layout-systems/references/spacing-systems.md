@@ -19,14 +19,14 @@ A base-unit spacing system constrains all spacing values to multiples of a singl
 
 ### 4px Base System
 
-All spacing values are multiples of 4px. This produces a granular scale suitable for interfaces that need fine control.
+All spacing values are multiples of 4px, plus 2px and 6px half-steps. This produces a granular scale suitable for interfaces that need fine control.
 
 ```css
 :root {
   --space-0:   0px;
-  --space-0.5: 2px;    /* Half-step for borders and fine adjustments */
+  --space-0_5: 2px;    /* Half-step for borders and fine adjustments; "." is not allowed in a custom property name */
   --space-1:   4px;
-  --space-1.5: 6px;
+  --space-1_5: 6px;
   --space-2:   8px;
   --space-3:   12px;
   --space-4:   16px;
@@ -177,7 +177,7 @@ Different contexts require different spacing density. A data-heavy analytics das
 
 ### Compact Mode
 
-Reduces all spacing by approximately 25-33%. Used for data-dense interfaces where screen real estate is at a premium.
+Reduces spacing by roughly 12-50%, proportionally most at the small end. Used for data-dense interfaces where screen real estate is at a premium.
 
 ```css
 [data-density="compact"] {

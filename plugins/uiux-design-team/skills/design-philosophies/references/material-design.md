@@ -39,9 +39,9 @@ Material 3 defines specific color roles rather than generic color names. Each ro
 | `on-primary` | Text/icons on primary surfaces | Accessible contrast against primary |
 | `primary-container` | Filled tonal buttons, active indicators | Lighter tint of primary |
 | `on-primary-container` | Text on primary-container | Accessible contrast against primary-container |
-| `secondary` | Less prominent components, filters | Complementary to primary |
+| `secondary` | Less prominent components, filters | Same hue as primary, lower chroma (default tonal-spot scheme) |
 | `secondary-container` | Tonal fills for secondary elements | Lighter tint of secondary |
-| `tertiary` | Accent and contrast elements | Triadic relationship to primary |
+| `tertiary` | Accent and contrast elements | Hue rotated 60° from primary (default tonal-spot scheme) |
 | `error` | Error states, destructive actions | Typically red, independent of primary |
 | `surface` | Page and card backgrounds | Neutral, low-chroma |
 | `on-surface` | Text on surface backgrounds | High contrast against surface |
@@ -171,7 +171,7 @@ Material 3's motion system uses transitions to reinforce spatial relationships, 
 
 | Pattern | Duration | Easing | Use When |
 |---------|----------|--------|----------|
-| Enter | 250ms | Emphasized decelerate | Element appears (dialog, sheet, menu) |
+| Enter | 400ms | Emphasized decelerate | Element appears (dialog, sheet, menu) |
 | Exit | 200ms | Emphasized accelerate | Element disappears |
 | Shared axis (forward) | 300ms | Standard easing | Moving forward in a sequence (onboarding) |
 | Shared axis (backward) | 300ms | Standard easing | Moving backward in a sequence |
@@ -203,7 +203,7 @@ Material 3 defines named easing functions:
 | Medium 2 | 300ms | Complex transitions |
 | Medium 3 | 350ms | Page-level transitions |
 | Medium 4 | 400ms | Large container transforms |
-| Long 1-4 | 450-700ms | Full-screen transitions |
+| Long 1-4 | 450-600ms | Full-screen transitions |
 
 ## Elevation System
 
@@ -214,11 +214,11 @@ Material 3 uses tonal elevation rather than shadow-only elevation. Instead of re
 | Level | Shadow | Tonal Overlay | Usage |
 |-------|--------|--------------|-------|
 | Level 0 | None | None | Page background |
-| Level 1 | 1dp | Surface + 5% primary | Cards, navigation rail |
-| Level 2 | 3dp | Surface + 8% primary | Elevated cards, top app bar (scrolled) |
-| Level 3 | 6dp | Surface + 11% primary | FAB, navigation bar |
-| Level 4 | 8dp | Surface + 12% primary | (Reserved) |
-| Level 5 | 12dp | Surface + 14% primary | Navigation drawer, side sheet |
+| Level 1 | 1dp | Surface + 5% primary | Elevated cards, modal navigation drawer, modal sheets |
+| Level 2 | 3dp | Surface + 8% primary | Navigation bar, menus, top app bar (scrolled) |
+| Level 3 | 6dp | Surface + 11% primary | FAB, dialogs, search bar |
+| Level 4 | 8dp | Surface + 12% primary | Not used at rest (hover state of level 3) |
+| Level 5 | 12dp | Surface + 14% primary | Not used at rest |
 
 In dark themes, tonal elevation is particularly important because shadows are less visible against dark backgrounds. The tonal overlay ensures elevated surfaces remain distinguishable.
 

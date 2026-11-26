@@ -158,12 +158,14 @@ Minimum days = Required sample size per variant / Daily traffic per variant
 
 | Daily Visitors | Baseline Rate | 5% Relative MDE | 10% Relative MDE | 20% Relative MDE |
 |---------------|---------------|------------------|-------------------|-------------------|
-| 1,000 | 3% | 278 days | 70 days | 18 days |
-| 5,000 | 3% | 56 days | 14 days | 7 days* |
-| 10,000 | 3% | 28 days | 7 days* | 7 days* |
-| 50,000 | 3% | 7 days* | 7 days* | 7 days* |
-| 1,000 | 10% | 75 days | 19 days | 7 days* |
-| 10,000 | 10% | 8 days | 7 days* | 7 days* |
+| 1,000 | 3% | 416 days | 107 days | 28 days |
+| 5,000 | 3% | 84 days | 22 days | 7 days* |
+| 10,000 | 3% | 42 days | 11 days | 7 days* |
+| 50,000 | 3% | 9 days | 7 days* | 7 days* |
+| 1,000 | 10% | 116 days | 30 days | 8 days |
+| 10,000 | 10% | 12 days | 7 days* | 7 days* |
+
+Assumes two variants with daily visitors split 50/50, α = 0.05 (two-sided) and 80% power, using the sample-size formula in the main skill.
 
 *Minimum 7-day rule applies even when sample size is reached sooner.
 

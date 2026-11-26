@@ -101,6 +101,30 @@ Changes that touch no plugin — CI, repository documentation, tooling — go un
 
 - Initial tagged release.
 
+#### Fixed
+
+- Contrast ratios recomputed with the WCAG 2.2 relative-luminance formula across `accessibility-audit`, `color-systems`, `typography-systems`, `css-architecture` and `component-library`. White on `#3b82f6` is 3.7:1, not 4.6:1, so examples that put white text on it now use `#2563eb`. `color-systems` borders now meet the skill's own 3:1 contract. Its `check-contrast.js` honours `--theme=dark` instead of always reading the first hex value.
+- WCAG citations corrected: 44×44 px is 2.5.5 Target Size (Enhanced, AAA), and the AA criterion 2.5.8 requires 24×24 (`responsive-design`, `design-case-studies`). Line height ≥ 1.5 is 1.4.8 (AAA), not 1.4.12. Large text is 18pt/24px, not 18px. Focus-ring contrast is 1.4.11, not 2.4.11. Focus Appearance is 2.4.13 (AAA).
+- Formula outputs corrected: the `typography-systems` `clamp()` walkthrough (`2.5929vw + 1.4814rem`, previously 16× too small), the `fluid-layouts` and `responsive-strategies` intercepts, and the type-scale table. In `ab-testing-strategy`: the sample size (8,158), the `analyze_ab` p-value and CI (0.0123, 0.0017–0.0143), the false-positive rate from peeking (~19% for 10 looks, not ~40%), and the duration table.
+- Code that didn't do what the text said:
+  - `css-architecture`: the `@layer` statement now declares `vendor`, which was being appended as the strongest layer, and the stylelint config now accepts the BEM names the skill recommends.
+  - `frontend-components`: the React 19 custom-event example uses `onmy-click`, because `onMyClick` listens for `MyClick`. Vue's `watch` has no `debounce` option. The tab list and Server Component import rules now match ARIA 1.2 and react.dev.
+  - `component-library`: the XState example uses v5 APIs, `useOptimistic` runs inside a transition, and `aria-activedescendant` sits on the combobox.
+  - Style Dictionary v4/v5 transform and option names are corrected in `design-tokens` and `design-system-creation`.
+  - `design-handoff`: the Figma, image-conversion and axe commands now run as written.
+  - `grid-layout-systems`: custom property names no longer contain `.`, which is invalid.
+- Internal contradictions resolved:
+  - `design-system-creation` uses `variant` throughout.
+  - `information-architecture` tree tests need 50+ participants and pass at ≥70% direct success.
+  - `user-journey-mapping` uses a 1–5 emotion scale, and its touchpoint quality scale is no longer inverted.
+  - `usability-evaluation` uses the published Sauro-Lewis SUS grades with Bangor acceptability ranges, and has an unambiguous severity-3 rule.
+  - `user-research` thresholds and competitor counts are now consistent.
+  - `ux-writing` rules on contractions and numerals are consistent, and it correctly states that Russian has three plural forms for whole numbers.
+  - `wireframing` numbers blocks in reading order.
+  - `motion-design` references stay within its duration and property limits.
+  - `design-philosophies`' worked example no longer recommends a countdown that breaks its own Rams #6.
+- Example email addresses in `ux-writing` and `wireframing` use `example.com`.
+
 ### zarr-chunk-optimization
 
 #### Added

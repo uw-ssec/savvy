@@ -28,12 +28,13 @@ class MyButton extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
+    // Listen on the shadow root: render() replaces the <button>, and a
+    // listener attached to the old button would be lost on re-render.
+    this.shadowRoot.addEventListener('click', this._handleClick.bind(this));
   }
 
   connectedCallback() {
     this.render();
-    this.shadowRoot.querySelector('button')
-      .addEventListener('click', this._handleClick.bind(this));
   }
 
   disconnectedCallback() {
@@ -155,7 +156,7 @@ my-dropdown::part(trigger) {
 
 ### CSS Custom Properties Cross Boundaries
 
-CSS custom properties (unlike regular CSS) inherit through Shadow DOM boundaries. This is the primary theming mechanism for Web Components:
+Outside selectors do not reach into Shadow DOM, but inherited properties do cross the boundary: CSS custom properties, like `color` and `font-family`, inherit into the shadow tree. Custom properties are the primary theming mechanism for Web Components:
 
 ```css
 /* External theme */
@@ -280,7 +281,7 @@ Declarative Shadow DOM allows Shadow DOM to be expressed in HTML, enabling serve
 
 ### Hydration
 
-When the component's JavaScript loads, it detects the existing declarative Shadow DOM and adopts it rather than creating a new shadow root. Lit handles this automatically with its SSR package `@lit-labs/ssr`.
+When the component's JavaScript loads, it detects the existing declarative Shadow DOM and adopts it rather than creating a new shadow root. Lit does this when pages are rendered with `@lit-labs/ssr` and the client loads `@lit-labs/ssr-client/lit-element-hydrate-support.js` before Lit.
 
 ## Framework Interoperability
 
@@ -291,12 +292,14 @@ Web Components work in any framework, but each framework has quirks around prope
 React has historically had poor Web Component support, but React 19+ improves it significantly. For older React versions, use a wrapper.
 
 ```tsx
-// React 19+ -- properties and events work natively
+// React 19+ -- properties and events work natively. React drops the "on"
+// prefix and keeps the rest verbatim, so `onmy-click` listens for "my-click"
+// (`onMyClick` would listen for an event named "MyClick").
 function App() {
   return (
     <my-button
       variant="solid"
-      onMyClick={(e) => console.log(e.detail)}
+      onmy-click={(e) => console.log(e.detail)}
     >
       Click me
     </my-button>

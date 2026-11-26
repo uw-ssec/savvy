@@ -42,8 +42,8 @@ document.querySelectorAll('[data-reveal]').forEach((el) => {
 [data-reveal] {
   opacity: 0;
   transform: translateY(24px);
-  transition: opacity 600ms cubic-bezier(0.16, 1, 0.3, 1),
-              transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 500ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Revealed state */
@@ -192,22 +192,27 @@ Modern browsers support scroll-driven animations natively in CSS, eliminating th
 ```css
 .site-header {
   position: sticky;
-  top: 0;
-  animation: shrinkHeader linear both;
+  top: -1.25rem; /* top padding scrolls from 2rem to 0.75rem visible, no layout animation */
+  padding-block: 2rem;
+  animation: headerShadow linear both;
   animation-timeline: scroll(root);
   animation-range: 0px 200px;
 }
 
-@keyframes shrinkHeader {
-  from {
-    padding-block: 2rem;
-    font-size: 1.5rem;
-  }
-  to {
-    padding-block: 0.75rem;
-    font-size: 1rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
+.site-header__title {
+  font-size: 1.5rem;
+  transform-origin: left center;
+  animation: shrinkTitle linear both;
+  animation-timeline: scroll(root);
+  animation-range: 0px 200px;
+}
+
+@keyframes shrinkTitle {
+  to { transform: scale(0.667); } /* 1.5rem -> 1rem visually, via transform not font-size */
+}
+
+@keyframes headerShadow {
+  to { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); }
 }
 ```
 
@@ -248,15 +253,20 @@ Modern browsers support scroll-driven animations natively in CSS, eliminating th
  * Each element defines its own speed via data-parallax-speed.
  */
 function initParallax() {
-  const elements = document.querySelectorAll('[data-parallax-speed]');
+  const elements = [...document.querySelectorAll('[data-parallax-speed]')];
+  // Read each element's untransformed page position once; reading getBoundingClientRect
+  // inside the loop would include the transform just applied and feed back on itself.
+  const centers = elements.map((el) => {
+    const rect = el.getBoundingClientRect();
+    return rect.top + window.scrollY + rect.height / 2;
+  });
 
   function update() {
     const scrollY = window.scrollY;
 
-    elements.forEach((el) => {
+    elements.forEach((el, i) => {
       const speed = parseFloat(el.dataset.parallaxSpeed) || 0.5;
-      const rect = el.getBoundingClientRect();
-      const centerY = rect.top + rect.height / 2;
+      const centerY = centers[i] - scrollY;
       const viewportCenter = window.innerHeight / 2;
       const offset = (centerY - viewportCenter) * speed;
 
@@ -363,7 +373,9 @@ window.addEventListener('scroll', () => {
   opacity: 1;
   transform: none;
   filter: none;
-  transition: all 700ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 500ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 500ms cubic-bezier(0.16, 1, 0.3, 1),
+              filter 500ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 ```
 
@@ -486,7 +498,7 @@ window.addEventListener('scroll', updateReadingProgress, { passive: true });
   height: 10px;
   border-radius: 50%;
   background: var(--fg-tertiary);
-  transition: all 300ms ease-out;
+  transition: background-color 300ms ease-out, transform 300ms ease-out;
   cursor: pointer;
 }
 
@@ -541,7 +553,7 @@ function throttle(fn, wait = 16) {
 window.addEventListener('scroll', throttle(onScroll, 16), { passive: true });
 ```
 
-5. **Prefer CSS Scroll-Driven Animations over JavaScript.** When browser support allows, CSS `animation-timeline: scroll()` and `animation-timeline: view()` run entirely on the compositor thread, offering far better performance than any JS-based approach.
+5. **Prefer CSS Scroll-Driven Animations over JavaScript.** When browser support allows, CSS `animation-timeline: scroll()` and `animation-timeline: view()` run off the main thread when they animate only `transform` and `opacity`, offering far better performance than any JS-based approach.
 
 6. **Batch DOM reads and writes.** Interleaving reads (getBoundingClientRect) and writes (style changes) causes layout thrashing.
 

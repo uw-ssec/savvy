@@ -174,8 +174,8 @@ Marketing copy has more tonal freedom than product copy, but the voice must rema
 
 | Context | Convention | Example |
 |---------|-----------|---------|
-| Counts under 10 | Spell out | "three tasks remaining" |
-| Counts 10 and above | Use numerals | "47 tasks remaining" |
+| Counts under 10 in static prose | Spell out | "Setup takes three steps" |
+| UI counts, dynamic values, and counts 10 and above | Use numerals | "3 tasks remaining," "47 tasks remaining" |
 | Measurements | Always numerals | "5 MB," "3 minutes," "100%" |
 | Dates | Consistent format | "February 16, 2026" or "Feb 16, 2026" (choose one) |
 | Money | Currency symbol, two decimals | "$49.99" not "$49.99 USD" (unless multi-currency) |

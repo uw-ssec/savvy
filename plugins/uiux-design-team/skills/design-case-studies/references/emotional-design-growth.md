@@ -127,7 +127,7 @@ While most wallets were built by developers for other developers, Phantom focuse
 | Norman: Visceral | Polished animations and warm visuals create an immediate impression of quality and safety in a space where users expect clunkiness. |
 | Norman: Behavioral | Smooth transitions during wallet creation reduce cognitive load at the moment where anxiety is highest. |
 | Norman: Reflective | "I use Phantom" becomes a statement about taste and sophistication, not just a tool choice. The premium feel creates identity value. |
-| Nielsen: Aesthetic-usability effect | Users perceive the polished interface as more usable and more trustworthy, even before testing functionality. |
+| Aesthetic-usability effect (Kurosu & Kashimura) | Users perceive the polished interface as more usable and more trustworthy, even before testing functionality. |
 | Rams: Thorough to the last detail | Every micro-interaction is a trust signal. The cumulative effect of many small polished moments builds deep confidence. |
 
 ### Key Design Patterns
@@ -175,7 +175,7 @@ Revolut's premium positioning, supported by design polish, has driven significan
 | Norman: Reflective | Using Revolut becomes a status signal. The premium feel of the app reinforces the user's self-image as financially sophisticated. |
 | Gestalt: Common fate | Chart elements that move together under the user's finger create a sense of unified, responsive data -- the numbers feel alive. |
 | Rams: Good design is aesthetic | The 3D card animations serve no functional purpose, but they create satisfaction and reinforce the perception of a premium product. |
-| Nielsen: Aesthetic-usability effect | The polished visual experience makes users perceive the financial tools as more reliable and trustworthy. |
+| Aesthetic-usability effect (Kurosu & Kashimura) | The polished visual experience makes users perceive the financial tools as more reliable and trustworthy. |
 
 ### Key Design Patterns
 

@@ -27,7 +27,7 @@ Deep comparison: [react-patterns.md](references/react-patterns.md), [vue-pattern
 5. **Write tests** — render, interaction, a11y snapshot.
 6. **Document** — Storybook story per variant + states (default, loading, error, disabled).
 
-**Checkpoint after step 4:** run `npx @axe-core/cli http://localhost:6006/iframe?id=<story>` — fail build if any violation.
+**Checkpoint after step 4:** run `npx @axe-core/cli http://localhost:6006/iframe.html?id=<story>` — fail build if any violation.
 **Checkpoint after step 5:** branch coverage on the component file must be >= 80% (`vitest run --coverage`).
 
 ## Reference template (React + Suspense + custom hook)
@@ -50,6 +50,7 @@ export function SearchBox({ value, onChange, resultsPromise }: {
     <div role="search">
       <label htmlFor={id}>Search</label>
       <input id={id} value={value} onChange={(e) => onChange(e.target.value)} aria-describedby={`${id}-hint`} />
+      <p id={`${id}-hint`}>Search by name or keyword.</p>
       <Suspense fallback={<p>Loading…</p>}>
         <Results promise={resultsPromise} query={debounced} />
       </Suspense>

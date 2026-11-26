@@ -133,25 +133,23 @@ A visual line chart overlaid on the journey phases, showing the rise and fall of
 
 ### How to Create It
 
-1. For each phase, rate the overall emotional valence on a scale of -3 to +3
+1. For each phase, rate the overall emotional valence on a scale of 1 (very negative) to 5 (very positive), with 3 as neutral
 2. Plot the ratings on a line chart across the horizontal phase axis
 3. Label the peaks and valleys with the specific emotion and cause
 
 ```
 Emotion
-  +3  |                                          *
-  +2  |         *                               / \
-  +1  |        / \                             /   \
-   0  |-------/---\-----------*---------------/-----\--------
-  -1  |      /     \         / \             /       \
-  -2  |     /       \       /   \           /         \
-  -3  |    *         \     /     *         *
-      |_____________________________________________
+   5  |                          *
+   4  |            *                                   *
+   3  |  *
+   2  |
+   1  |                  *                  *
+      +----------------------------------------------------
        Awareness  Research  Eval  Decision  Onboard  Adopt
 
-      Peak: Decision (+3) "We picked the right tool!"
-      Valley: Evaluation (-3) "This trial is useless with no data."
-      Valley: Onboarding (-3) "Half my team can't figure out permissions."
+      Peak: Decision (5) "We picked the right tool!"
+      Valley: Evaluation (1) "This trial is useless with no data."
+      Valley: Onboarding (1) "Half my team can't figure out permissions."
 ```
 
 ### Identifying Critical Moments

@@ -104,9 +104,12 @@ type State = 'idle' | 'loading' | 'success' | 'error';
 ### XState Example
 
 ```ts
-import { createMachine, assign } from 'xstate';
+// XState v5
+import { setup, assign, fromPromise } from 'xstate';
 
-const fetchMachine = createMachine({
+const fetchMachine = setup({
+  actors: { fetchData: fromPromise(() => api.fetchData()) },
+}).createMachine({
   id: 'fetch',
   initial: 'idle',
   context: { data: null, error: null, retryCount: 0 },
@@ -119,11 +122,11 @@ const fetchMachine = createMachine({
         src: 'fetchData',
         onDone: {
           target: 'success',
-          actions: assign({ data: (_, event) => event.data }),
+          actions: assign({ data: ({ event }) => event.output }),
         },
         onError: {
           target: 'error',
-          actions: assign({ error: (_, event) => event.data }),
+          actions: assign({ error: ({ event }) => event.error }),
         },
       },
     },
@@ -134,7 +137,7 @@ const fetchMachine = createMachine({
       on: {
         RETRY: {
           target: 'loading',
-          actions: assign({ retryCount: (ctx) => ctx.retryCount + 1 }),
+          actions: assign({ retryCount: ({ context }) => context.retryCount + 1 }),
         },
       },
     },
@@ -255,14 +258,20 @@ function TodoItem({ todo }) {
 ### React 19 useOptimistic
 
 ```tsx
-import { useOptimistic } from 'react';
+import { useOptimistic, useTransition } from 'react';
 
-function Likes({ count, liked }) {
+function Likes({ count, liked, onLikedChange }) {
   const [optimisticLiked, setOptimisticLiked] = useOptimistic(liked);
+  const [, startTransition] = useTransition();
 
-  async function handleLike() {
-    setOptimisticLiked(!liked);
-    await api.toggleLike();
+  // The optimistic setter must run inside an Action (here, a transition);
+  // outside one, React warns and the optimistic value only flashes.
+  function handleLike() {
+    startTransition(async () => {
+      setOptimisticLiked(!liked);
+      const next = await api.toggleLike();
+      startTransition(() => onLikedChange(next)); // real state replaces the optimistic one
+    });
   }
 
   return (

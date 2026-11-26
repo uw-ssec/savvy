@@ -35,7 +35,7 @@ Generate CSS in the browser at render time. Styles are computed, injected into `
 
 Extract CSS at compile time. The build step generates static CSS files; no style computation happens in the browser.
 
-**Libraries**: Vanilla Extract, Panda CSS, Linaria, compiled (Meta)
+**Libraries**: Vanilla Extract, Panda CSS, Linaria, Compiled (Atlassian)
 
 **Tradeoffs**:
 - Zero runtime cost: CSS is static, loaded like any stylesheet
@@ -113,8 +113,8 @@ import { ThemeProvider } from 'styled-components';
 
 const lightTheme = {
   colors: {
-    primary: '#3b82f6',
-    primaryHover: '#2563eb',
+    primary: '#2563eb',
+    primaryHover: '#1d4ed8',
     surface: '#ffffff',
     text: '#1a1a2e',
   },
@@ -161,7 +161,7 @@ const GlobalStyle = createGlobalStyle`
 
 ## Emotion Patterns
 
-Emotion offers two APIs: the `css` prop (requires Babel/SWC plugin) and the `styled` API (same as styled-components).
+Emotion offers two APIs: the `css` prop (enabled per file with the `/** @jsxImportSource @emotion/react */` pragma shown below, or project-wide with Emotion's Babel preset or a `jsxImportSource` compiler setting) and the `styled` API (same as styled-components).
 
 ### The css Prop
 
@@ -294,8 +294,8 @@ export const vars = createThemeContract({
 
 export const lightTheme = createTheme(vars, {
   color: {
-    primary: '#3b82f6',
-    primaryHover: '#2563eb',
+    primary: '#2563eb',
+    primaryHover: '#1d4ed8',
     surface: '#ffffff',
     onSurface: '#1a1a2e',
   },
@@ -358,7 +358,7 @@ export default defineConfig({
   theme: {
     tokens: {
       colors: {
-        primary: { value: '#3b82f6' },
+        primary: { value: '#2563eb' },
         surface: { value: '#ffffff' },
       },
       spacing: {
@@ -452,13 +452,13 @@ Runtime CSS-in-JS adds overhead on every render for components with dynamic styl
 - Rendering large lists (100+ items) where each item has dynamic styles
 - Frequent re-renders (scroll handlers, drag operations, animations)
 - Low-powered devices (mobile, embedded)
-- Server components (runtime CSS-in-JS is incompatible with React Server Components)
+- Server components (Emotion cannot render in React Server Components; styled-components needs v6.3 or later)
 
 ### React Server Components Compatibility
 
 | Library | RSC Compatible | Notes |
 |---------|---------------|-------|
-| styled-components | No | Requires client runtime |
+| styled-components | v6.3+ | Earlier versions require a client runtime; 6.3 added Server Component support with inline `<style>` tags |
 | Emotion | No | Requires client runtime |
 | Vanilla Extract | Yes | Static CSS, no runtime |
 | Panda CSS | Yes | Static CSS, no runtime |

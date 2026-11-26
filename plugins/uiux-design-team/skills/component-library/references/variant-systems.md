@@ -1,6 +1,6 @@
 # Variant Systems
 
-Comprehensive reference for implementing component variant systems in design libraries. Covers CVA (class-variance-authority) in depth, compound variants, Tailwind integration, alternative approaches with Stitches and Vanilla Extract recipes, type-safe variant APIs, and variant documentation patterns.
+Comprehensive reference for implementing component variant systems in design libraries. Covers CVA (class-variance-authority) in depth, compound variants, Tailwind integration, alternative approaches with Vanilla Extract recipes and CSS data attributes, type-safe variant APIs, and variant documentation patterns.
 
 ## Table of Contents
 
@@ -9,7 +9,7 @@ Comprehensive reference for implementing component variant systems in design lib
 | [CVA Detailed Usage](#cva-detailed-usage) | 14-65 | Core CVA API, defining variants, defaults, and composing |
 | [Compound Variants](#compound-variants) | 67-105 | Applying styles when multiple variant conditions are true |
 | [Tailwind Integration](#tailwind-integration) | 107-140 | CVA with Tailwind CSS, tailwind-merge, and class conflicts |
-| [Alternative Approaches](#alternative-approaches) | 142-185 | Stitches variants, Vanilla Extract recipes, and CSS-only variants |
+| [Alternative Approaches](#alternative-approaches) | 142-185 | Vanilla Extract recipes and CSS-only variants |
 | [Type-Safe Variant APIs](#type-safe-variant-apis) | 187-220 | TypeScript patterns for variant props and exhaustive checking |
 | [Variant Documentation Patterns](#variant-documentation-patterns) | 222-255 | Storybook stories, visual regression, and variant catalogs |
 | [See Also](#see-also) | 257-263 | Related references and skills |
@@ -106,7 +106,7 @@ const button = cva('inline-flex items-center justify-center font-medium', {
     {
       intent: 'danger',
       outlined: true,
-      className: 'border-red-600 text-red-600 hover:bg-red-50',
+      className: 'border-red-600 text-red-700 hover:bg-red-50',
     },
     {
       intent: 'primary',
@@ -128,7 +128,7 @@ const badge = cva('inline-flex items-center rounded-full font-medium', {
     size: { sm: 'px-2 py-0.5 text-xs', md: 'px-2.5 py-0.5 text-sm' },
   },
   compoundVariants: [
-    { variant: 'solid', color: 'success', className: 'bg-green-600 text-white' },
+    { variant: 'solid', color: 'success', className: 'bg-green-700 text-white' },
     { variant: 'solid', color: 'warning', className: 'bg-yellow-500 text-black' },
     { variant: 'solid', color: 'error', className: 'bg-red-600 text-white' },
     { variant: 'subtle', color: 'success', className: 'bg-green-100 text-green-800' },

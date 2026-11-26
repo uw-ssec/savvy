@@ -266,12 +266,12 @@ Modal close:
 **Annotation example:**
 ```
 Search Component:
-  - Input: role="combobox", aria-label="Search products"
-  - Suggestions: role="listbox", aria-live="polite"
+  - Input: role="combobox", aria-label="Search products", aria-expanded, aria-controls → listbox
+  - Suggestions: role="listbox"
   - Each suggestion: role="option"
   - Keyboard: Arrow Up/Down to navigate, Enter to select, Escape to close
   - Focus: Returns to input after selection
-  - Screen reader: "X suggestions available" announced on filter
+  - Screen reader: "X suggestions available" announced on filter, via a separate role="status" live region
 ```
 
 ---

@@ -103,9 +103,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 Chrome DevTools → Performance panel → CPU: 4× slowdown → Record interaction → verify ≥ 55fps in the FPS strip. Test on real budget Android if shipping consumer mobile.
 
 **Constraints (enforce on every animation):**
-- Animate only `transform` and `opacity`. Animating `width`/`top`/`margin` triggers layout — switch to `transform`.
+- Animate only `transform` and `opacity`, plus paint-only properties such as `box-shadow` or `background-color` (hover feedback, a scroll-linked header shadow). Animating `width`/`top`/`margin` triggers layout — switch to `transform`. The one exception is collapsing a removed item's `height` (as in the exit example above) so its siblings close the gap.
 - `will-change: transform` only on actively animating elements; remove after.
-- Total screen transition ≤ 500ms; individual element ≤ 350ms.
+- Stay within the Step 2 budgets: an individual element ≤ 350ms (entrances ≤ 500ms) and a whole-screen transition ≤ 500ms in total. Only loading and celebratory motion run longer.
 - `requestAnimationFrame` for JS-driven animation, never `setInterval`.
 
 **Pass:** sustained ≥ 55fps under 4× throttle. **Fail:** below 55fps → switch property to `transform`, remove drop-shadow during animation, or shorten duration.

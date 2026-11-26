@@ -61,7 +61,7 @@ Validation errors occur when user input does not meet requirements. They should 
 |-------|-------------|--------------|
 | Email | Invalid email | Enter a valid email address (e.g., name@example.com) |
 | Password | Too short | Use at least 8 characters for your password (you have 5) |
-| Phone | Invalid phone | Enter a 10-digit phone number (e.g., 555-123-4567) |
+| Phone | Invalid phone | Enter a 10-digit phone number (e.g., 202-555-0123) |
 | URL | Invalid URL | Include the full URL with https:// (e.g., https://example.com) |
 | Date | Invalid date | Enter a date in MM/DD/YYYY format |
 | Number range | Out of range | Enter a number between 1 and 100 |
@@ -84,7 +84,7 @@ Permission errors occur when the user attempts an action they are not authorized
 |---------|-------------|--------------|
 | Viewing a page | 403 Forbidden | You do not have permission to view this page. Ask the project owner to share access with you. |
 | Editing a document | Access denied | This document is read-only for your role. Request edit access from the document owner. |
-| Admin action | Not authorized | Only workspace admins can change billing settings. Contact your admin: admin@company.com |
+| Admin action | Not authorized | Only workspace admins can change billing settings. Contact your admin: admin@example.com |
 | Expired invitation | Invalid link | This invitation has expired. Ask the person who invited you to send a new one. |
 
 **Permission error rules:**
@@ -182,7 +182,7 @@ Error messages must be written with translation in mind. Clever wordplay, idioms
 
 **Avoid:**
 - Idioms: "Something went sideways" (does not translate)
-- Contractions: "Can't" and "won't" cause inconsistency across languages
+- Mixed contractions: "can't" in one string and "cannot" in the next gives translators two source forms for one meaning. Pick one approach (see the Contractions table in the Voice & Tone Guide) and apply it everywhere
 - Culturally specific references: "Houston, we have a problem"
 - Puns and wordplay: "Oops, that file was a bit too big-gish"
 
@@ -201,7 +201,7 @@ Error messages must be written with translation in mind. Clever wordplay, idioms
 
 ### Pluralization
 
-Different languages have different plural rules. English has two forms (1 item, 2 items). Russian has three. Arabic has six. Use ICU message format or a localization library that handles plural rules:
+Different languages have different plural rules. English has two forms (1 item, 2 items). Russian has three for whole numbers (CLDR adds a fourth category, `other`, for fractions). Arabic has six. Use ICU message format or a localization library that handles plural rules:
 
 ```
 {count, plural,

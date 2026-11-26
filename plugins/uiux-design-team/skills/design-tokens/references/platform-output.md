@@ -279,13 +279,13 @@ This format can be consumed by Figma plugins, Sketch libraries, or custom design
 
 | Transform Group | Platforms | What It Does |
 |----------------|-----------|-------------|
-| `css` | Web (CSS) | kebab-case names, px values |
-| `scss` | Web (SCSS) | kebab-case with $ prefix, px values |
-| `less` | Web (Less) | kebab-case with @ prefix |
+| `css` | Web (CSS) | kebab-case names, unitless sizes to rem, CSS colors |
+| `scss` | Web (SCSS) | Same transforms as `css`; the `$` prefix comes from the `scss/variables` format |
+| `less` | Web (Less) | As `css` but hex colors; the `@` prefix comes from the `less/variables` format |
 | `ios-swift` | iOS | camelCase, UIColor/CGFloat values |
 | `android` | Android | snake_case, dp/sp units |
 | `compose` | Android | camelCase, Compose types |
-| `react-native` | React Native | camelCase, number values |
+| `react-native` | React Native | camelCase, sizes as `{ original, number, decimal, scale }` objects |
 
 ### Custom Formatters
 
@@ -341,7 +341,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 20 }
+        with: { node-version: 22 }
       - run: npm ci
       - run: npm run build          # style-dictionary build
       - run: npm test               # validate output
@@ -353,7 +353,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           registry-url: 'https://registry.npmjs.org'
       - run: npm ci && npm run build
       - run: npm publish

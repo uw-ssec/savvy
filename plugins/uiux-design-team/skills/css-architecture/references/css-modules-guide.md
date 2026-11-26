@@ -68,7 +68,7 @@ Most modern tools support CSS Modules out of the box when files end in `.module.
 
 - **Vite**: Zero configuration. Any `.module.css` file is treated as a CSS Module.
 - **Next.js**: Zero configuration. Built-in CSS Module support.
-- **webpack**: Requires `css-loader` with `modules: true` option.
+- **webpack**: `css-loader` enables CSS Modules for `*.module.*` files by default (its `modules` option defaults to auto-detection by filename); set `modules: true` only to opt in other files.
 
 ## Framework Integration
 
@@ -245,7 +245,7 @@ Sometimes you need to target elements outside the local scope: third-party compo
   width: 1px;
   height: 1px;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
 }
 ```
 
@@ -308,17 +308,17 @@ Theme switching happens at the CSS custom property level, not at the module leve
 ```css
 /* tokens.css */
 :root {
-  --color-primary: #3b82f6;
+  --color-primary: #2563eb;
   --radius-sm: 0.25rem;
 }
 
 [data-brand="finance"] {
-  --color-primary: #059669;
+  --color-primary: #047857;
   --radius-sm: 0;
 }
 
 [data-brand="creative"] {
-  --color-primary: #8b5cf6;
+  --color-primary: #7c3aed;
   --radius-sm: 1rem;
 }
 ```

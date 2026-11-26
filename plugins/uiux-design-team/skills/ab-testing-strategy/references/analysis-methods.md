@@ -249,7 +249,7 @@ A result can be statistically significant but practically meaningless. Always ev
 
 ### Peeking (Repeated Significance Testing)
 
-Checking results daily and stopping when p < 0.05 inflates the false positive rate far beyond 5%. Over a typical 30-day test with daily checks, the actual false positive rate can exceed 30%.
+Checking results daily and stopping when p < 0.05 inflates the false positive rate far beyond 5%. Over a typical 30-day test with daily checks, the actual false positive rate is roughly 28%.
 
 **Mitigation:** Use sequential testing methods or commit to a fixed sample size.
 
@@ -297,7 +297,7 @@ This happens when Variant received disproportionately more mobile traffic.
 **Confidence interval** — the range within which the true effect likely falls. A 95% CI that does not cross zero indicates significance.
 
 **Why you must not peek at results early:**
-- Checking results multiple times during a test inflates the false-positive rate. Checking 10 times at α=0.05 pushes the actual false-positive rate near 40%.
+- Checking results multiple times during a test inflates the false-positive rate. Checking 10 times at α=0.05 pushes the actual false-positive rate to about 19%.
 - Decide sample size and duration before launch. Analyze only when complete.
 - If interim monitoring is required, use sequential testing methods (Bayesian or group sequential designs) that account for multiple looks.
 

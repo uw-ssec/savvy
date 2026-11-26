@@ -41,7 +41,8 @@ Simplified for common use:
 ```css
 /* Scale from 16px at 320px viewport to 24px at 1280px viewport */
 /* Rate: (24 - 16) / (1280 - 320) = 8 / 960 = 0.833vw */
-font-size: clamp(1rem, 0.667rem + 0.833vw, 1.5rem);
+/* Intercept: 16px - 0.00833 × 320px = 13.33px = 0.833rem */
+font-size: clamp(1rem, 0.833rem + 0.833vw, 1.5rem);
 ```
 
 ### Fluid Type Scale

@@ -1,6 +1,6 @@
 # WCAG Checklist
 
-Complete WCAG 2.2 Level A and AA success criteria organized by POUR principle (Perceivable, Operable, Understandable, Robust). Each criterion includes a description, common failure, fix example, and testing method for systematic accessibility compliance verification.
+Core WCAG 2.2 Level A and AA success criteria organized by POUR principle (Perceivable, Operable, Understandable, Robust). Each criterion includes a description, common failure, fix example, and testing method for systematic accessibility compliance verification.
 
 ## Table of Contents
 
@@ -224,7 +224,7 @@ Information and the operation of the user interface must be understandable.
 
 ### 3.3.1 Error Identification (Level A)
 
-**Requirement**: Input errors are automatically detected and described to the user in text.
+**Requirement**: When an input error is automatically detected, the field in error is identified and the error is described to the user in text.
 
 **Common failure**: Error indicated only by red border with no text message. Generic "Form has errors" without identifying which field.
 
@@ -256,7 +256,7 @@ Information and the operation of the user interface must be understandable.
 
 **Requirement**: Authentication does not require cognitive function tests (puzzles, memory) unless alternatives exist.
 
-**Common failure**: CAPTCHA puzzles without audio or alternative options. Password-only login without passkey or autofill support.
+**Common failure**: CAPTCHA puzzles without audio or alternative options. Password fields that block paste or password-manager autofill.
 
 **Fix**: Support password managers (do not block paste). Provide passkey/biometric alternatives. Use accessible CAPTCHA alternatives.
 

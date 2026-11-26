@@ -115,7 +115,7 @@ If we replace the hamburger menu with a visible bottom
 then daily active feature breadth (number of distinct sections
   visited per session) will increase by 25-30%
 because mobile usability research (NNGroup) shows that hidden
-  navigation reduces discoverability by 50%,
+  navigation reduces content discoverability by more than 20%,
   and our analytics show 78% of sessions never open the hamburger menu.
 ```
 

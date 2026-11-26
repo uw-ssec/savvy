@@ -37,7 +37,7 @@ Examples of notes that are too broad (split them):
 **Step 5 -- Merge and split.** Review each cluster:
 - If a cluster has more than 15 notes, it may contain sub-themes. Split it.
 - If two clusters overlap significantly, merge them.
-- If a cluster has fewer than 3 notes, it may be an outlier. Keep it visible but do not over-index on it.
+- If a cluster has fewer than 3 notes, or its notes come from only one participant, it is not yet a theme. Move it to a "parking lot": keep it visible but do not over-index on it.
 
 **Step 6 -- Prioritize.** Not all themes are equal. Rank clusters by:
 - Frequency: How many participants mentioned this?

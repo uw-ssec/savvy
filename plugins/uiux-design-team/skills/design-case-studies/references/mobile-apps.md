@@ -162,9 +162,9 @@ Touch targets must be large enough for imprecise finger input. Standards and bes
 
 | Guideline | Minimum Size | Recommended Size | Spacing |
 |-----------|-------------|-----------------|---------|
-| Apple HIG | 44x44pt | 44x44pt or larger | 8pt between targets |
+| Apple HIG | 44x44pt | 44x44pt or larger | About 12pt of padding around bezeled controls, 24pt around borderless ones |
 | Material Design | 48x48dp (touch target) | 48x48dp | 8dp between targets |
-| WCAG 2.5.8 | 44x44 CSS px | 44x44 CSS px | No overlap with adjacent targets |
+| WCAG 2.5.8 Target Size (Minimum), AA | 24x24 CSS px | 44x44 CSS px (2.5.5 Target Size (Enhanced), AAA) | Smaller targets pass if a 24px circle centered on each doesn't intersect another target or its circle |
 
 **Common violations:**
 

@@ -59,7 +59,7 @@ Tinder replaced the entire dating interaction model with a single binary gesture
 
 ### The Business Impact
 
-The result is **1.6 billion swipes per day**. That is more daily swipes than the total number of new app downloads across all app stores in an entire week. All from one simple gesture that triggers the perfect addiction loop.
+The result is **1.6 billion swipes per day**. All from one simple gesture that triggers the perfect addiction loop.
 
 ### Principle Mapping
 

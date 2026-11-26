@@ -44,7 +44,7 @@ An Element is a part of a Block that has no standalone meaning. Elements are sem
 .search-form__button { }
 ```
 
-Elements belong to exactly one block. Never write `.card__body__text` -- Svelte's `card__body` is the block-level context for `text`, but in BEM the convention is to flatten: use `.card__text` instead of nesting elements within elements.
+Elements belong to exactly one block. Never write `.card__body__text` -- even when `text` sits inside `card__body` in the DOM, BEM flattens element names: use `.card__text` instead of nesting elements within elements.
 
 ### Modifier
 
@@ -72,7 +72,7 @@ Modifiers are always used alongside the base class, never alone:
 
 ### Specificity Benefit
 
-Every BEM selector is a single class with specificity 0-1-0. No nesting, no IDs, no element qualifiers. This means the cascade is resolved by source order alone, which is predictable and maintainable.
+A BEM selector is a single class with specificity 0-1-0. No nesting, no IDs, no element qualifiers. This means the cascade is resolved by source order alone, which is predictable and maintainable. The one exception is a modifier context such as `.card--compact .card__title` (0-2-0, see Compiled Output below).
 
 ## File Organization
 

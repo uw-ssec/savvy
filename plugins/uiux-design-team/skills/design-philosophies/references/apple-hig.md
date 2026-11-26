@@ -15,7 +15,7 @@ A comprehensive reference on Apple's Human Interface Guidelines covering core pr
 
 ## Core Principles
 
-Apple's Human Interface Guidelines are built on three foundational principles that inform every design decision across all Apple platforms.
+Clarity, Deference, and Depth are the three themes Apple introduced with the iOS 7 Human Interface Guidelines. The current HIG no longer lists them by name, but they still describe the approach behind Apple's platforms.
 
 ### Clarity
 
@@ -45,7 +45,7 @@ Apple's 2025 Liquid Glass design language, introduced at WWDC 2025, represents t
 
 **Adaptive tinting:** Liquid Glass surfaces pick up the dominant color of the content behind them. A music player with blue album art tints the navigation bar blue. A photo app scrolling through green landscape photos tints the toolbar green. This creates a dynamic, contextually responsive interface.
 
-**Spectral highlights:** Glass surfaces feature subtle light reflections that respond to device tilt (on devices with motion sensors) or simulate ambient lighting. These highlights reinforce the glass metaphor and add a visceral layer of visual richness.
+**Specular highlights:** Glass surfaces feature subtle light reflections that respond to device movement (on devices with motion sensors) or simulate ambient lighting. These highlights reinforce the glass metaphor and add a visceral layer of visual richness.
 
 **Unified system UI:** Liquid Glass creates visual continuity across all Apple platforms and apps. The system controls, navigation elements, and toolbars share the glass treatment, creating a consistent experience regardless of the app.
 
@@ -120,7 +120,7 @@ Create custom symbols using the SF Symbols template in Sketch, Figma, or Illustr
 
 **Navigation patterns:** Tab bar at the bottom for top-level navigation (maximum 5 items). Navigation stack (back button) for hierarchical drilling. Modal sheets for interrupting workflows. Avoid hamburger menus -- they hide navigation and reduce discoverability.
 
-**Touch targets:** Minimum 44x44 points. The system components handle this automatically; custom components must enforce it. Apply generous padding to interactive elements that are visually small.
+**Touch targets:** 44x44 points (the HIG's default control size; 28x28 points is the minimum). The system components handle this automatically; custom components must enforce it. Apply generous padding to interactive elements that are visually small.
 
 **Safe areas:** Respect safe area insets for the notch, Dynamic Island, home indicator, and rounded corners. Use `safeAreaInset` in SwiftUI or `safeAreaLayoutGuide` in UIKit. Never clip content behind system UI elements.
 
@@ -144,11 +144,11 @@ Create custom symbols using the SF Symbols template in Sketch, Figma, or Illustr
 
 **Glanceability:** watchOS interfaces must communicate in 2-3 seconds. Users glance at their watch, not study it. Use large text, minimal content, and high-contrast colors.
 
-**Complications:** Design watch face complications that show the most critical information at a glance. Support all complication families (circular, rectangular, inline).
+**Complications:** Design watch face complications that show the most critical information at a glance. Support all complication families (circular, corner, inline, rectangular).
 
 **Digital Crown:** The Digital Crown is watchOS's primary scrolling mechanism. Design scrollable content in single-axis lists. Support crown-based selection where appropriate.
 
-**Tap targets:** Minimum 38 points on watch. The smaller screen demands fewer, larger interactive elements. Two or three actions per screen is usually the maximum.
+**Tap targets:** 44x44 points by default, 28x28 points minimum on watch (the same as iOS). The smaller screen demands fewer, larger interactive elements. Two or three actions per screen is usually the maximum.
 
 **Notifications:** Design short-look and long-look notification layouts. Short-look appears briefly and must communicate the core information in one line. Long-look provides additional detail and action buttons.
 

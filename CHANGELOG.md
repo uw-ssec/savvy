@@ -61,6 +61,8 @@ Changes that touch no plugin — CI, repository documentation, tooling — go un
 #### Fixed
 
 - Fixed broken rioxarray and Geocube documentation links in the README, refs #249.
+- Fixed inaccurate guidance and examples that fail on current releases in the `astropy-fundamentals` skill: `fits.open()` already memory-maps by default, `AltAz` without a location raises `AttributeError`, subtracting UTC from TAI for the same instant gives 0 s, and examples now use `get_body`, `u.uJy`, `Spectrum`, the photutils 2.x/3.x PSF classes and column names, and the `(correlation, lag)` return of `template_correlate`.
+- Fixed `xarray-for-multidimensional-data` examples that fail on pandas 3 and current xarray: month- and year-end frequency aliases (`"ME"`, `"YE"`), the `DataTree` constructor and `group_subtrees` usage, `scipy.signal.detrend`, `xr.date_range(..., use_cftime=True)`, and broken ensemble, decomposition, zonal-mean, and raster-trend examples.
 
 ### scientific-python-development
 

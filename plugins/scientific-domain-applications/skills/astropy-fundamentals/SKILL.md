@@ -90,13 +90,13 @@ Detailed patterns and code for each module are in `references/patterns.md`.
 | `astropy.table` | `Table`, `QTable`, `join()` | Table Patterns |
 | `astropy.wcs` | `WCS`, `Cutout2D` | WCS Patterns |
 | `photutils` | `DAOStarFinder`, `CircularAperture`, `aperture_photometry()` | Photometry Patterns |
-| `specutils` | `Spectrum1D`, `fit_lines`, `fit_generic_continuum` | Spectroscopy Patterns |
+| `specutils` | `Spectrum` (`Spectrum1D` before specutils 2.0), `fit_lines`, `fit_generic_continuum` | Spectroscopy Patterns |
 
 Non-obvious gotchas per module (things Claude won't assume you know):
-- **FITS**: `fits.open()` without `memmap=True` loads the whole file into RAM — always use `memmap=True` for files > a few hundred MB.
+- **FITS**: `fits.open()` already memory-maps uncompressed files by default (`memmap=None` defers to the `use_memmap` config, which is `True`). Scaled data (`BZERO`/`BSCALE`, e.g. uint16 images) is the exception: by default it is read into memory on access, and an explicit `memmap=True` raises `ValueError` instead. Memory also blows up when you `.copy()`/`.astype()` the whole array — slice first, or pass `do_not_scale_image_data=True` to keep scaled data memory-mapped.
 - **Units**: NumPy ufuncs generally preserve units, but third-party functions often strip them silently — check with `isinstance(result, u.Quantity)`.
-- **Coordinates**: `AltAz` requires both `obstime=` and `location=` or it raises `CoordinateFrameError` at transform time, not at construction time.
-- **Time**: `UTC` and `TAI` differ by the current leap-second count (~37 s as of 2024). Subtracting two `Time` objects in different scales gives a non-zero `TimeDelta`. Convert to the same scale first.
+- **Coordinates**: `AltAz` requires both `obstime=` and `location=`; constructing the frame without them succeeds, and the transform then fails with an unhelpful `AttributeError` (`'NoneType' object has no attribute ...`) rather than a clear frame error.
+- **Time**: `UTC` and `TAI` clock readings differ by the current leap-second count (37 s since 2017). Subtracting two `Time` objects converts them to a common scale first, so `t.tai - t` is `0 s` — they are the same instant. To see the offset, compare clock readings, e.g. `t.tai.datetime - t.datetime`.
 - **WCS**: `all_pix2world(x, y, 0)` uses Python 0-based convention; `all_pix2world(x, y, 1)` uses FITS 1-based convention. Mixing these off by one is a common silent error.
 - **Photutils**: `aperture_photometry()` does not subtract background — always subtract background separately or use `CircularAnnulus` for local background.
 
@@ -120,7 +120,7 @@ from photutils.aperture import CircularAperture, CircularAnnulus, aperture_photo
 from photutils.background import Background2D, MedianBackground
 
 # ── Step 1: Load ────────────────────────────────────────────────────────────
-with fits.open('image.fits', memmap=True) as hdul:
+with fits.open('image.fits') as hdul:  # memory-mapped by default
     image = hdul[0].data.astype(float)
     header = hdul[0].header
     wcs = WCS(header)
@@ -150,7 +150,7 @@ assert sources is not None, "No sources detected — lower threshold or check ba
 print(f"Detected {len(sources)} sources")
 
 # ── Step 4: Aperture photometry ───────────────────────────────────────────────
-positions = np.transpose([sources['xcentroid'], sources['ycentroid']])
+positions = np.transpose([sources['x_centroid'], sources['y_centroid']])  # photutils >= 3.0 names
 apertures = CircularAperture(positions, r=5.0)
 annuli    = CircularAnnulus(positions, r_in=10.0, r_out=15.0)
 
@@ -165,7 +165,7 @@ neg_frac = (flux < 0).sum() / len(flux)
 print(f"Negative-flux fraction: {neg_frac:.1%}  (expect < 5%)")
 
 # ── Step 5: Sky coordinates + output catalog ─────────────────────────────────
-sky = wcs.pixel_to_world(phot['xcenter'], phot['ycenter'])
+sky = wcs.pixel_to_world(phot['x_center'], phot['y_center'])
 
 catalog = QTable()
 catalog['ra']    = sky.ra

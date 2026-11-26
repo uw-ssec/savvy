@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 ds = xr.open_dataset("global_temperature.nc", chunks={"time": 365})
 
 # Calculate annual mean temperature
-annual_mean = ds["temperature"].resample(time="1Y").mean()
+annual_mean = ds["temperature"].resample(time="1YE").mean()
 
 # Calculate global mean (area-weighted)
 weights = np.cos(np.deg2rad(ds.lat))
@@ -105,18 +105,18 @@ plt.title("Temperature Profile at Equator")
 **Compare and analyze multiple climate model outputs:**
 ```python
 import xarray as xr
+import numpy as np
 import glob
 
 # Load multiple model outputs
 model_files = glob.glob("models/model_*.nc")
 models = [xr.open_dataset(f, chunks={"time": 365}) for f in model_files]
 
-# Add model dimension
-for i, ds in enumerate(models):
-    ds["model"] = i
+# Add model coordinate (a scalar coord becomes the new dimension in concat)
+models = [ds.assign_coords(model=i) for i, ds in enumerate(models)]
 
 # Concatenate into single dataset
-ensemble = xr.concat(models, dim="model")
+ensemble = xr.concat(models, dim="model")["temperature"]  # one variable as a DataArray
 
 # Calculate ensemble mean and spread
 ensemble_mean = ensemble.mean(dim="model")
@@ -132,7 +132,7 @@ agreement = (np.sign(change) == np.sign(change.mean(dim="model"))).sum(dim="mode
 
 # Identify robust changes (high agreement and large magnitude)
 robust_change = change.mean(dim="model").where(
-    (agreement > 0.8) & (np.abs(change.mean(dim="model")) > ensemble_std.mean(dim="model"))
+    (agreement > 0.8) & (np.abs(change.mean(dim="model")) > ensemble_std.mean(dim="time"))
 )
 
 # Save results
@@ -171,7 +171,7 @@ residual = anomaly.groupby("time.month") - seasonal
 decomposition = xr.Dataset({
     "original": ds["temperature"],
     "trend": trend,
-    "seasonal": seasonal.rename({"month": "time"}),
+    "seasonal": seasonal.sel(month=ds["time.month"]).drop_vars("month"),  # back onto time
     "residual": residual
 })
 
@@ -212,7 +212,7 @@ import pandas as pd
 # Each model has different resolutions and multiple variables
 
 # Create time coordinate (shared across all models)
-time = pd.date_range("2020-01-01", "2050-12-31", freq="1M")
+time = pd.date_range("2020-01-01", "2050-12-31", freq="1ME")
 
 # Model 1: High resolution (2° x 2°)
 lat_high = np.linspace(-90, 90, 90)
@@ -334,7 +334,7 @@ print(f"Loaded tree with {len(list(loaded_tree.subtree))} nodes")
 high_res_models = ensemble_tree["models"].filter(
     lambda node: node.ds.attrs.get("resolution") == "2deg"
 )
-print(f"\nHigh resolution models: {[n.name for n in high_res_models]}")
+print(f"\nHigh resolution models: {list(high_res_models.children)}")
 ```
 
 ## Example 7: Geospatial Satellite Data Processing with rioxarray
@@ -426,7 +426,7 @@ print(f"\nNDVI 2020 range: {ndvi_2020.min().values:.3f} to {ndvi_2020.max().valu
 
 # Create time series
 ndvi_timeseries = xr.concat([ndvi_2020, ndvi_2021, ndvi_2022], dim="time")
-ndvi_timeseries["time"] = pd.date_range("2020-07-01", periods=3, freq="1Y")
+ndvi_timeseries["time"] = pd.date_range("2020-07-01", periods=3, freq="1YE")
 ndvi_timeseries = ndvi_timeseries.rio.write_crs(scene_2020.rio.crs)
 
 # Reproject to WGS84 (lat/lon) for visualization
@@ -459,11 +459,11 @@ print(f"Vegetation loss: {vegetation_loss.sum().values} pixels")
 # Calculate zonal statistics (by latitude zones)
 # Create latitude zones
 lat_zones = ndvi_wgs84.y // 0.5  # 0.5 degree zones
-zonal_mean = ndvi_wgs84.groupby(lat_zones).mean()
+zonal_mean = ndvi_wgs84.groupby(lat_zones).mean(dim=...)  # one value per zone
 
 print("\nMean NDVI by latitude zone:")
 for zone, mean_val in zonal_mean.groupby("y"):
-    print(f"  Zone {zone}: {mean_val.values:.3f}")
+    print(f"  Zone {zone}: {mean_val.item():.3f}")  # groups keep a length-1 dim
 
 # Regrid to coarser resolution for faster processing
 from rasterio.enums import Resampling

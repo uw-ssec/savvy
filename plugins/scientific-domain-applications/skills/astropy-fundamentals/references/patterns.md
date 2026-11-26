@@ -105,7 +105,7 @@ def propagate_header(input_fits, output_data, output_fits, preserve_keys=None):
 def process_large_fits(filename, chunk_size=1000):
     """Process large FITS file in chunks to manage memory."""
 
-    with fits.open(filename, memmap=True) as hdul:
+    with fits.open(filename) as hdul:  # memory-mapped by default
         data = hdul[0].data
         nrows, ncols = data.shape
 
@@ -125,7 +125,7 @@ def process_large_fits(filename, chunk_size=1000):
 def mmap_fits_processing(filename):
     """Process FITS using memory mapping."""
 
-    hdul = fits.open(filename, memmap=True, mode='update')
+    hdul = fits.open(filename, mode='update')
 
     # Modify in place (changes written to disk)
     hdul[0].data *= 2.0
@@ -247,7 +247,7 @@ def create_source_catalog():
     sources['id'] = [1, 2, 3]
     sources['ra'] = [10.5, 20.3, 30.1] * u.deg
     sources['dec'] = [5.2, -15.7, 45.3] * u.deg
-    sources['flux'] = [123.4, 456.7, 789.0] * u.microJy
+    sources['flux'] = [123.4, 456.7, 789.0] * u.uJy
     sources['distance'] = [10.0, 25.0, 50.0] * u.parsec
 
     # Units preserved through operations
@@ -340,7 +340,7 @@ def find_all_matches_within_radius(target, catalog, radius=5*u.arcsec):
 ### Observer-Dependent Coordinates
 
 ```python
-from astropy.coordinates import EarthLocation, AltAz, get_sun, get_moon
+from astropy.coordinates import EarthLocation, AltAz, get_sun, get_body
 from astropy.time import Time
 import astropy.units as u
 
@@ -355,7 +355,7 @@ def calculate_observability(target_coord, location, time):
 
     # Get sun and moon positions
     sun_altaz = get_sun(time).transform_to(altaz_frame)
-    moon_altaz = get_moon(time).transform_to(altaz_frame)
+    moon_altaz = get_body('moon', time, location).transform_to(altaz_frame)
 
     # Calculate separations
     sun_sep = target_altaz.separation(sun_altaz)
@@ -392,8 +392,9 @@ star = SkyCoord(
     obstime='J2000'
 )
 
-# Propagate to different epoch
-new_epoch = '2024-01-01'
+# Propagate to different epoch (new_obstime must be a Time, not a string)
+from astropy.time import Time
+new_epoch = Time('2024-01-01')
 star_2024 = star.apply_space_motion(new_obstime=new_epoch)
 
 print(f"Position at J2000: RA={star.ra}, Dec={star.dec}")
@@ -412,8 +413,11 @@ import astropy.units as u
 t_utc = Time('2024-01-01T00:00:00', format='isot', scale='utc')
 t_tai = t_utc.tai
 
-# Difference accounts for leap seconds
-print(f"TAI - UTC = {(t_tai - t_utc).sec} seconds")
+# Same instant, so the Time difference is zero: subtraction converts scales first
+print(f"t_tai - t_utc = {(t_tai - t_utc).sec} seconds")  # 0.0
+
+# The leap-second offset shows up in the clock readings
+print(f"TAI - UTC = {(t_tai.datetime - t_utc.datetime).total_seconds()} seconds")  # 37.0
 
 # Barycentric time for exoplanet observations
 from astropy.coordinates import SkyCoord, EarthLocation
@@ -532,7 +536,7 @@ import astropy.units as u
 tbl = QTable()
 tbl['ra'] = [10.0, 20.0] * u.deg
 tbl['dec'] = [5.0, -15.0] * u.deg
-tbl['flux'] = [100.0, 200.0] * u.microJy
+tbl['flux'] = [100.0, 200.0] * u.uJy
 
 # Add column descriptions
 tbl['ra'].description = 'Right Ascension (J2000)'
@@ -671,57 +675,60 @@ cutout_img, cutout_wcs = extract_cutout_with_wcs(image, wcs, center, size)
 ### PSF Photometry
 
 ```python
-from photutils.psf import IntegratedGaussianPRF, DAOPhotPSFPhotometry
+# photutils >= 2.0 API (IntegratedGaussianPRF and DAOPhotPSFPhotometry were removed)
+from photutils.psf import CircularGaussianSigmaPRF, PSFPhotometry, SourceGrouper
+from photutils.detection import DAOStarFinder
 from photutils.background import MMMBackground, MADStdBackgroundRMS
-from astropy.modeling.fitting import LevMarLSQFitter
+from astropy.modeling.fitting import TRFLSQFitter
 
-# Estimate background
+# Estimate background (PSFPhotometry expects background-subtracted data)
 bkg_estimator = MMMBackground()
 bkgrms_estimator = MADStdBackgroundRMS()
+data = image_data - bkg_estimator(image_data)
+threshold = 5.0 * bkgrms_estimator(image_data)
 
 # Define PSF model
-psf_model = IntegratedGaussianPRF(sigma=2.0)
+psf_model = CircularGaussianSigmaPRF(sigma=2.0)
 
 # Fitter
-fitter = LevMarLSQFitter()
+fitter = TRFLSQFitter()
 
-# PSF photometry
-photometry = DAOPhotPSFPhotometry(
-    crit_separation=10,
-    threshold=5.0,
-    fwhm=4.0,
-    psf_model=psf_model,
-    fitshape=(11, 11),
+# PSF photometry; sources closer than min_separation are fit simultaneously
+photometry = PSFPhotometry(
+    psf_model,
+    fit_shape=(11, 11),
+    finder=DAOStarFinder(threshold=threshold, fwhm=4.0),
+    grouper=SourceGrouper(min_separation=10),
     fitter=fitter,
     aperture_radius=5.0
 )
 
 # Perform photometry
-result_tab = photometry(image=image_data)
+result_tab = photometry(data)
 ```
 
 ### Grouped Source Photometry
 
 ```python
-from photutils import DAOStarFinder
-from photutils.psf import IterativelySubtractedPSFPhotometry
-from photutils.background import MMMBackground
+from photutils.detection import DAOStarFinder
+from photutils.psf import IterativePSFPhotometry, SourceGrouper
 
 # Find sources
-finder = DAOStarFinder(threshold=5.0, fwhm=3.0)
-sources = finder(image_data - np.median(image_data))
+finder = DAOStarFinder(threshold=threshold, fwhm=3.0)
+sources = finder(data)
 
 # Iteratively fit and subtract sources
-photometry = IterativelySubtractedPSFPhotometry(
+photometry = IterativePSFPhotometry(
+    psf_model,
+    fit_shape=(11, 11),
     finder=finder,
-    psf_model=psf_model,
+    grouper=SourceGrouper(min_separation=10),
     fitter=fitter,
-    fitshape=(11, 11),
     aperture_radius=5.0
 )
 
-result = photometry(image_data)
-residual_image = photometry.get_residual_image()
+result = photometry(data)
+residual_image = photometry.make_residual_image(data)
 ```
 
 ## Spectroscopy Patterns
@@ -729,7 +736,7 @@ residual_image = photometry.get_residual_image()
 ### Spectral Line Fitting
 
 ```python
-from specutils import Spectrum1D
+from specutils import Spectrum  # Spectrum1D before specutils 2.0
 from specutils.fitting import fit_lines
 from astropy.modeling import models
 import astropy.units as u
@@ -770,17 +777,19 @@ fitted_poly = fit_generic_continuum(spectrum, model=poly_continuum)
 ### Redshift Measurement
 
 ```python
+import numpy as np
+from astropy import constants as const
 from specutils.analysis import template_correlate
-from specutils import Spectrum1D
+from specutils import Spectrum
 
 # Cross-correlate with template
-observed_spectrum = Spectrum1D.read('observed_spec.fits')
-template_spectrum = Spectrum1D.read('template_spec.fits')
+observed_spectrum = Spectrum.read('observed_spec.fits')
+template_spectrum = Spectrum.read('template_spec.fits')
 
-# Calculate redshift
-result = template_correlate(observed_spectrum, template_spectrum)
-redshift = result[0]
-redshift_error = result[2]
+# template_correlate returns (correlation, lag); lag is a velocity in km/s
+corr, lag = template_correlate(observed_spectrum, template_spectrum)
+velocity = lag[np.argmax(corr)]
+redshift = (velocity / const.c).decompose().value  # lag is c*z (optical convention)
 
-print(f"Redshift: {redshift:.4f} +/- {redshift_error:.4f}")
+print(f"Redshift: {redshift:.4f}")
 ```

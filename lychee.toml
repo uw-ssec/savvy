@@ -27,6 +27,12 @@ exclude = [
     # Loads fine in a browser (and via curl), but resets the connection for
     # lychee's client specifically, even with a browser user-agent. #249.
     "^https://vizier\\.cds\\.unistra\\.fr/$",
+    # Valid certificate (Let's Encrypt YR2, root "ISRG Root YR") that curl and
+    # browsers accept, but lychee on GitHub runners rejects as UnknownIssuer.
+    "^https://www\\.softwareheritage\\.org/$",
+    # Same CDS service as VizieR. Connection fails from GitHub runners, and
+    # the hostname didn't resolve via public DNS on 2026-11-25. #249.
+    "^https?://simbad\\.cds\\.unistra\\.fr/$",
     # README DOI badge: Zenodo returns 404 until the first release is archived.
     # Delete these lines after the first release.
     "^https://zenodo\\.org/badge/1091290859\\.svg$",
